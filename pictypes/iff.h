@@ -19,6 +19,16 @@
 #define	dIFF_CRNG_ID		mSTRING_TO_U32( 'C', 'R', 'N', 'G' )
 #define	dIFF_FORM_ID		mSTRING_TO_U32( 'F', 'O', 'R', 'M' )
 #define	dIFF_ILBM_ID		mSTRING_TO_U32( 'I', 'L', 'B', 'M' )
+#define	dIFF_VDAT_ID		mSTRING_TO_U32( 'V', 'D', 'A', 'T' )
+
+#define dIFF_COMP_NONE		0
+#define dIFF_COMP_BYTERUN1	1
+#define dIFF_COMP_VDAT		2
+
+#define dIFF_RGB8_TO_STE(r,g,b) \
+	((U16)(((((U16)(r)) << 3) & 0x700) | ((((U16)(r)) << 7) & 0x800) | \
+	((((U16)(g)) >> 1) & 0x70) | ((((U16)(g)) << 3) & 0x80) | \
+	((((U16)(b)) >> 5) & 0x7) | ((((U16)(b)) >> 1) & 0x8)))
 
 
 /* ###################################################################################
@@ -102,6 +112,40 @@ typedef	struct
 	U32	mLength;
 	U8	mPixels[ 1 ];
 } sIffBodyChunk;
+
+
+typedef	struct
+{
+	U16			mWidth;
+	U16			mHeight;
+	U16			mX;
+	U16			mY;
+	U8			mPlaneCount;
+	U8			mMask;
+	U8			mCompressedFlag;
+	U8			mTransparentColourIndex;
+	U8			mAspectX;
+	U8			mAspectY;
+	U16			mPageWidth;
+	U16			mPageHeight;
+	U32			mViewportMode;
+	const U8 *	mpBody;
+	U32			mBodyLength;
+	const sIffColour * mpCmap;
+	U16			mColourCount;
+} sIffIlbm;
+
+
+/* ###################################################################################
+#  PROTOTYPES
+################################################################################### */
+
+U8		Iff_ILBM_Parse( const void * apIff, sIffIlbm * apIlbm );
+U16		Iff_RGB8ToSTE( const U8 aR, const U8 aG, const U8 aB );
+U16		Iff_ILBM_CmapToSTE( const sIffIlbm * apIlbm, U16 * apPalette, const U16 aColourLimit );
+U8		Iff_ILBM_DecodeToSTLow( const sIffIlbm * apIlbm, void * apDst );
+
+void	Iff_Interleave4PlaneLine( const U8 * apSrc, void * apDst, const U16 aWordCount );
 
 
 /* ################################################################################ */

@@ -426,12 +426,9 @@ void	Fade_PalFalcon( U32 * apDest, U32 * apSrc, U32 * apTarget, U16 aColourCount
 		lG0 &=0xFF;
 		lB0 &=0xFF;
 
-		lR0 <<= 24;
-		lG0 <<= 16;
-
-		apDest[ i ] = lR0 | lG0 | lB0;
+		apDest[ i ] = ((U32)lR0 << 24) | ((U32)lG0 << 16) | (U32)lB0;
 	}
-}
+	}
 
 
 

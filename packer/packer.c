@@ -14,6 +14,7 @@
 
 #include	"packer.h"
 #include	"godpack.h"
+#include	"rnc.h"
 
 
 /* ###################################################################################
@@ -78,6 +79,14 @@ ePacker	Packer_GetType( sPackerHeader * apHeader )
 	{
 		return( ePACKER_GODPACK );
 	}
+	if( lName == mSTRING_TO_U32( 'R', 'N', 'C', '1' ) )
+	{
+		return( ePACKER_RNC );
+	}
+	if( lName == mSTRING_TO_U32( 'R', 'N', 'C', '2' ) )
+	{
+		return( ePACKER_RNC );
+	}
 	return( ePACKER_NONE );
 }
 
@@ -114,6 +123,10 @@ U32		Packer_GetDepackSize( sPackerHeader * apHeader )
 
 	case	ePACKER_GODPACK:
 		Endian_ReadBigU32_Unaligned( &apHeader->m3, lSize );
+		break;
+
+	case	ePACKER_RNC:
+		lSize = Rnc_GetDepackSize( apHeader );
 		break;
 
 	default:
@@ -153,6 +166,10 @@ void	Packer_Depack( void * apSrc, void * apDst )
 		GodPack_DePack( apSrc, apDst );
 		break;
 
+	case ePACKER_RNC:
+		Rnc_Depack( apSrc, apDst );
+		break;
+
 	default:
 		break;
 	}
@@ -166,6 +183,10 @@ U32		Packer_GetHeaderSize( sPackerHeader * apHeader )
 	{
 	case ePACKER_GODPACK:
 		lSize = sizeof(sGodPackHeader);
+		break;
+
+	case ePACKER_RNC:
+		lSize = Rnc_GetHeaderSize( apHeader );
 		break;
 
 	default:

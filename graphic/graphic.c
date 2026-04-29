@@ -46,7 +46,7 @@ extern	void  Graphic_4BP_Blit(         struct sGraphicCanvas * apCanvas,  sGraph
 extern	void  Graphic_4BP_ClearScreen(  struct sGraphicCanvas * apCanvas );
 extern	void  Graphic_4BP_CopyScreen(   struct sGraphicCanvas * apCanvas, void * apSrc );
 extern	void  Graphic_4BP_DrawBox(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -54,7 +54,7 @@ extern	void  Graphic_4BP_DrawQuad(     struct sGraphicCanvas * apCanvas,  sGraph
 
 extern	void  Graphic_4BP_Blit_Clip(         struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect, struct sGraphicCanvas * apSrc	) ;
 extern	void  Graphic_4BP_DrawBox_Clip(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_Clip(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_Clip(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_Clip(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_Clip(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_Clip(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -64,7 +64,7 @@ extern	void  Graphic_4BP_Blit_BLT(         struct sGraphicCanvas * apCanvas,  sG
 extern	void  Graphic_4BP_ClearScreen_BLT(  struct sGraphicCanvas * apCanvas );
 extern	void  Graphic_4BP_CopyScreen_BLT(   struct sGraphicCanvas * apCanvas, void * apSrc );
 extern	void  Graphic_4BP_DrawBox_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_BLT(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_BLT(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -72,7 +72,7 @@ extern	void  Graphic_4BP_DrawQuad_BLT(     struct sGraphicCanvas * apCanvas,  sG
 
 extern	void  Graphic_4BP_Blit_Clip_BLT(         struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect, struct sGraphicCanvas * apSrc	);
 extern	void  Graphic_4BP_DrawBox_Clip_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_Clip_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_Clip_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_Clip_BLT(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_Clip_BLT(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_Clip_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -98,10 +98,11 @@ void	Graphic_Init( void )
 /*
 	if( BLT_BLITTER == System_GetBLT() )
 	{
-		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit;
+		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_BLT;
+		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_BLT;
 
@@ -109,6 +110,7 @@ void	Graphic_Init( void )
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_Clip_BLT;
+		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_Clip_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_Clip_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_Clip_BLT;
 	}
@@ -193,6 +195,7 @@ void	Graphic_SetBlitterEnable( U8 aFlag )
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox;
+		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite;
 
@@ -200,6 +203,7 @@ void	Graphic_SetBlitterEnable( U8 aFlag )
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_Clip;
+		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_Clip;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_Clip;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_Clip;
 

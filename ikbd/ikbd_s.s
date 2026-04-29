@@ -261,7 +261,7 @@ IKBD_SendCmd:
 
 IKBD_MainHandler:
 
-	; move.w	#$2500,sr				; don't interrupt me! was 2500
+	move.w	#$2500,sr				; allow higher MFP interrupts to preempt IKBD
 	movem.l	d0-d2/a0-a3,-(a7)		; save registers
 
 	lea		gIKBD,a3				; ikbd data structure

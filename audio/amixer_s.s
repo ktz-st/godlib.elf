@@ -57,7 +57,6 @@ sAmixerSpl_msizeof:      rs.b    1
 *------------------------------------------------------------------------------------*
 
 AudioMixer_Vbl:
-	not.w	$ffff8240.w
 	tas		gAudioMixerLockFlag			; already in a mixer interrupt?
 	bne		.locked						; yes, don't try further mixing
 
@@ -161,7 +160,6 @@ AudioMixer_Vbl:
 	movem.l	(a7)+,d0-a6					; restore registers
 
 .locked:
-	not.w	$ffff8240.w
 	rts
 
 *------------------------------------------------------------------------------------*

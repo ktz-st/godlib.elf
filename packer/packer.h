@@ -20,6 +20,7 @@ typedef enum ePacker
 	ePACKER_ICE,
 	ePACKER_SPEED3,
 	ePACKER_GODPACK,
+	ePACKER_RNC,
 
 	ePACKER_LIMIT
 } ePacker;

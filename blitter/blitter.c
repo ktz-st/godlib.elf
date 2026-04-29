@@ -16,6 +16,7 @@
 
 #include	<godlib/cli/cli.h>
 #include	<godlib/memory/memory.h>
+#include	<godlib/system/system.h>
 
 
 /* ###################################################################################
@@ -23,6 +24,10 @@
 ################################################################################### */
 
 #define	dBLITTER_BASE_ADR				0xFFFF8A00L
+#define	dBLITTER_ST_LOW_WIDTH			320
+#define	dBLITTER_ST_LOW_HEIGHT			200
+#define	dBLITTER_ST_LOW_LINE_BYTES		160
+#define	dBLITTER_ST_LOW_LINE_WORDS		80
 
 #define	dBLITTERSPRITEBLOCK_ID			mSTRING_TO_U32( 'B', 'S', 'B', 'K' )
 #define	dBLITTERSPRITEBLOCK_VERSION		0
@@ -87,6 +92,28 @@ U8	gBlitterFlipTable[ 256 ];
 #  CODE
 ################################################################################### */
 
+static U8 Blitter_IsAvailable(void)
+{
+	return (U8)(BLT_BLITTER == System_GetBLT());
+}
+
+
+static U16 Blitter_CalcSourceYInc(const U16 aCountX, const U8 aSkew)
+{
+	U16 lSrcReads;
+
+	lSrcReads = aCountX;
+	if (aSkew & dBLITTERSKEW_FXSR_BIT)
+		lSrcReads++;
+	if ((aSkew & dBLITTERSKEW_NFSR_BIT) && lSrcReads)
+		lSrcReads--;
+	if (!lSrcReads)
+		lSrcReads = 1;
+
+	return (U16)(dBLITTER_ST_LOW_LINE_BYTES - ((lSrcReads - 1U) << 3));
+}
+
+
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : Blitter_Init( void )
 * ACTION   : Blitter_Init
@@ -140,16 +167,32 @@ void	Blitter_DeInit( void )
 
 void	Blitter_CopyBox( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aSrcY, U16 aDstX, U16 aDstY, U16 aWidth, U16 aHeight )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
 	U16			lSrcX2;
 	U16			lDstX2;
 	U16			lEndMask1,lEndMask3;
 	U16			lSrcSpan,lDstSpan;
 	U16			lIndex;
 	U16			i;
+	U16			lCountX;
 	U16	*		lpDst;
 	U16	*		lpSrc;
 	U8			lSkew;
+
+	if (!Blitter_IsAvailable() || !apSrc || !apDst || !aWidth || !aHeight)
+		return;
+	if (aSrcX >= dBLITTER_ST_LOW_WIDTH || aDstX >= dBLITTER_ST_LOW_WIDTH || aSrcY >= dBLITTER_ST_LOW_HEIGHT || aDstY >= dBLITTER_ST_LOW_HEIGHT)
+		return;
+	if ((aSrcX + aWidth) > dBLITTER_ST_LOW_WIDTH)
+		aWidth = (U16)(dBLITTER_ST_LOW_WIDTH - aSrcX);
+	if ((aDstX + aWidth) > dBLITTER_ST_LOW_WIDTH)
+		aWidth = (U16)(dBLITTER_ST_LOW_WIDTH - aDstX);
+	if ((aSrcY + aHeight) > dBLITTER_ST_LOW_HEIGHT)
+		aHeight = (U16)(dBLITTER_ST_LOW_HEIGHT - aSrcY);
+	if ((aDstY + aHeight) > dBLITTER_ST_LOW_HEIGHT)
+		aHeight = (U16)(dBLITTER_ST_LOW_HEIGHT - aDstY);
+	if (!aWidth || !aHeight)
+		return;
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 
@@ -196,20 +239,21 @@ void	Blitter_CopyBox( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aSrcY, U16 aDstX,
 	lpBlitter->SrcIncX  = 8;
 	lpBlitter->DstIncX  = 8;
 
-	lpBlitter->SrcIncY = (U16)(160 - (lSrcSpan<<3));
-	lpBlitter->DstIncY = (U16)(160 - (lDstSpan<<3));
+	lCountX = (U16)(lDstSpan + 1U);
+	lpBlitter->SrcIncY = Blitter_CalcSourceYInc(lCountX, lSkew);
+	lpBlitter->DstIncY = (U16)(dBLITTER_ST_LOW_LINE_BYTES - (lDstSpan<<3));
 
-	lpBlitter->CountX  = (U16)(lDstSpan+1);
+	lpBlitter->CountX  = lCountX;
 
 	lpBlitter->HOP = eBLITTERHOP_SRC;
 	lpBlitter->LOP = eBLITTERLOP_SRC;
 
 	lpSrc  = apSrc;
-	lpSrc += aSrcY * 80;
+	lpSrc += aSrcY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpSrc += (aSrcX>>4)<<2;
 
 	lpDst  = apDst;
-	lpDst += aDstY * 80;
+	lpDst += aDstY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpDst += (aDstX>>4)<<2;
 
 	lpBlitter->Skew = lSkew;
@@ -238,7 +282,7 @@ void	Blitter_CopyBox( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aSrcY, U16 aDstX,
 U16 gBlitterHack;
 void	Blitter_DrawSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 aY )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
 	U16	*		lpDst;
 	U16	*		lpDst2;
 	U16	*		lpSrc;
@@ -255,6 +299,11 @@ void	Blitter_DrawSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 
 		return;
 	}
 */
+	if (!Blitter_IsAvailable() || !apSprite || !apScreen)
+		return;
+	if (aX < 0 || aX >= dBLITTER_ST_LOW_WIDTH || (aX + apSprite->Width) > dBLITTER_ST_LOW_WIDTH || aY >= dBLITTER_ST_LOW_HEIGHT)
+		return;
+
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 	lpMsk     = apSprite->pMask;
 	lpSrc     = apSprite->pGfx;
@@ -273,9 +322,13 @@ void	Blitter_DrawSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 
 		lpSrc += (aY * apSprite->GfxPlaneCount  * lWords);
 		aY = 0;
 	}
+	if ((aY + lHeight) > dBLITTER_ST_LOW_HEIGHT)
+		lHeight = (S16)(dBLITTER_ST_LOW_HEIGHT - aY);
+	if (lHeight <= 0)
+		return;
 
 	lpDst     = apScreen;
-	lpDst    += aY * 80;
+	lpDst    += aY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpDst    += (aX>>4)<<2;
 
 	lX2       = (U16)((aX + apSprite->Width)-1);
@@ -287,7 +340,7 @@ void	Blitter_DrawSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
-	lpBlitter->DstIncY = (U16)(168 - (lXcount<<3));
+	lpBlitter->DstIncY = (U16)((dBLITTER_ST_LOW_LINE_BYTES + 8) - (lXcount<<3));
 
 	lpBlitter->HOP  = eBLITTERHOP_SRC;
 
@@ -371,7 +424,7 @@ void	Blitter_DrawSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 
 
 void	Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 aY )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
 	U16	*		lpDst;
 	U16	*		lpSrc;
 	U16	*		lpMsk;
@@ -380,6 +433,11 @@ void	Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX
 	U16			lXcount;
 	U16			lWords;
 	S16			lHeight;
+
+	if (!Blitter_IsAvailable() || !apSprite || !apScreen)
+		return;
+	if (aX < 0 || aX >= dBLITTER_ST_LOW_WIDTH || (aX + apSprite->Width) > dBLITTER_ST_LOW_WIDTH || aY >= dBLITTER_ST_LOW_HEIGHT)
+		return;
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 	lpMsk     = apSprite->pMask;
@@ -399,9 +457,13 @@ void	Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX
 		lpSrc += (aY * apSprite->GfxPlaneCount  * lWords);
 		aY = 0;
 	}
+	if ((aY + lHeight) > dBLITTER_ST_LOW_HEIGHT)
+		lHeight = (S16)(dBLITTER_ST_LOW_HEIGHT - aY);
+	if (lHeight <= 0)
+		return;
 
 	lpDst     = apScreen;
-	lpDst    += aY * 80;
+	lpDst    += aY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpDst    += (aX>>4)<<2;
 
 	lX2       = (U16)((aX + apSprite->Width)-1);
@@ -413,7 +475,7 @@ void	Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
-	lpBlitter->DstIncY = (U16)(168 - (lXcount<<3));
+	lpBlitter->DstIncY = (U16)((dBLITTER_ST_LOW_LINE_BYTES + 8) - (lXcount<<3));
 
 	lpBlitter->HOP  = eBLITTERHOP_SRC;
 
@@ -472,7 +534,7 @@ void	Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX
 
 void	Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 aY, U8 aColour )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
 	U16	*		lpDst;
 	U16	*		lpDst2;
 	U16	*		lpSrc;
@@ -482,6 +544,11 @@ void	Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 
 	U16			lXcount;
 	U16			lWords;
 	S16			lHeight;
+
+	if (!Blitter_IsAvailable() || !apSprite || !apScreen)
+		return;
+	if (aX < 0 || aX >= dBLITTER_ST_LOW_WIDTH || (aX + apSprite->Width) > dBLITTER_ST_LOW_WIDTH || aY >= dBLITTER_ST_LOW_HEIGHT)
+		return;
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 	lpMsk     = apSprite->pMask;
@@ -501,9 +568,13 @@ void	Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 
 		lpSrc += (aY * apSprite->GfxPlaneCount  * lWords);
 		aY = 0;
 	}
+	if ((aY + lHeight) > dBLITTER_ST_LOW_HEIGHT)
+		lHeight = (S16)(dBLITTER_ST_LOW_HEIGHT - aY);
+	if (lHeight <= 0)
+		return;
 
 	lpDst     = apScreen;
-	lpDst    += aY * 80;
+	lpDst    += aY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpDst    += (aX>>4)<<2;
 
 	lX2       = (U16)((aX + apSprite->Width)-1);
@@ -515,7 +586,7 @@ void	Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
-	lpBlitter->DstIncY = (U16)(168 - (lXcount<<3));
+	lpBlitter->DstIncY = (U16)((dBLITTER_ST_LOW_LINE_BYTES + 8) - (lXcount<<3));
 
 	lpBlitter->HOP  = eBLITTERHOP_SRC;
 
@@ -593,21 +664,36 @@ void	Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 
 
 void	Blitter_DrawBox( sBlitterBox * apBox, U16 * apScreen, U16 aX, U16 aY )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
 	U16	*		lpDst;
 	U16			i;
 	U16			lColour;
 	U16			lX2;
 	U16			lXcount;
+	U16			lWidth;
+	U16			lHeight;
+
+	if (!Blitter_IsAvailable() || !apBox || !apScreen || !apBox->Width || !apBox->Height)
+		return;
+	if (aX >= dBLITTER_ST_LOW_WIDTH || aY >= dBLITTER_ST_LOW_HEIGHT)
+		return;
+	lWidth = apBox->Width;
+	lHeight = apBox->Height;
+	if ((aX + lWidth) > dBLITTER_ST_LOW_WIDTH)
+		lWidth = (U16)(dBLITTER_ST_LOW_WIDTH - aX);
+	if ((aY + lHeight) > dBLITTER_ST_LOW_HEIGHT)
+		lHeight = (U16)(dBLITTER_ST_LOW_HEIGHT - aY);
+	if (!lWidth || !lHeight)
+		return;
 
 	lColour   = apBox->Colour;
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 
 	lpDst     = apScreen;
-	lpDst    += aY * 80;
+	lpDst    += aY * dBLITTER_ST_LOW_LINE_WORDS;
 	lpDst    += (aX>>4)<<2;
 
-	lX2       = (U16)((aX + apBox->Width)-1);
+	lX2       = (U16)((aX + lWidth)-1);
 	lXcount   = (U16)((lX2 & 0xFFF0) - (aX & 0xFFF0));
 	lXcount >>= 4;
 	lXcount  += 1;
@@ -616,7 +702,7 @@ void	Blitter_DrawBox( sBlitterBox * apBox, U16 * apScreen, U16 aX, U16 aY )
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
-	lpBlitter->DstIncY = (U16)(168 - (lXcount<<3));
+	lpBlitter->DstIncY = (U16)((dBLITTER_ST_LOW_LINE_BYTES + 8) - (lXcount<<3));
 
 	lpBlitter->Skew = 0;
 	lpBlitter->HOP  = eBLITTERHOP_SRC;
@@ -652,7 +738,7 @@ void	Blitter_DrawBox( sBlitterBox * apBox, U16 * apScreen, U16 aX, U16 aY )
 		}
 
 		lpBlitter->pDst   = lpDst;
-		lpBlitter->CountY = apBox->Height;
+		lpBlitter->CountY = lHeight;
 		lpBlitter->Mode   = dBLITTERMODE_BUSY_BIT;
 
 
@@ -670,7 +756,10 @@ void	Blitter_DrawBox( sBlitterBox * apBox, U16 * apScreen, U16 aX, U16 aY )
 
 void	Blitter_Wait( void )
 {
-	sBlitter *	lpBlitter;
+	volatile sBlitter *	lpBlitter;
+
+	if (!Blitter_IsAvailable())
+		return;
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 

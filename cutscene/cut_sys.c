@@ -355,7 +355,7 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 					lpSprite->mCurrentDef.mX    = (S16)lpCmd->mArg1;
 					lpSprite->mCurrentDef.mY    = (S16)lpCmd->mArg2;
 					lpSprite->mSrcX = lpSprite->mDstX = lpSprite->mCurrentDef.mX;
-					lpSprite->mDstX = lpSprite->mDstX = lpSprite->mCurrentDef.mX;
+					lpSprite->mSrcY = lpSprite->mDstY = lpSprite->mCurrentDef.mY;
 					lpSprite->mPos.l = 0;
 					lpSprite->mDist  = 0;
 					break;

@@ -17,6 +17,22 @@
 #include <godlib/vbl/vbl.h>
 
 
+extern void	Paula_Init( U8 aFreq );
+extern void	Paula_SetReplayBuf( void * apBuffer );
+
+
+static void *	spPaulaReplayBuffer = 0;
+static U16		sPaulaReplayLen = 0;
+
+
+static U16	Mod_ReplayLenForFreq( U8 aFreq )
+{
+	if( aFreq == eMOD_FREQ_50K ) { return( 2000 ); }
+	if( aFreq == eMOD_FREQ_25K ) { return( 1000 ); }
+	return( 500 );
+}
+
+
 /* ###################################################################################
 #  CODE
 ################################################################################### */
@@ -80,6 +96,54 @@ void	Mod_UnLoad( void * apModData )
 
 
 /*-----------------------------------------------------------------------------------*
+* FUNCTION : Mod_InitPaula( U8 aFreq )
+* ACTION   : ensures DMA replay buffer is allocated for the requested frequency
+*            and runs the Paula replay initialisation
+*-----------------------------------------------------------------------------------*/
+
+void	Mod_InitPaula( U8 aFreq )
+{
+	U16 lLen;
+
+	if( (aFreq < eMOD_FREQ_12K) || (aFreq > eMOD_FREQ_50K) )
+	{
+		aFreq = eMOD_FREQ_25K;
+	}
+
+	lLen = Mod_ReplayLenForFreq( aFreq );
+
+	if( sPaulaReplayLen != lLen )
+	{
+		if( spPaulaReplayBuffer )
+		{
+			mMEMFREE( spPaulaReplayBuffer );
+		}
+		spPaulaReplayBuffer = mMEMCALLOC( 2UL * (U32)lLen );
+		sPaulaReplayLen = lLen;
+	}
+
+	Paula_SetReplayBuf( spPaulaReplayBuffer );
+	Paula_Init( aFreq );
+}
+
+
+/*-----------------------------------------------------------------------------------*
+* FUNCTION : Mod_ShutdownPaula( void )
+* ACTION   : releases the DMA replay buffer
+*-----------------------------------------------------------------------------------*/
+
+void	Mod_ShutdownPaula( void )
+{
+	if( spPaulaReplayBuffer )
+	{
+		mMEMFREE( spPaulaReplayBuffer );
+		spPaulaReplayBuffer = 0;
+		sPaulaReplayLen = 0;
+	}
+}
+
+
+/*-----------------------------------------------------------------------------------*
 * FUNCTION : Mod_Start( void * apModData, U8 aFreq )
 * ACTION   : starts Paula replay and installs Mod_Play in the VBL queue
 *-----------------------------------------------------------------------------------*/
@@ -97,6 +161,10 @@ U8	Mod_Start( void * apModData, U8 aFreq )
 	}
 
 	Mod_InitPaula( aFreq );
+	if( !spPaulaReplayBuffer )
+	{
+		return( 0 );
+	}
 	Mod_Init( apModData );
 	Mod_SetMasterVolume( 64 );
 

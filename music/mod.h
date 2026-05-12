@@ -35,6 +35,7 @@ void *	Mod_Load( const char * apFileName );
 void	Mod_UnLoad( void * apModData );
 
 void	Mod_InitPaula( U8 aFreq );
+void	Mod_ShutdownPaula( void );
 void	Mod_Init( void * apModData );
 void	Mod_Play( void );
 void	Mod_Stop( void );

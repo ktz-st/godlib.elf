@@ -14,6 +14,10 @@ paula_LMC_mask	=	$07ff
 paula_LMC_left	=	$540
 paula_LMC_right	=	$500
 
+;	paula_replay_buf_p holds a caller-provided DMA buffer. The C side
+;	must point it at 2 * paula_replay_len bytes (= 1000 / 2000 / 4000
+;	for 12.5 / 25 / 50 kHz) before paula_init runs. Use Paula_SetReplayBuf.
+
 ; PROC: INIT_CODE
 ;	Prepares the code depending of the replay frequency
 ;	d0:1=12.5khz, 2=25khz, 3=50khz
@@ -113,7 +117,7 @@ lc_paula_mixcode2
 	lea	80(a2),a2			50 KHz
 
 paula_clear_buffer:
-	lea	buf_paula_replay,a0
+	move.l	paula_replay_buf_p,a0
 	move.l	a0,a1
 	moveq	#0,d0
 	move.l	paula_replay_len,d2
@@ -138,7 +142,7 @@ paula_init:
 	bsr	paula_make_divtab
 	bsr	paula_make_mixcode
 
-	lea	buf_paula_replay,a0
+	move.l	paula_replay_buf_p,a0
 
 	lea	paula_buffer_str,a1
 	moveq	#0,d0
@@ -2233,20 +2237,20 @@ paula_check_dummy	rs.w	1
 paula_dummy_spl		ds.w	332
 paula_volume_tab	ds.l	1
 paula_channel_p		ds.l	4
-paula_buffer_str	ds.l	64
-paula_buffer_status	ds.b	32
+paula_buffer_str	ds.l	4		;2 buffers x 2 longs (digi ptr + LMC update)
+paula_buffer_status	ds.b	32		;initialised in paula_init but never read
 paula_buffer_rd_idx	ds.w	1
 paula_buffer_wt_idx	ds.w	1
 			even
 
-buf_paula_replay	ds.b	4000
+paula_replay_buf_p	ds.l	1		;set by Paula_SetReplayBuf - points to 2*paula_replay_len bytes
 buf_paula_freq_list	ds.b	25*40*2
 buf_paula_freq_table	ds.b	$400*4
-buf_paula_frame_freq_t	ds.b	$586*25*2
-buf_paula_frame_freq_p	ds.b	$586*4
+buf_paula_frame_freq_t	ds.b	586*25*2	;paula_make_frame_f writes 664-78=586 entries
+buf_paula_frame_freq_p	ds.b	586*4
 buf_paula_volume_tab	ds.b	16894
 buf_paula_div_table	ds.b	64*64*2
 buf_paula_mixcode_p	ds.b	625*4
-buf_paula_mixer_chunk	ds.b	75557*2
+buf_paula_mixer_chunk	ds.b	55497*2		;original Hacking Lance qmalloc size for volume-controlled mode
 
 	section  .text,code

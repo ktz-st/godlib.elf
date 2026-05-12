@@ -1,4 +1,5 @@
-	xdef	Mod_InitPaula
+	xdef	Paula_Init
+	xdef	Paula_SetReplayBuf
 	xdef	Mod_Init
 	xdef	Mod_Play
 	xdef	Mod_Stop
@@ -6,10 +7,14 @@
 	xdef	Mod_SetRasterDebug
 	xdef	Mod_GetEndFlag
 
-Mod_InitPaula:
+Paula_Init:
 	movem.l	d0-a6,-(a7)
 	jsr	paula_init
 	movem.l	(a7)+,d0-a6
+	rts
+
+Paula_SetReplayBuf:
+	move.l	a0,paula_replay_buf_p
 	rts
 
 Mod_Init:

@@ -38,6 +38,7 @@ typedef	struct sAmixerSpl
 {
 	void *	mpStart;
 	void *	mpCurrent;
+	void *	mpEnd;
 	U32		mLength;
 	U8		mGainLeft;
 	U8		mGainRight;

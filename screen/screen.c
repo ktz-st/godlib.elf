@@ -57,7 +57,7 @@ void	Screen_Init( const U16 aWidth,const U16 aHeight,const U16 aBitDepth, const 
 		GraphicCanvas_Init( &gScreenBackGraphic,   aBitDepth, lWidth, lHeight );
 		GraphicCanvas_Init( &gScreenMiscGraphic,   aBitDepth, lWidth, lHeight );
 
-		lSize  = gScreenLogicGraphic.mLineOffsets[ 1 ];
+		lSize  = gScreenLogicGraphic.mpLineOffsets[ 1 ];
 		lSize *= lHeight;
 		lTotal = lSize * 4;
 
@@ -83,7 +83,7 @@ void	Screen_Init( const U16 aWidth,const U16 aHeight,const U16 aBitDepth, const 
 		GraphicCanvas_Init( &gScreenBackGraphic,   aBitDepth, aWidth, aHeight );
 		GraphicCanvas_Init( &gScreenMiscGraphic,   aBitDepth, aWidth, aHeight );
 
-		lSize  = gScreenLogicGraphic.mLineOffsets[ 1 ];
+		lSize  = gScreenLogicGraphic.mpLineOffsets[ 1 ];
 		lSize *= aHeight;
 
 		lTotal = lSize * 3;
@@ -127,6 +127,10 @@ void	Screen_Init( const U16 aWidth,const U16 aHeight,const U16 aBitDepth, const 
 
 void	Screen_DeInit( void )
 {
+	GraphicCanvas_DeInit( &gScreenLogicGraphic );
+	GraphicCanvas_DeInit( &gScreenPhysicGraphic );
+	GraphicCanvas_DeInit( &gScreenBackGraphic );
+	GraphicCanvas_DeInit( &gScreenMiscGraphic );
 	mMEMSCREENFREE( gScreenClass.mpMemBase );
 	gScreenClass.mpMemBase = 0;
 }
@@ -160,7 +164,7 @@ void	Screen_Update( void )
 
 	if( gScreenClass.mScrollY )
 	{
-		lOff     = gScreenLogicGraphic.mLineOffsets[ 1 ];
+		lOff     = gScreenLogicGraphic.mpLineOffsets[ 1 ];
 		lOff    *= gScreenClass.mScrollY;
 		lScrn.l += lOff;
 	}

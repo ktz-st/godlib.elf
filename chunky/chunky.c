@@ -793,7 +793,7 @@ void	ChunkySurface_From4Plane( sGraphicCanvas * apCanvas,sGraphicPos * apCoords,
 	lpDst  += apCoords->mX;
 
 	lpSrc   = (U16*)apCanvas->mpVRAM;
-	lpSrc  += (apCanvas->mLineOffsets[apRect->mY]>>1);
+	lpSrc  += (apCanvas->mpLineOffsets[apRect->mY]>>1);
 	lpSrc  += (apRect->mX >> 4);
 	while( lHeight-- )
 	{

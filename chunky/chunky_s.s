@@ -53,7 +53,7 @@ sGraphicCanvas_mPad:        rs.w    1
 sGraphicCanvas_mmClipBox:   rs.b    sGraphicBox_sizeof
 sGraphicCanvas_mpFuncs:     rs.l    1
 sGraphicCanvas_mpClipFuncs: rs.l    1
-sGraphicCanvas_mLineOffsets:rs.l    485
+sGraphicCanvas_mpLineOffsets:rs.l    1
 sGraphicCanvas_sizeof:      rs.w    1
 
 **************************************************************************************
@@ -84,7 +84,8 @@ C2P_To4P:
 	moveq	#0,d1								; clear d1
 	move.w	sGraphicPos_mX(a1),d0				; X
 	move.w	sGraphicPos_mY(a1),d1				; Y
-	mulu.w	sGraphicCanvas_mLineOffsets+4(a0),d1	; y offset
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
+	mulu.w	6(a5),d1							; y offset
 	lsr.w	#4,d0								; x/16
 	lsl.w	#3,d0								; x*8
 	add.l	d1,d0								; pixel offset
@@ -249,7 +250,8 @@ C2P_From4P:
 	moveq	#0,d1								; clear d1
 	move.w	sGraphicRect_mX(a2),d0				; X
 	move.w	sGraphicRect_mY(a2),d1				; Y
-	mulu.w	sGraphicCanvas_mLineOffsets+4(a3),d1	; y offset
+	move.l	sGraphicCanvas_mpLineOffsets(a3),a5
+	mulu.w	6(a5),d1							; y offset
 	lsr.w	#4,d0								; x/16
 	lsl.w	#3,d1								; x*8
 	add.l	d1,d0								; pixel offset

@@ -43,8 +43,8 @@
 ; sGraphicCanvas_mClipBox EQU 12
 ; sGraphicCanvas_mpFuncs EQU 16
 ; sGraphicCanvas_mpClipFuncs EQU 20
-; sGraphicCanvas_mLineOffsets EQU 24
-; sGraphicCanvas_sizeof EQU 1964
+; sGraphicCanvas_mpLineOffsets EQU 24
+; sGraphicCanvas_sizeof EQU 28
 
 ; slSpr_Xcount EQU 0
 ; slSpr_Xloop EQU 2
@@ -94,7 +94,7 @@ sGraphicCanvas_mpad:             rs.w    1
 sGraphicCanvas_mClipBox:         rs.b    sGraphicBox_sizeof
 sGraphicCanvas_mpFuncs:          rs.l    1
 sGraphicCanvas_mpClipFuncs:      rs.l    1
-sGraphicCanvas_mLineOffsets:     rs.l    485
+sGraphicCanvas_mpLineOffsets:    rs.l    1
 sGraphicCanvas_sizeof:           rs.b    0
 
 ; --- slSpr ------------------------------------------------------------------

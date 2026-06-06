@@ -222,22 +222,22 @@ Graphic_4BP_Blit_Go:
 	move.l	sGraphicCanvas_mpVRAM(a0),a5			; pDst
 	add.w	d5,d5								; y*2
 	add.w	d5,d5								; y*4
-	add.l	#sGraphicCanvas_mLineOffsets,d5
-	move.l	(a0,d5.w),d5						; Dest Y offset
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a6
+	move.l	(a6,d5.w),d5						; Dest Y offset
 	move.w	d4,d7
 	asr.w	#4,d7
 	asl.w	#3,d7
 	ext.l	d7
 	add.l	d7,d5
 	add.l	d5,a5								; +x offset
-	move.l	sGraphicCanvas_mLineOffsets+4(a0),a0	; DST line offset
+	move.l	4(a6),a0								; DST line offset
 
 
-	move.l	sGraphicCanvas_mLineOffsets+4(a3),a1	; SRC line offset
+	move.l	sGraphicCanvas_mpLineOffsets(a3),a6
+	move.l	4(a6),a1								; SRC line offset
 	add.w	d1,d1								; y*2
 	add.w	d1,d1								; y*4
-	add.l	#sGraphicCanvas_mLineOffsets,d1
-	move.l	(a3,d1.w),d1						; Dest Y offset
+	move.l	(a6,d1.w),d1						; Dest Y offset
 	move.l	sGraphicCanvas_mpVRAM(a3),a3			; pDst
 	move.w	d0,d7
 	asr.w	#4,d7
@@ -2336,7 +2336,8 @@ Graphic_4BP_ClearScreen:
 
 Graphic_4BP_ClearScreen_Gen:
 
-	move.l	sGraphicCanvas_mLineOffsets+4(a0),d0			; line width
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	move.l	4(a1),d0										; line width
 	move.w	sGraphicCanvas_mHeight(a0),d2				; height
 	subq.w	#1,d2										; height-1
 
@@ -2473,7 +2474,8 @@ Graphic_4BP_CopyScreen:
 
 Graphic_4BP_CopyScreen_Gen:
 
-	move.w	sGraphicCanvas_mLineOffsets+4(a0),d0			; line width
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a2
+	move.w	4(a2),d0										; line width
 	move.w	sGraphicCanvas_mHeight(a0),d2				; height
 	move.l	sGraphicCanvas_mpVRAM(a0),a0					; dst
 	subq.w	#1,d2										; height-1
@@ -2571,14 +2573,14 @@ Graphic_4BP_DrawBox:
 
 Graphic_4BP_DrawBox_Go:
 
-	move.l	sGraphicCanvas_mLineOffsets+4(a0),a6	; line width
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a2
+	move.l	4(a2),a6							; line width
 
 	subq.w	#1,d4								; -1 for dbra
 
 	add.w	d2,d2								; Y * 2
 	add.w	d2,d2								; Y * 4
-	add.l	#sGraphicCanvas_mLineOffsets,d2		; Line Offsets Table
-	move.l	(a0,d2.w),a2						; Get To Y
+	move.l	(a2,d2.w),a2						; Get To Y
 
 	move.w	d1,d2								; X
 	and.l	#$0000FFF0,d2						; To Nearest 16
@@ -2836,8 +2838,8 @@ Graphic_4BP_DrawLine_Plot:
 	move.w	d2,d0								; Y * 4
 	add.w	d0,d0
 	add.w	d0,d0
-	add.l	#sGraphicCanvas_mLineOffsets,d0
-	move.l	(a2,d0.w),a3						; line offset
+	move.l	sGraphicCanvas_mpLineOffsets(a2),a3
+	move.l	(a3,d0.w),a3						; line offset
 
 	move.w	d1,d0								; X word offset
 	and.l	#$0000FFF0,d0
@@ -2920,8 +2922,8 @@ Graphic_4BP_DrawPixel_Go:
 
 	add.w	d2,d2								; Y * 2
 	add.w	d2,d2								; Y * 4
-	add.l	#sGraphicCanvas_mLineOffsets,d2		; Line Offsets Table
-	move.l	(a0,d2.w),a1						; Get To Y
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	move.l	(a1,d2.w),a1						; Get To Y
 
 	move.w	d1,d2								; X
 	and.l	#$0000FFF0,d2						; To Nearest 16
@@ -3096,8 +3098,8 @@ Graphic_4BP_DrawSprite_Go:
 
 	add.w	d1,d1								; Y*2
 	add.w	d1,d1								; Y*4
-	add.l	#sGraphicCanvas_mLineOffsets,d1		; Line Offsets Table
-	move.l	(a0,d1.w),d1						; Read Line Offset
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
+	move.l	(a5,d1.w),d1						; Read Line Offset
 	move.l	sGraphicCanvas_mpVRAM(a0),a5			; pointer to screen memory
 	add.l	d1,a5								; get to Y Line
 

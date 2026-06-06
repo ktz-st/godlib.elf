@@ -236,9 +236,7 @@ void	RleSprite_Delocate( sRleSprite * apSprite )
 	{
 		for( i=0; i<=apSprite->mHeader.mHeight; i++ )
 		{
-			apSprite->mpLines[i] = (void *)(
-				(U32)apSprite->mpLines[i] - (U32)apSprite
-			);
+			*(U32*)&apSprite->mpLines[ i ] -= (U32)apSprite;
 			Endian_FromBigU32( &apSprite->mpLines[ i ] );
 		}
 		Endian_FromBigU16( &apSprite->mHeader.mHeight );
@@ -264,9 +262,7 @@ void	RleSprite_Relocate( sRleSprite * apSprite )
 		for( i=0; i<=apSprite->mHeader.mHeight; i++ )
 		{
 			Endian_FromBigU32( &apSprite->mpLines[ i ] );
-			apSprite->mpLines[i] = (void *)(
-				(U32)apSprite->mpLines[i] + (U32)apSprite
-			);
+			*(U32*)&apSprite->mpLines[ i ] += (U32)apSprite;
 		}
 	}
 }
@@ -373,9 +369,8 @@ void	RleSpriteBlock_Delocate( sRleSpriteBlock * apBlock )
 		for( i=0; i<apBlock->mHeader.mSpriteCount; i++ )
 		{
 			RleSprite_Delocate( apBlock->mpSprites[ i ] );
-			apBlock->mpSprites[i] = (void *)(
-				(U32)apBlock->mpSprites[i] - (U32)apBlock
-			);			Endian_FromBigU32( &apBlock->mpSprites[ i ] );
+			*(U32*)&apBlock->mpSprites[ i ] -= (U32)apBlock;
+			Endian_FromBigU32( &apBlock->mpSprites[ i ] );
 		}
 		Endian_FromBigU32( &apBlock->mHeader.mID          );
 		Endian_FromBigU16( &apBlock->mHeader.mVersion     );
@@ -402,9 +397,7 @@ void	RleSpriteBlock_Relocate( sRleSpriteBlock * apBlock )
 		for( i=0; i<apBlock->mHeader.mSpriteCount; i++ )
 		{
 			Endian_FromBigU32( &apBlock->mpSprites[ i ] );
-			apBlock->mpSprites[i] = (void *)(
-				(U32)apBlock->mpSprites[i] - (U32)apBlock
-			);			Endian_FromBigU32( &apBlock->mpSprites[ i ] );
+			*(U32*)&apBlock->mpSprites[ i ] += (U32)apBlock;
 			RleSprite_Relocate( apBlock->mpSprites[ i ] );
 		}
 	}

@@ -1,6 +1,6 @@
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::
-:: MOD.C
+:: LANCEMOD.C
 ::
 :: ProTracker MOD loader/player wrapper for Lance Paula replay.
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
@@ -10,7 +10,7 @@
 #  INCLUDES
 ################################################################################### */
 
-#include "mod.h"
+#include "lancemod.h"
 
 #include <godlib/file/file.h>
 #include <godlib/memory/memory.h>
@@ -25,10 +25,10 @@ static void *	spPaulaReplayBuffer = 0;
 static U16		sPaulaReplayLen = 0;
 
 
-static U16	Mod_ReplayLenForFreq( U8 aFreq )
+static U16	LanceMod_ReplayLenForFreq( U8 aFreq )
 {
-	if( aFreq == eMOD_FREQ_50K ) { return( 2000 ); }
-	if( aFreq == eMOD_FREQ_25K ) { return( 1000 ); }
+	if( aFreq == eLANCEMOD_FREQ_50K ) { return( 2000 ); }
+	if( aFreq == eLANCEMOD_FREQ_25K ) { return( 1000 ); }
 	return( 500 );
 }
 
@@ -39,11 +39,11 @@ static U16	Mod_ReplayLenForFreq( U8 aFreq )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_Load( const char * apFileName )
+* FUNCTION : LanceMod_Load( const char * apFileName )
 * ACTION   : loads a MOD and appends replay loop workspace
 *-----------------------------------------------------------------------------------*/
 
-void *	Mod_Load( const char * apFileName )
+void *	LanceMod_Load( const char * apFileName )
 {
 	sFileHandle	lHandle;
 	S32			lSize;
@@ -61,7 +61,7 @@ void *	Mod_Load( const char * apFileName )
 		return( 0 );
 	}
 
-	lpBuffer = mMEMCALLOC( (U32)lSize + dMOD_EXTRA_BUFFER_SIZE );
+	lpBuffer = mMEMCALLOC( (U32)lSize + dLANCEMOD_EXTRA_BUFFER_SIZE );
 	if( !lpBuffer )
 	{
 		File_Close( lHandle );
@@ -82,11 +82,11 @@ void *	Mod_Load( const char * apFileName )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_UnLoad( void * apModData )
+* FUNCTION : LanceMod_UnLoad( void * apModData )
 * ACTION   : releases MOD memory
 *-----------------------------------------------------------------------------------*/
 
-void	Mod_UnLoad( void * apModData )
+void	LanceMod_UnLoad( void * apModData )
 {
 	if( apModData )
 	{
@@ -96,21 +96,21 @@ void	Mod_UnLoad( void * apModData )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_InitPaula( U8 aFreq )
+* FUNCTION : LanceMod_InitPaula( U8 aFreq )
 * ACTION   : ensures DMA replay buffer is allocated for the requested frequency
 *            and runs the Paula replay initialisation
 *-----------------------------------------------------------------------------------*/
 
-void	Mod_InitPaula( U8 aFreq )
+void	LanceMod_InitPaula( U8 aFreq )
 {
 	U16 lLen;
 
-	if( (aFreq < eMOD_FREQ_12K) || (aFreq > eMOD_FREQ_50K) )
+	if( (aFreq < eLANCEMOD_FREQ_12K) || (aFreq > eLANCEMOD_FREQ_50K) )
 	{
-		aFreq = eMOD_FREQ_25K;
+		aFreq = eLANCEMOD_FREQ_25K;
 	}
 
-	lLen = Mod_ReplayLenForFreq( aFreq );
+	lLen = LanceMod_ReplayLenForFreq( aFreq );
 
 	if( sPaulaReplayLen != lLen )
 	{
@@ -128,11 +128,11 @@ void	Mod_InitPaula( U8 aFreq )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_ShutdownPaula( void )
+* FUNCTION : LanceMod_ShutdownPaula( void )
 * ACTION   : releases the DMA replay buffer
 *-----------------------------------------------------------------------------------*/
 
-void	Mod_ShutdownPaula( void )
+void	LanceMod_ShutdownPaula( void )
 {
 	if( spPaulaReplayBuffer )
 	{
@@ -144,41 +144,41 @@ void	Mod_ShutdownPaula( void )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_Start( void * apModData, U8 aFreq )
-* ACTION   : starts Paula replay and installs Mod_Play in the VBL queue
+* FUNCTION : LanceMod_Start( void * apModData, U8 aFreq )
+* ACTION   : starts Paula replay and installs LanceMod_Play in the VBL queue
 *-----------------------------------------------------------------------------------*/
 
-U8	Mod_Start( void * apModData, U8 aFreq )
+U8	LanceMod_Start( void * apModData, U8 aFreq )
 {
 	if( !apModData )
 	{
 		return( 0 );
 	}
 
-	if( (aFreq < eMOD_FREQ_12K) || (aFreq > eMOD_FREQ_50K) )
+	if( (aFreq < eLANCEMOD_FREQ_12K) || (aFreq > eLANCEMOD_FREQ_50K) )
 	{
-		aFreq = eMOD_FREQ_25K;
+		aFreq = eLANCEMOD_FREQ_25K;
 	}
 
-	Mod_InitPaula( aFreq );
+	LanceMod_InitPaula( aFreq );
 	if( !spPaulaReplayBuffer )
 	{
 		return( 0 );
 	}
-	Mod_Init( apModData );
-	Mod_SetMasterVolume( 64 );
+	LanceMod_Init( apModData );
+	LanceMod_SetMasterVolume( 64 );
 
-	return( Vbl_AddCall( Mod_Play ) );
+	return( Vbl_AddCall( LanceMod_Play ) );
 }
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Mod_StopVbl( void )
-* ACTION   : removes Mod_Play from VBL and shuts down Paula replay
+* FUNCTION : LanceMod_StopVbl( void )
+* ACTION   : removes LanceMod_Play from VBL and shuts down Paula replay
 *-----------------------------------------------------------------------------------*/
 
-void	Mod_StopVbl( void )
+void	LanceMod_StopVbl( void )
 {
-	Vbl_RemoveCall( Mod_Play );
-	Mod_Stop();
+	Vbl_RemoveCall( LanceMod_Play );
+	LanceMod_Stop();
 }

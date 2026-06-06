@@ -307,7 +307,7 @@ void	RenderFed_ImageDraw( sFedAsset * apImage,sGraphicCanvas * apCanvas,const sF
 		if( lpDegas)
 		{
 /*			apCanvas->mpFuncs->CopyScreen( apCanvas, &lpDegas->mPixels[0] );*/
-			Memory_Copy( apCanvas->mLineOffsets[ Video_GetHeight() ], &lpDegas->mPixels[0], apCanvas->mpVRAM );
+			Memory_Copy( apCanvas->mpLineOffsets[ Video_GetHeight() ], &lpDegas->mPixels[0], apCanvas->mpVRAM );
 		}
 		else
 		{

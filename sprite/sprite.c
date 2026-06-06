@@ -605,8 +605,8 @@ void					Sprite_Destroy( sSprite * apSprite )
 
 void					Sprite_Delocate( sSprite * apSprite )
 {
-	apSprite->mpGfx = (void *)((U32)apSprite->mpGfx - (U32)apSprite);
-	apSprite->mpMask = (void *)((U32)apSprite->mpMask - (U32)apSprite);
+	*(U32*)&apSprite->mpGfx  -= (U32) apSprite;
+	*(U32*)&apSprite->mpMask -= (U32) apSprite;
 	Endian_FromBigU16( &apSprite->mGfxPlaneCount  );
 	Endian_FromBigU16( &apSprite->mMaskPlaneCount  );
 	Endian_FromBigU16( &apSprite->mHeight  );
@@ -632,8 +632,8 @@ void					Sprite_Relocate( sSprite * apSprite )
 
 	Endian_FromBigU32( &apSprite->mpGfx  );
 	Endian_FromBigU32( &apSprite->mpMask );
-	apSprite->mpGfx = (void *)((U32)apSprite->mpGfx + (U32)apSprite);
-	apSprite->mpMask = (void *)((U32)apSprite->mpMask + (U32)apSprite);
+	*(U32*)&apSprite->mpGfx  += (U32) apSprite;
+	*(U32*)&apSprite->mpMask += (U32) apSprite;
 }
 
 
@@ -800,7 +800,7 @@ void					Sprite_BlockDelocate( sSpriteBlock * apBlock )
 
 	for( i=0; i<apBlock->mHeader.mSpriteCount; i++ )
 	{
-		apBlock->mpSprite[i] = (void *)((U32)apBlock->mpSprite[i] - (U32)apBlock);
+		*(U32*)&apBlock->mpSprite[ i ] -= (U32)apBlock;
 		Endian_FromBigU32( &apBlock->mpSprite[ i ] );
 	}
 	Endian_FromBigU16( &apBlock->mHeader.mSpriteCount );
@@ -830,7 +830,7 @@ void					Sprite_BlockRelocate( sSpriteBlock * apBlock )
 	for( i=0; i<apBlock->mHeader.mSpriteCount; i++ )
 	{
 		Endian_FromBigU32( &apBlock->mpSprite[ i ] );
-		apBlock->mpSprite[i] = (void *)((U32)apBlock->mpSprite[i] + (U32)apBlock);
+		*(U32*)&apBlock->mpSprite[ i ] += (U32)apBlock;
 	}
 
 	for( i=0; i<apBlock->mHeader.mSpriteCount; i++ )

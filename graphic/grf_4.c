@@ -52,11 +52,11 @@ void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,s
 	U16		lDstMaskRight;
 
 	lpDst0  =  apCanvas->mpVRAM;
-	lpDst0 += (apCanvas->mLineOffsets[ apCoords->mY ]>>1);
+	lpDst0 += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
 	lpDst0 +=((apCoords->mX>>4)<<2);
 
 	lpSrc0  =  apSrc->mpVRAM;
-	lpSrc0 += (apSrc->mLineOffsets[ apRect->mY ]>>1);
+	lpSrc0 += (apSrc->mpLineOffsets[ apRect->mY ]>>1);
 	lpSrc0 +=((apRect->mX>>4)<<2);
 
 	lH     = apRect->mHeight;
@@ -136,8 +136,8 @@ void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,s
 				}
 			}
 
-			lpDst0 += apCanvas->mLineOffsets[ 1 ]>>1;
-			lpSrc0 += apSrc->mLineOffsets[ 1 ]>>1;
+			lpDst0 += apCanvas->mpLineOffsets[ 1 ]>>1;
+			lpSrc0 += apSrc->mpLineOffsets[ 1 ]>>1;
 		}
 	}
 	else
@@ -183,8 +183,8 @@ void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,s
 				}
 			}
 
-			lpDst0 += apCanvas->mLineOffsets[ 1 ]>>1;
-			lpSrc0 += apSrc->mLineOffsets[ 1 ]>>1;
+			lpDst0 += apCanvas->mpLineOffsets[ 1 ]>>1;
+			lpSrc0 += apSrc->mpLineOffsets[ 1 ]>>1;
 		}
 	}
 #else
@@ -226,7 +226,7 @@ void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,s
 
 void	Graphic_4BP_ClearScreen( struct sGraphicCanvas * apCanvas )
 {
-	Memory_Clear( apCanvas->mLineOffsets[ apCanvas->mHeight ], apCanvas->mpVRAM );
+	Memory_Clear( apCanvas->mpLineOffsets[ apCanvas->mHeight ], apCanvas->mpVRAM );
 }
 
 
@@ -238,7 +238,7 @@ void	Graphic_4BP_ClearScreen( struct sGraphicCanvas * apCanvas )
 
 void	Graphic_4BP_CopyScreen( struct sGraphicCanvas * apCanvas,void * apSrc )
 {
-	Memory_Copy( apCanvas->mLineOffsets[ apCanvas->mHeight ], apSrc, apCanvas->mpVRAM );
+	Memory_Copy( apCanvas->mpLineOffsets[ apCanvas->mHeight ], apSrc, apCanvas->mpVRAM );
 }
 
 
@@ -261,7 +261,7 @@ void	Graphic_4BP_DrawBox( struct sGraphicCanvas * apCanvas,sGraphicRect * apCoor
 	U16		lMid[ 4 ];
 
 	lpDst0  =  (U16*)apCanvas->mpVRAM;
-	lpDst0 += (apCanvas->mLineOffsets[ apCoords->mY ]>>1);
+	lpDst0 += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
 	lpDst0 +=((apCoords->mX>>4)<<2);
 
 	if( aColour & 1 )
@@ -383,7 +383,7 @@ void	Graphic_4BP_DrawBox( struct sGraphicCanvas * apCanvas,sGraphicRect * apCoor
 			Endian_WriteBigU16( &lpDst1[ 3 ], lPixels );
 		}
 
-		lpDst0 += apCanvas->mLineOffsets[ 1 ]>>1;
+		lpDst0 += apCanvas->mpLineOffsets[ 1 ]>>1;
 	}
 }
 
@@ -416,7 +416,7 @@ void	Graphic_4BP_DrawPixel( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoo
 	U16		lTemp;
 
 	lpDst  =  (U16*)apCanvas->mpVRAM;
-	lpDst += (apCanvas->mLineOffsets[ apCoords->mY ]>>1);
+	lpDst += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
 	lpDst +=((apCoords->mX>>4)<<2);
 
 
@@ -491,7 +491,7 @@ void	Graphic_4BP_DrawSprite( struct sGraphicCanvas * apCanvas,sGraphicPos * apCo
 	sSprite *	lpSprite;
 
 	lpDst0  =  (U16*)apCanvas->mpVRAM;
-	lpDst0 += (apCanvas->mLineOffsets[ apCoords->mY ]>>1);
+	lpDst0 += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
 	lpDst0 +=((apCoords->mX>>4)<<2);
 
 	lpSprite = (sSprite*)apSprite;
@@ -529,7 +529,7 @@ void	Graphic_4BP_DrawSprite( struct sGraphicCanvas * apCanvas,sGraphicPos * apCo
 					lpGfx++;
 				}
 			}
-			lpDst0 += apCanvas->mLineOffsets[ 1 ] >> 1;
+			lpDst0 += apCanvas->mpLineOffsets[ 1 ] >> 1;
 		}
 	}
 	else
@@ -583,7 +583,7 @@ void	Graphic_4BP_DrawSprite( struct sGraphicCanvas * apCanvas,sGraphicPos * apCo
 				}
 
 			}
-			lpDst0 += apCanvas->mLineOffsets[ 1 ] >> 1;
+			lpDst0 += apCanvas->mpLineOffsets[ 1 ] >> 1;
 		}
 	}
 }
@@ -931,7 +931,7 @@ U8	Graphic_4BP_GetPixel( const sGraphicCanvas * apCanvas,const S16 aX,const S16 
 	U16 *	lpScreen;
 
 	lOff  = aY;
-	lOff *= apCanvas->mLineOffsets[ 1 ];
+	lOff *= apCanvas->mpLineOffsets[ 1 ];
 	lOff >>= 1;
 	lOff  +=(aX>>4)<<2;
 
@@ -975,7 +975,7 @@ void	Graphic_4BP_SetPixel( const sGraphicCanvas * apCanvas,const S16 aX,const S1
 	U16 *	lpScreen;
 
 	lOff  = aY;
-	lOff *= apCanvas->mLineOffsets[ 1 ];
+	lOff *= apCanvas->mpLineOffsets[ 1 ];
 	lOff >>= 1;
 	lOff  +=(aX>>4)<<2;
 

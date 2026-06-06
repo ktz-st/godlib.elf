@@ -1019,11 +1019,14 @@ U16	File_Selector( const char * apTitle, sFileIdentifier * apID )
 	{
 		if( '\\' == apID->mpStrings[eFILEIDENTIFIER_PATH][ lPathLen-1 ] )
 		{
-			sprintf( lString, "%s%s", apID->mpStrings[eFILEIDENTIFIER_PATH], apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
+			String_StrCpy( lString, apID->mpStrings[eFILEIDENTIFIER_PATH] );
+			String_StrAppend( lString, apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
 		}
 		else
 		{
-			sprintf( lString, "%s\\%s", apID->mpStrings[eFILEIDENTIFIER_PATH], apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
+			String_StrCpy( lString, apID->mpStrings[eFILEIDENTIFIER_PATH] );
+			String_StrAppend( lString, "\\" );
+			String_StrAppend( lString, apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
 		}
 	}
 	Memory_Clear( sizeof(OPENFILENAME), &lOpenFileName );
@@ -1348,11 +1351,14 @@ char *	File_Identifier_ToFullName( sFileIdentifier * apID )
 			{
 				if( mFILE_CHAR_IS_SLASH( apID->mpStrings[eFILEIDENTIFIER_PATH][ lPathLen-1 ] ) )
 				{
-					sprintf( lpFullName, "%s%s", apID->mpStrings[eFILEIDENTIFIER_PATH], apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
+					String_StrCpy( lpFullName, apID->mpStrings[eFILEIDENTIFIER_PATH] );
+					String_StrAppend( lpFullName, apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
 				}
 				else
 				{
-					sprintf( lpFullName, "%s\\%s", apID->mpStrings[eFILEIDENTIFIER_PATH], apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
+					String_StrCpy( lpFullName, apID->mpStrings[eFILEIDENTIFIER_PATH] );
+					String_StrAppend( lpFullName, "\\" );
+					String_StrAppend( lpFullName, apID->mpStrings[eFILEIDENTIFIER_FILENAME] );
 				}
 			}
 		}

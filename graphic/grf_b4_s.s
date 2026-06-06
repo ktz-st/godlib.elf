@@ -450,13 +450,15 @@ Graphic_4BP_Blit_Go:					; Blit it
 .no_nfsr:
 	subq.w	#1,d6
 	lsl.w	#3,d6
-	move.w	sGraphicCanvas_mLineOffsets+6(a3),d7
+	move.l	sGraphicCanvas_mpLineOffsets(a3),a4
+	move.w	6(a4),d7
 	sub.w	d6,d7
 	move.w	d7,eBLITTER_SRC_INC_Y(a6)
 
 	move.w	2(a7),d6						; dst inc y = line bytes - dst span*8
 	lsl.w	#3,d6
-	move.w	sGraphicCanvas_mLineOffsets+6(a0),d7
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
+	move.w	6(a5),d7
 	sub.w	d6,d7
 	move.w	d7,eBLITTER_DST_INC_Y(a6)
 
@@ -464,8 +466,8 @@ Graphic_4BP_Blit_Go:					; Blit it
 	move.w	d1,d6
 	add.w	d6,d6
 	add.w	d6,d6
-	add.l	#sGraphicCanvas_mLineOffsets,d6
-	add.l	(a3,d6.w),a4
+	move.l	sGraphicCanvas_mpLineOffsets(a3),a5
+	add.l	(a5,d6.w),a4
 	move.w	d0,d6
 	and.w	#$FFF0,d6
 	lsr.w	#1,d6
@@ -475,8 +477,8 @@ Graphic_4BP_Blit_Go:					; Blit it
 	move.w	d5,d6
 	add.w	d6,d6
 	add.w	d6,d6
-	add.l	#sGraphicCanvas_mLineOffsets,d6
-	add.l	(a0,d6.w),a5
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a3
+	add.l	(a3,d6.w),a5
 	move.w	d4,d6
 	and.w	#$FFF0,d6
 	lsr.w	#1,d6
@@ -663,8 +665,8 @@ Graphic_4BP_DrawBox_Go:
 
 	add.w	d2,d2								; Y * 2
 	add.w	d2,d2								; Y * 4
-	add.l	#sGraphicCanvas_mLineOffsets,d2		; Line Offsets Table
-	add.l	(a0,d2.w),a3						; Get To Y
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	add.l	(a1,d2.w),a3						; Get To Y
 
 	move.w	d1,d2								; X
 	and.l	#$0000FFF0,d2						; To Nearest 16
@@ -688,7 +690,8 @@ Graphic_4BP_DrawBox_Go:
 
 	move.w	d5,d7								; xcount
 	lsl.w	#3,d7								; xcount * sizeof(bitplane)
-	move.w	sGraphicCanvas_mLineOffsets+6(a0),d6	; LineSize
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	move.w	6(a1),d6								; LineSize
 	addq.w	#8,d6								; +8
 	sub.w	d7,d6								; -xcount
 	move.w	d6,eBLITTER_DST_INC_Y(a2)			; set dst y inc
@@ -822,8 +825,8 @@ Graphic_4BP_DrawPixel_Go:
 
 	add.w	d2,d2								; Y * 2
 	add.w	d2,d2								; Y * 4
-	add.l	#sGraphicCanvas_mLineOffsets,d2		; Line Offsets Table
-	move.l	(a0,d2.w),a1						; Get To Y
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	move.l	(a1,d2.w),a1						; Get To Y
 
 	move.w	d1,d2								; X
 	and.l	#$0000FFF0,d2						; To Nearest 16
@@ -1245,8 +1248,8 @@ Graphic_4BP_DrawSprite_Go:
 
 	add.w	d1,d1								; Y * 2
 	add.w	d1,d1								; Y * 4
-	add.l	#sGraphicCanvas_mLineOffsets,d1		; Line Offsets Table
-	add.l	(a0,d1.w),a5						; Get To Y
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	add.l	(a1,d1.w),a5						; Get To Y
 
 	move.w	d0,d1								; X
 	and.l	#$0000FFF0,d1						; To Nearest 16
@@ -1281,7 +1284,8 @@ Graphic_4BP_DrawSprite_Go:
 
 	move.w	d5,d7								; xcount
 	lsl.w	#3,d7								; xcount * sizeof(bitplane)
-	move.w	sGraphicCanvas_mLineOffsets+6(a0),d6	; LineSize
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	move.w	6(a1),d6								; LineSize
 	sub.w	d7,d6								; -xcount
 	move.w	d6,eBLITTER_DST_INC_Y(a6)			; set dst y inc
 

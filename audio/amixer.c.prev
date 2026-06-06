@@ -34,6 +34,7 @@
 
 #include	"amixer.h"
 
+#include	"am_mul.h"
 #include	"am_sine.h"
 #include	"am_cos.h"
 #include	"ampanlaw.h"
@@ -119,8 +120,11 @@ void	AudioMixer_Init( void )
 	gpAudioMixerSilence        = (U8*)mMEMSCREENCALLOC( 4*1024 );
 	Memory_Clear( (4*1024), gpAudioMixerSilence );
 	gpAudioMixerBuffer         = (U8*)mMEMSCREENCALLOC( dAMIXER_BUFFER_SIZE+(2*1024) );
+/*	gpAudioMixerMulTable       = (U8*)mMEMCALLOC( 0x10000L );*/
 	gAudioMixerBufferOffset    = (4*1024);
 	gAudioMixerLockFlag        = 0;
+
+	gpAudioMixerMulTable = &AM_MUL_Array[0];
 
 
 	for( i=0; i<dAMIXER_CHANNEL_LIMIT; i++ )
@@ -128,7 +132,6 @@ void	AudioMixer_Init( void )
 		gAudioMixerSamples[ i ].mActiveFlag = 0;
 		gAudioMixerSamples[ i ].mpCurrent   = gpAudioMixerSilence;
 		gAudioMixerSamples[ i ].mpStart     = gpAudioMixerSilence;
-		gAudioMixerSamples[ i ].mpEnd       = gpAudioMixerSilence + 1024;
 		gAudioMixerSamples[ i ].mLength     = 1024;
 	}
 
@@ -258,7 +261,8 @@ void	AudioMixer_MixerSampleActivate( sAmixerSpl * apMix, const sAudioDmaSound * 
 	}
 
 	apMix->mpCurrent = apSpl->mpSound;
-	apMix->mpEnd = (U8*)apSpl->mpSound + apSpl->mLength;
+	apMix->mGainLeft = gAudioMixerSineLaw[ aPan ];
+	apMix->mGainRight = aPan;
 	apMix->mVolume = 0xFF;
 	apMix->mActiveFlag = 1;
 

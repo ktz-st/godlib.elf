@@ -13,9 +13,6 @@
 #  DEFINES
 ################################################################################### */
 
-#define	dGRAPHIC_HEIGHT_LIMIT	485
-
-
 /* ###################################################################################
 #  ENUMS
 ################################################################################### */
@@ -107,7 +104,7 @@ typedef	struct sGraphicCanvas
 	sGraphicBox		mClipBox;
 	sGraphicFuncs *	mpFuncs;
 	sGraphicFuncs *	mpClipFuncs;
-	U32				mLineOffsets[ dGRAPHIC_HEIGHT_LIMIT ];
+	U32 *			mpLineOffsets;
 } sGraphicCanvas;
 
 
@@ -122,6 +119,7 @@ void	Graphic_SetBlitterEnable( U8 aFlag );
 U8		Graphic_GetBlitterEnable( void );
 
 void	GraphicCanvas_Init(     sGraphicCanvas * apCanvas, const U16 aColourMode, const U16 aWidth, const U16 aHeight );
+void	GraphicCanvas_DeInit(   sGraphicCanvas * apCanvas );
 void	GraphicCanvas_SetpVRAM( sGraphicCanvas * apCanvas, void * apVRAM );
 void	GraphicCanvas_CentringRender( sGraphicCanvas * apCanvas, const U16 aColour );
 

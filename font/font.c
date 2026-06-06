@@ -528,6 +528,9 @@ U32	Font_GetSize( sFont * apFont )
 
 void	Font_ShowInfo( sFont * apFont )
 {
+#ifdef dGODLIB_PLATFORM_ATARI
+	(void)apFont;
+#else
 	U16	i;
 	sSprite *	lpSprite;
 
@@ -547,6 +550,7 @@ void	Font_ShowInfo( sFont * apFont )
 		lpSprite = &apFont->mpSprites[ i ];
 		printf( "Sprite %d w:%d h:%d\n", i, lpSprite->mWidth, lpSprite->mHeight );
 	}
+#endif
 }
 
 

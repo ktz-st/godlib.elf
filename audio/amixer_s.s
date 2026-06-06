@@ -6,6 +6,13 @@
 *	[c] 2001 Reservoir Gods
 **************************************************************************************
 
+;	Mixer frequencies:
+;	Frequency : Bytes Per Frame @ 50hz (mono/stereo)
+;	 6258     :  125 /  250
+;	12517     :  250 /  500
+;	25033     :  500 / 1000
+;	50066     : 1001 / 2002
+
 **************************************************************************************
 ;	xdefS / IMPORTS
 **************************************************************************************
@@ -39,6 +46,7 @@ eAMIXER_CHANNEL_LIMIT	EQU	2
 
 sAmixerSpl_mpStart:      rs.l    1
 sAmixerSpl_mpCurrent:    rs.l    1
+sAmixerSpl_mpEnd:        rs.l    1
 sAmixerSpl_mLength:      rs.l    1
 sAmixerSpl_mGainLeft:    rs.b    1
 sAmixerSpl_mGainRight:   rs.b    1
@@ -64,25 +72,6 @@ AudioMixer_Vbl:
 
 	lea		gAudioMixerSamples,a0
 	lea		sAmixerSpl_msizeof(a0),a1
-
-	move.l	gpAudioMixerMulTable,a2
-	moveq	#0,d0
-	move.b	sAmixerSpl_mGainLeft(a0),d0
-	lsl.w	#8,d0
-	lea		(a2,d0.l),a3				; gain left
-	moveq	#0,d0
-	move.b	sAmixerSpl_mGainRight(a0),d0
-	lsl.w	#8,d0
-	lea		(a2,d0.l),a4				; gain right
-
-	moveq	#0,d0
-	move.b	sAmixerSpl_mGainLeft(a1),d0
-	lsl.w	#8,d0
-	lea		(a2,d0.l),a5				; gain left
-	moveq	#0,d0
-	move.b	sAmixerSpl_mGainRight(a1),d0
-	lsl.w	#8,d0
-	lea		(a2,d0.l),a6				; gain right
 
 	moveq	#0,d3
 	move.w	d3,d4
@@ -170,12 +159,25 @@ AudioMixer_Vbl:
 
 AudioMixer_DoMixingI:
 
-	lsr.l	#3,d0
+	lsr.l	#3,d0						; d0 = number of 8-byte blocks
+	beq.s	.nomix
+	lsr.l	#1,d0						; d0 = pair count, X = odd block
+	bcc.s	.nopre
+
+	move.w	(a0)+,d1					; leftover single 8-byte block
+	move.w	(a1)+,d2
+	and.w	d3,d1
+	and.w	d4,d2
+	move.w	d1,(a2)+
+	move.w	d2,(a2)+
+	move.w	d1,(a2)+
+	move.w	d2,(a2)+
+
+.nopre:
 	subq.w	#1,d0
 	bmi.s	.nomix
 
 .loop:
-
 	move.w	(a0)+,d1					; byte of sample0
 	move.w	(a1)+,d2					; byte of sample1
 	and.w	d3,d1
@@ -185,6 +187,16 @@ AudioMixer_DoMixingI:
 	move.w	d2,(a2)+					; write L.R into buffer
 	move.w	d1,(a2)+					; write L.R into buffer
 	move.w	d2,(a2)+					; write L.R into buffer
+
+	move.w	(a0)+,d1
+	move.w	(a1)+,d2
+	and.w	d3,d1
+	and.w	d4,d2
+
+	move.w	d1,(a2)+
+	move.w	d2,(a2)+
+	move.w	d1,(a2)+
+	move.w	d2,(a2)+
 
 	dbra	d0,.loop
 
@@ -200,12 +212,26 @@ AudioMixer_DoMixingI:
 
 AudioMixer_DoMixingO:
 
-	lsr.l	#3,d0
+	lsr.l	#3,d0						; d0 = number of 8-byte blocks
+	beq.s	.nomix
+	lsr.l	#1,d0						; d0 = pair count, X = odd block
+	bcc.s	.nopre
+
+	move.w	(a0)+,d1					; leftover single 8-byte block
+	move.w	(a1)+,d2
+	and.w	d3,d1
+	and.w	d4,d2
+	or.w	d2,d1
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
+
+.nopre:
 	subq.w	#1,d0
 	bmi.s	.nomix
 
 .loop:
-
 	move.w	(a0)+,d1					; byte of sample0
 	move.w	(a1)+,d2					; byte of sample1
 	and.w	d3,d1
@@ -217,363 +243,16 @@ AudioMixer_DoMixingO:
 	move.w	d1,(a2)+					; write L.R into buffer
 	move.w	d1,(a2)+					; write L.R into buffer
 
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-*------------------------------------------------------------------------------------*
-* FUNCTION : Audio_DoMixing( U8 * apSpl0, U8 * apSpl1, U8 * apBuffer, U32 aBytes )
-* ACTION   : interrupt based mixer
-* CREATION : 11.04.01 PNK
-*------------------------------------------------------------------------------------*
-
-AudioMixer_DoMixing:
-
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	lsl.w	#8,d1						; into top byte
-	move.b	(a1)+,d1					; byte of sample1
-
-	move.w	d1,(a2)+					; write L.R into buffer
-	move.w	d1,(a2)+					; write L.R into buffer
-	move.w	d1,(a2)+					; write L.R into buffer
-	move.w	d1,(a2)+					; write L.R into buffer
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-*------------------------------------------------------------------------------------*
-* FUNCTION : AudioMixer_DoMixing2:( U8 * apSpl0, U8 * apSpl1, U8 * apBuffer, U32 aBytes )
-* ACTION   : interrupt based mixer with stereo positioning
-* CREATION : 11.04.01 PNK
-*------------------------------------------------------------------------------------*
-
-AudioMixer_DoMixing2:
-
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-.loop:
-	moveq	#0,d1
-	move.b	(a0)+,d1					; byte of sample
-
-	move.b	(a3,d1.w),d2				; * left pos
-	move.b	(a4,d1.w),d1				; * right pos
-;	move.b	d1,d2
-
-	moveq	#0,d3
-	move.b	(a1)+,d3					; byte of sample
-
-	move.b	(a5,d3.w),d4				; * left pos
-	move.b	(a6,d3.w),d3				; * right pos
-;	move.b	d3,d4
-
-	lsl.w	#8,d1						; into top byte
-	move.b	d2,d1						; byte of sample1
-
-	lsl.w	#8,d3						; into top byte
-	move.b	d4,d3						; byte of sample1
-
-	move.w	d1,(a2)+					; write L.R into buffer
-	move.w	d3,(a2)+					; write L.R into buffer
-	move.w	d1,(a2)+					; write L.R into buffer
-	move.w	d3,(a2)+					; write L.R into buffer
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-AudioMixer_DoMixing3:
-
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d1
-	move.b	(a0)+,d1					; byte of sample
-	move.b	(a3,d1.w),d2				; *stereo pos
-	sub.b	d2,d1
-
-	moveq	#0,d3
-	move.b	(a1)+,d3					; byte of sample
-	move.b	(a5,d3.w),d4				; *stereo pos
-	sub.b	d4,d3
-
-	add.b	d3,d1
-	add.b	d4,d2
-.loop:
-
-	moveq	#0,d3
-	move.b	(a0)+,d3					; byte of sample
-	move.b	(a3,d3.w),d4				; *stereo pos
-	sub.b	d4,d3
-
-	moveq	#0,d5
-	move.b	(a1)+,d5					; byte of sample
-	move.b	(a5,d5.w),d6				; *stereo pos
-	sub.b	d6,d5
-
-	add.b	d5,d3
-	add.b	d6,d4
-
-	move.b	d3,d5
-	move.b	d4,d6
-	sub.b	d1,d5
-	sub.b	d4,d6
-	asr.w	#2,d5
-	asr.w	#2,d6
-
-	move.b	d1,(a2)+
-	move.b	d2,(a2)+
-	add.b	d5,d1
-	add.b	d6,d2
-	move.b	d1,(a2)+
-	move.b	d2,(a2)+
-	add.b	d5,d1
-	add.b	d6,d2
-	move.b	d1,(a2)+
-	move.b	d2,(a2)+
-	add.b	d5,d1
-	add.b	d6,d2
-	move.b	d1,(a2)+
-	move.b	d2,(a2)+
-
-	move.w	d3,d1
-	move.w	d4,d2
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingCC:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d1,(a2)+					; write R into buffer
-
-	move.w	d2,(a2)+					; write L into buffer
-	move.w	d2,(a2)+					; write R into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingCR:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d2
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d1,(a2)+					; write R into buffer
-
-	move.w	d2,(a2)+					; write L.R into buffer
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d1,(a2)+					; write R into buffer
-
-	move.w	d2,(a2)+					; write L.R into buffer
-
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingCL:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d3
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d1,(a2)+					; write R into buffer
-
-	move.b	d2,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0 into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingLC:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d3
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0 into buffer
-
-	move.b	d2,(a2)+					; write L into buffer
-	move.b	d2,(a2)+					; write R into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingLL:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d3
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0 into buffer
-
-	move.b	d2,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0 into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingLR:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d3
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.b	d1,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0 into buffer
-
-	move.b	d3,(a2)+					; write 0 into buffer
-	move.b	d2,(a2)+					; write R into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-
-Audio_DoMixingRC:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d1
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.w	d1,(a2)+					; write 0.R into buffer
-
-	move.b	d2,(a2)+					; write L into buffer
-	move.b	d2,(a2)+					; write R into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-Audio_DoMixingRL:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d1
-	moveq	#0,d3
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.w	d1,(a2)+					; write 0.R into buffer
-
-	move.b	d2,(a2)+					; write L into buffer
-	move.b	d3,(a2)+					; write 0.R into buffer
-
-	move.l	-4(a2),(a2)+
-
-	dbra	d0,.loop
-
-.nomix:
-	rts
-
-Audio_DoMixingRR:
-	lsr.l	#3,d0
-	subq.w	#1,d0
-	bmi.s	.nomix
-
-	moveq	#0,d1
-	moveq	#0,d2
-.loop:
-
-	move.b	(a0)+,d1					; byte of sample0
-	move.b	(a1)+,d2					; byte of sample1
-
-	move.w	d1,(a2)+					; write 0.R into buffer
-	move.w	d2,(a2)+					; write L into buffer
-
-	move.l	-4(a2),(a2)+
+	move.w	(a0)+,d1
+	move.w	(a1)+,d2
+	and.w	d3,d1
+	and.w	d4,d2
+	or.w	d2,d1
+
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
+	move.w	d1,(a2)+
 
 	dbra	d0,.loop
 
@@ -603,12 +282,14 @@ AudioMixer_UpdateSamples:
 	move.l	sAmixerSpl_mpCurrent(a0),d2				; current sample pointer
 	add.l	d0,d2									; add offset
 	move.l	d2,sAmixerSpl_mpCurrent(a0)				; store updated sample pointer
-	sub.l	sAmixerSpl_mpStart(a0),d2				; diff from start
-	sub.l	sAmixerSpl_mLength(a0),d2				; minus length
-	bmi.s	.next									; still bytes to play
+	cmp.l	sAmixerSpl_mpEnd(a0),d2					; reached cached end ptr?
+	blt.s	.next									; still bytes to play
 
 	move.l	a1,sAmixerSpl_mpStart(a0)				; switch sample to silence
 	move.l	a1,sAmixerSpl_mpCurrent(a0)				; point current pointer to silence
+	move.l	a1,d2									; silence end ptr
+	add.l	#1024,d2
+	move.l	d2,sAmixerSpl_mpEnd(a0)					; cache silence end
 	clr.b	sAmixerSpl_mActiveFlag(a0)				; mark sample as free
 	clr.b	sAmixerSpl_mVolume(a0)					; volume = 0
 	clr.b	sAmixerSpl_mGainLeft(a0)				; gain.left = 0
@@ -625,27 +306,6 @@ AudioMixer_UpdateSamples:
 	DATA
 **************************************************************************************
 
-gpAudioMixerRouts:
-	dc.l	Audio_DoMixingCC	;0000
-	dc.l	Audio_DoMixingCL	;0001
-	dc.l	Audio_DoMixingCR	;0010
-	dc.l	Audio_DoMixingCC	;0011
-
-	dc.l	Audio_DoMixingLC	;0100
-	dc.l	Audio_DoMixingLL	;0101
-	dc.l	Audio_DoMixingLR	;0110
-	dc.l	Audio_DoMixingLC	;0111
-
-	dc.l	Audio_DoMixingRC	;1000
-	dc.l	Audio_DoMixingRL	;1001
-	dc.l	Audio_DoMixingRR	;1010
-	dc.l	Audio_DoMixingRC	;1011
-
-	dc.l	Audio_DoMixingCC	;1100
-	dc.l	Audio_DoMixingCC	;1101
-	dc.l	Audio_DoMixingCC	;1110
-	dc.l	Audio_DoMixingCC	;1101
-
 gpAudioMixerBuffer:			dc.l	0
 gpAudioMixerSilence:		dc.l	0
 gpAudioMixerMulTable:		dc.l	0
@@ -658,4 +318,4 @@ gAudioMixerEnableFlag:		dc.b	0
 	BSS
 **************************************************************************************
 	section  .bss,bss
-gAudioMixerSamples:			ds.l	(sAmixerSpl_msizeof*eAMIXER_CHANNEL_LIMIT)
+gAudioMixerSamples:			ds.b	(sAmixerSpl_msizeof*eAMIXER_CHANNEL_LIMIT)

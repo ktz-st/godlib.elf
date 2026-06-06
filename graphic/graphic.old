@@ -21,7 +21,6 @@
 #include	<godlib/blitter/blitter.h>
 #include	<godlib/system/system.h>
 #include	<godlib/font/font.h>
-#include	<godlib/memory/memory.h>
 
 #ifdef dGODLIB_CHUNKY
 #include	<godlib/chunky/chunky.h>
@@ -47,7 +46,7 @@ extern	void  Graphic_4BP_Blit(         struct sGraphicCanvas * apCanvas,  sGraph
 extern	void  Graphic_4BP_ClearScreen(  struct sGraphicCanvas * apCanvas );
 extern	void  Graphic_4BP_CopyScreen(   struct sGraphicCanvas * apCanvas, void * apSrc );
 extern	void  Graphic_4BP_DrawBox(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -55,7 +54,7 @@ extern	void  Graphic_4BP_DrawQuad(     struct sGraphicCanvas * apCanvas,  sGraph
 
 extern	void  Graphic_4BP_Blit_Clip(         struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect, struct sGraphicCanvas * apSrc	) ;
 extern	void  Graphic_4BP_DrawBox_Clip(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_Clip(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_Clip(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_Clip(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_Clip(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_Clip(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -65,7 +64,7 @@ extern	void  Graphic_4BP_Blit_BLT(         struct sGraphicCanvas * apCanvas,  sG
 extern	void  Graphic_4BP_ClearScreen_BLT(  struct sGraphicCanvas * apCanvas );
 extern	void  Graphic_4BP_CopyScreen_BLT(   struct sGraphicCanvas * apCanvas, void * apSrc );
 extern	void  Graphic_4BP_DrawBox_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_BLT(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_BLT(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -73,7 +72,7 @@ extern	void  Graphic_4BP_DrawQuad_BLT(     struct sGraphicCanvas * apCanvas,  sG
 
 extern	void  Graphic_4BP_Blit_Clip_BLT(         struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect, struct sGraphicCanvas * apSrc	);
 extern	void  Graphic_4BP_DrawBox_Clip_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicRect * apCoords,  S16 aColour );
-extern	void  Graphic_4BP_DrawLine_Clip_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicBox * apCoords,   S16 aColour );
+extern	void  Graphic_4BP_DrawLine_Clip_BLT(     struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawPixel_Clip_BLT(    struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 extern	void  Graphic_4BP_DrawSprite_Clip_BLT(   struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   void * apSprite ) ;
 extern	void  Graphic_4BP_DrawTri_Clip_BLT(      struct sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
@@ -99,11 +98,10 @@ void	Graphic_Init( void )
 /*
 	if( BLT_BLITTER == System_GetBLT() )
 	{
-		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit_BLT;
+		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_BLT;
-		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_BLT;
 
@@ -111,7 +109,6 @@ void	Graphic_Init( void )
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_Clip_BLT;
-		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_Clip_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_Clip_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_Clip_BLT;
 	}
@@ -196,7 +193,6 @@ void	Graphic_SetBlitterEnable( U8 aFlag )
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox;
-		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite;
 
@@ -204,7 +200,6 @@ void	Graphic_SetBlitterEnable( U8 aFlag )
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_Clip;
-		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawLine    = Graphic_4BP_DrawLine_Clip;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_Clip;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_Clip;
 
@@ -233,7 +228,7 @@ U8		Graphic_GetBlitterEnable( void )
 
 void	GraphicCanvas_Init( sGraphicCanvas * apCanvas,const U16 aColourMode,const U16 aWidth,const U16 aHeight )
 {
-	U32		i;
+	U16		i;
 	U32		lLineWidth;
 	U32		lOffset;
 
@@ -286,11 +281,14 @@ void	GraphicCanvas_Init( sGraphicCanvas * apCanvas,const U16 aColourMode,const U
 
 	lOffset = 0;
 
-	apCanvas->mpLineOffsets = (U32*)mMEMALLOC( ((U32)apCanvas->mHeight + 1L) * sizeof(U32) );
-
-	for( i=0; i<=apCanvas->mHeight; i++ )
+	if( apCanvas->mHeight >= (dGRAPHIC_HEIGHT_LIMIT-1) )
 	{
-		apCanvas->mpLineOffsets[ i ] = lOffset;
+		apCanvas->mHeight = dGRAPHIC_HEIGHT_LIMIT-1;
+	}
+
+	for( i=0; i<dGRAPHIC_HEIGHT_LIMIT; i++ )
+	{
+		apCanvas->mLineOffsets[ i ] = lOffset;
 		lOffset += lLineWidth;
 	}
 
@@ -300,22 +298,6 @@ void	GraphicCanvas_Init( sGraphicCanvas * apCanvas,const U16 aColourMode,const U
 	apCanvas->mClipBox.mY0 = 0;
 	apCanvas->mClipBox.mX1 = apCanvas->mWidth;
 	apCanvas->mClipBox.mY1 = apCanvas->mHeight;
-}
-
-
-/*-----------------------------------------------------------------------------------*
-* FUNCTION : GraphicCanvas_DeInit( sGraphicCanvas * apCanvas )
-* ACTION   : GraphicCanvas_DeInit
-* CREATION : 21.05.2026
-*-----------------------------------------------------------------------------------*/
-
-void	GraphicCanvas_DeInit( sGraphicCanvas * apCanvas )
-{
-	if( apCanvas->mpLineOffsets )
-	{
-		mMEMFREE( apCanvas->mpLineOffsets );
-		apCanvas->mpLineOffsets = 0;
-	}
 }
 
 
@@ -551,7 +533,7 @@ void	Graphic_ChunkList_Store( sGraphicChunkList * apList, sGraphicCanvas * apCan
 
 	U16 lY = apRect->mY;
 	U16 lH = apRect->mHeight;
-	U16 lOff = (U16)apCanvas->mpLineOffsets[ lY ];
+	U16 lOff = (U16)apCanvas->mLineOffsets[ lY ];
 	S16 lCount = (lX1-lX0) + 1;
 
 	sGraphicChunk * lpChunk = &apList->mChunks[ apList->mActiveCount ];
@@ -584,8 +566,8 @@ void	Graphic_ChunkList_ReStore( sGraphicChunkList * apList, sGraphicCanvas * apS
 	lpS = (U8*)apSrc->mpVRAM;
 	lpD = (U8*)apDst->mpVRAM;
 
-	lAddSrc = (U16)(apSrc->mpLineOffsets[ 1 ]>>1);
-	lAddDst = (U16)(apSrc->mpLineOffsets[ 1 ]>>1);
+	lAddSrc = (U16)(apSrc->mLineOffsets[ 1 ]>>1);
+	lAddDst = (U16)(apSrc->mLineOffsets[ 1 ]>>1);
 
 	lCount = apList->mActiveCount;
 

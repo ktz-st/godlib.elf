@@ -1,21 +1,20 @@
-#ifndef	INCLUDED_FONT8X8_H
-#define	INCLUDED_FONT8X8_H
+#ifndef INCLUDED_LZ4_H
+#define INCLUDED_LZ4_H
 
 /* ###################################################################################
 #  INCLUDES
 ################################################################################### */
 
-#include	<godlib/base/base.h>
+#include <godlib/base/base.h>
 
 
 /* ###################################################################################
 #  PROTOTYPES
 ################################################################################### */
 
-void	Font8x8_Print( const char * apString, U16 * apScreen, U16 aX, U16 aY );
-void	Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY, U16 aColour );
+U32 Lz4_DePack(const void * apSrc, void * apDst);
 
 
 /* ################################################################################ */
 
-#endif	/*	INCLUDED_FONT8X8_H */
+#endif /* INCLUDED_LZ4_H */

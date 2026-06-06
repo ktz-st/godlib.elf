@@ -47,8 +47,8 @@ U16				Font_GetCharWidth( const sFont * apFont, const U8 aChar );
 U16				Font_GetCharX0( const sFont * apFont, const U8 aChar );
 U16				Font_GetCharX1( const sFont * apFont, const U8 aChar );
 
-sSpriteRegion*	Font_GetpSpriteRegion( const sFont * apFont, const char aChar );
-sSprite*		Font_GetpSprite( const sFont * apFont, const char aChar );
+sSpriteRegion*	Font_GetpSpriteRegion( const sFont * apFont, const U8 aChar );
+sSprite*		Font_GetpSprite( const sFont * apFont, const U8 aChar );
 
 void			Font_Delocate( sFont * apFont );
 void			Font_Relocate( sFont * apFont );

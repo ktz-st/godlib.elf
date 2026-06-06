@@ -349,12 +349,12 @@ U16	Font_GetCharX1( const sFont * apFont,const U8 aChar )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Font_GetpSpriteRegion( const sFont * apFont,const char aChar )
+* FUNCTION : Font_GetpSpriteRegion( const sFont * apFont,const U8 aChar )
 * ACTION   : Font_GetpSpriteRegion
 * CREATION : 20.01.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
-sSpriteRegion*	Font_GetpSpriteRegion( const sFont * apFont,const char aChar )
+sSpriteRegion*	Font_GetpSpriteRegion( const sFont * apFont,const U8 aChar )
 {
 	sSpriteRegion *	lpRegion;
 	U16				lIndex;
@@ -374,12 +374,12 @@ sSpriteRegion*	Font_GetpSpriteRegion( const sFont * apFont,const char aChar )
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Font_GetpSprite( const sFont * apFont,const char aChar )
+* FUNCTION : Font_GetpSprite( const sFont * apFont,const U8 aChar )
 * ACTION   : Font_GetpSprite
 * CREATION : 20.01.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
-sSprite *	Font_GetpSprite( const sFont * apFont,const char aChar )
+sSprite *	Font_GetpSprite( const sFont * apFont,const U8 aChar )
 {
 	sSprite *	lpSprite;
 	U16			lIndex;

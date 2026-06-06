@@ -356,13 +356,13 @@ void	Graphic_FontPrint( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,
 		}
 		else
 		{
-			lpSprite = Font_GetpSprite( lpFont, *apString );
-			lPos.mX  = (S16)(lPos.mX- Font_GetCharX0( lpFont, *apString ));
+			lpSprite = Font_GetpSprite( lpFont, (U8)*apString );
+			lPos.mX  = (S16)(lPos.mX- Font_GetCharX0( lpFont, (U8)*apString ));
 			if( lpSprite )
 			{
 				apCanvas->mpFuncs->DrawSprite( apCanvas, &lPos, lpSprite );
 			}
-			lPos.mX = (S16)(lPos.mX + Font_GetCharX1( lpFont, *apString ) +1);
+			lPos.mX = (S16)(lPos.mX + Font_GetCharX1( lpFont, (U8)*apString ) +1);
 		}
 		lPos.mX = (S16)(lPos.mX + lpFont->mKerning);
 		apString++;
@@ -395,13 +395,13 @@ void	Graphic_FontPrintClip( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoo
 		}
 		else
 		{
-			lpSprite = Font_GetpSprite( lpFont, *apString );
-			lPos.mX  = (S16)(lPos.mX - Font_GetCharX0( lpFont, *apString ));
+			lpSprite = Font_GetpSprite( lpFont, (U8)*apString );
+			lPos.mX  = (S16)(lPos.mX - Font_GetCharX0( lpFont, (U8)*apString ));
 			if( lpSprite )
 			{
 				apCanvas->mpClipFuncs->DrawSprite( apCanvas, &lPos, lpSprite );
 			}
-			lPos.mX = (S16)(lPos.mX + Font_GetCharX1( lpFont, *apString ) + 1);
+			lPos.mX = (S16)(lPos.mX + Font_GetCharX1( lpFont, (U8)*apString ) + 1);
 		}
 		lPos.mX = (S16)(lPos.mX +lpFont->mKerning);
 		apString++;

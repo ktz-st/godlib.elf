@@ -23,7 +23,7 @@
 #include	<godlib/string/string.h>
 #include	<godlib/string/strpath.h>
 
-#ifdef dGODLIB_COMPILER_GCC
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
 #include	<dirent.h>
 #include	<sys/stat.h>
 #include    <time.h>
@@ -54,7 +54,7 @@ sGemDosDTA		gFileDTA;
 S32				gFileFindHandle;
 U16				gFileFindAttribs;
 
-#ifdef	dGODLIB_COMPILER_GCC
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
 struct dirent *		gpFileDirentEntry;
 DIR *				gpFileDirentDIR;
 sFileIdentifier 	gFileFindID;
@@ -72,7 +72,7 @@ typedef	struct _finddata_t	_finddata_t;
 #ifdef	dGODLIB_PLATFORM_WIN
 void	File_FindDataToDTA( const _finddata_t * apFindData, sGemDosDTA * apDTA );
 #endif
-#ifdef	dGODLIB_COMPILER_GCC
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
 void	File_StatToDTA( const struct stat * apStat, sGemDosDTA * apDTA, const char * apFileName );
 #endif
 
@@ -856,7 +856,7 @@ U8	File_Save( const char * apFileName, const void * apBuffer, U32 aBytes )
 }
 
 
-#ifdef	dGODLIB_COMPILER_GCC
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : File_StatToDTA( const struct stat * apStat, sGemDosDTA * apDTA, const char * apFileName )
 * ACTION   : File_StatToDTA

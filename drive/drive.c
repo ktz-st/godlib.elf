@@ -22,6 +22,10 @@
 #include	"direct.h"
 #endif
 
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
+#include	<unistd.h>
+#endif
+
 /* ###################################################################################
 #  CODE
 ################################################################################### */
@@ -124,12 +128,12 @@ S32		Drive_GetFree( U16 aDrive )
 
 U16	Drive_GetDrive()
 {
-#ifdef	dGODLIB_COMPILER_GCC
-	return( 2 );
+#ifdef	dGODLIB_PLATFORM_ATARI
+	return( GemDos_Dgetdrv() );
 #elif defined(dGODLIB_PLATFORM_WIN)
 	return( (U16)(_getdrive() - 1) );
-#else
-	return( GemDos_Dgetdrv() );
+#elif defined(dGODLIB_COMPILER_GCC)
+	return( 2 );
 #endif
 }
 
@@ -142,12 +146,12 @@ U16	Drive_GetDrive()
 
 S32	Drive_SetDrive( U16 aDrive )
 {
-#ifdef	dGODLIB_COMPILER_GCC
-	return( 0 );
+#ifdef	dGODLIB_PLATFORM_ATARI
+	return( GemDos_Dsetdrv( aDrive ) );
 #elif defined(dGODLIB_PLATFORM_WIN)
 	return( _chdrive( aDrive ) );
-#else
-	return( GemDos_Dsetdrv( aDrive ) );
+#elif defined(dGODLIB_COMPILER_GCC)
+	return( 0 );
 #endif
 }
 
@@ -160,7 +164,9 @@ S32	Drive_SetDrive( U16 aDrive )
 
 S32	Drive_GetPath( U16 aDrive, char * apPath )
 {
-#ifdef	dGODLIB_COMPILER_GCC
+#ifdef	dGODLIB_PLATFORM_ATARI
+	return( GemDos_Dgetpath( apPath, aDrive) );
+#elif defined(dGODLIB_COMPILER_GCC)
 	S32	lRes;
 	U16	i;
 	lRes = (S32)getcwd( apPath, 256 );
@@ -203,8 +209,6 @@ S32	Drive_GetPath( U16 aDrive, char * apPath )
 	}
 
 	return( lRes );
-#else
-	return( GemDos_Dgetpath( apPath, aDrive) );
 #endif
 }
 

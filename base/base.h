@@ -17,22 +17,25 @@
 
 
 #ifdef	__GNUC__
-#define	dGODLIB_PLATFORM_ATARI
+#define	dGODLIB_COMPILER_GCC
 #endif
 
-#ifdef	WIN32
+#if	defined( WIN32 ) || defined( _WIN32 )
 
 #define	dGODLIB_PLATFORM_WIN
 
-#else
+#elif defined( __AHCC__ )
+
+#define dGODLIB_COMPILER_AHCC
+#define dGODLIB_PLATFORM_ATARI
+
+#elif defined( __MINT__ ) || defined( __atarist__ ) || defined( __atarist ) || defined( __m68k__ ) || defined( __mc68000__ ) || defined( __mc68000 )
 
 #define	dGODLIB_PLATFORM_ATARI
 
-#ifdef __AHCC__
+#elif !defined( __GNUC__ )
 
-#define dGODLIB_COMPILER_AHCC
-
-#endif
+#define	dGODLIB_PLATFORM_ATARI
 
 #endif
 
@@ -41,11 +44,11 @@
 
 #define	dGODLIB_SYSTEM_SDL
 
-#elif defined(WIN32)
+#elif defined( WIN32 ) || defined( _WIN32 )
 
 #define	dGODLIB_SYSTEM_D3D
 
-#else
+#elif defined( dGODLIB_PLATFORM_ATARI )
 
 #define	dGODLIB_SYSTEM_TOS
 

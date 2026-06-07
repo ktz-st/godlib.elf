@@ -309,7 +309,7 @@ S32		File_GetAttribute( const char * apFname )
 {
 #ifdef dGODLIB_PLATFORM_ATARI
 	return( GemDos_Fattrib( apFname, 0, 0 ) );
-#else
+#elif defined( dGODLIB_PLATFORM_WIN )
 	S32	lAttribs = 0;
 	int lWinAt =	GetFileAttributesA( apFname );
 
@@ -321,6 +321,19 @@ S32		File_GetAttribute( const char * apFname )
 	lAttribs |= ( lWinAt & FILE_ATTRIBUTE_HIDDEN    ) ? dGEMDOS_FA_HIDDEN   : 0;
 	lAttribs |= ( lWinAt & FILE_ATTRIBUTE_READONLY  ) ? dGEMDOS_FA_READONLY : 0;
 	lAttribs |= ( lWinAt & FILE_ATTRIBUTE_SYSTEM    ) ? dGEMDOS_FA_SYSTEM   : 0;
+
+	return lAttribs;
+#else
+	struct stat	lStat;
+	S32			lAttribs = 0;
+
+	if( stat( apFname, &lStat ) )
+		return -1;
+
+	if( S_ISDIR( lStat.st_mode ) )
+		lAttribs |= dGEMDOS_FA_DIR;
+	if( !(lStat.st_mode & S_IWUSR) )
+		lAttribs |= dGEMDOS_FA_READONLY;
 
 	return lAttribs;
 #endif

@@ -192,10 +192,14 @@ int	SDL_main( int argc,char * argv[] )
 * CREATION : 21.11.01 PNK
 *-----------------------------------------------------------------------------------*/
 
+#ifdef dGODLIB_PLATFORM_ATARI
 S16	main( S16 argc,char * argv[] )
+#else
+int	main( int argc,char * argv[] )
+#endif
 {
 	GodLib_DebugChannels_Init();
-	GodLib_Game_Main( argc, argv );
+	GodLib_Game_Main( (S16)argc, argv );
 	GodLib_DebugChannels_DeInit();
 	return( 0 );
 }

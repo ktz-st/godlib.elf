@@ -7,9 +7,7 @@
 
 #include	<stdio.h>
 #include	<stdlib.h>
-#ifdef __VBCC__
 #include	<stddef.h>
-#endif
 
 /* ###################################################################################
 #  PLATFORM DEFINITIONS
@@ -110,6 +108,8 @@ typedef uint16_t 				U16;
 typedef int16_t				 	S16;
 typedef uint32_t				U32;
 typedef int32_t				 	S32;
+typedef uintptr_t				UPTR;
+typedef intptr_t			 	SPTR;
 typedef	float					F32;
 typedef float                   FP32;
 
@@ -123,6 +123,8 @@ typedef unsigned short 			U16;
 typedef signed short          	S16;
 typedef unsigned int	        U32;
 typedef signed int            	S32;
+typedef unsigned long	        UPTR;
+typedef signed long            	SPTR;
 typedef	float					F32;
 typedef float                   FP32;
 
@@ -134,6 +136,8 @@ typedef unsigned int	U16;
 typedef signed int		S16;
 typedef unsigned long	U32;
 typedef signed long		S32;
+typedef unsigned long	UPTR;
+typedef signed long		SPTR;
 #define F32				float;
 #define FP32			float;
 
@@ -145,6 +149,8 @@ typedef unsigned int	U16;
 typedef signed int		S16;
 typedef unsigned long	U32;
 typedef signed long		S32;
+typedef unsigned long	UPTR;
+typedef signed long		SPTR;
 typedef	float			F32;
 typedef float			FP32;
 
@@ -262,7 +268,7 @@ typedef struct
 typedef struct
 {
 	U32		ID;
-	U32		Value;
+	UPTR	Value;
 } sTagValue;
 
 
@@ -275,8 +281,8 @@ U32		sTagString_GetID( const char * apString, const sTagString * apTagStrings, c
 U8		sTagString_StringExists( const char * apString, const sTagString * apTagStrings, const U32 aLimit );
 U8		sTagString_IDExists( const U32 aID, const sTagString * apTagStrings, const U32 aLimit );
 
-U32		sTagValue_GetValue( const U32 aID,    const sTagValue * apTagValues, const U32 aLimit );
-U32		sTagValue_GetID(    const U32 aValue, const sTagValue * apTagValues, const U32 aLimit );
+UPTR	sTagValue_GetValue( const U32 aID,     const sTagValue * apTagValues, const U32 aLimit );
+U32		sTagValue_GetID(    const UPTR aValue, const sTagValue * apTagValues, const U32 aLimit );
 
 #ifdef	dGODLIB_ENDIAN_LITTLE
 

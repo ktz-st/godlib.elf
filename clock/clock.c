@@ -432,7 +432,9 @@ U32	Time_GetAbsTime( void )
 
 #ifndef dGODLIB_PLATFORM_ATARI
 
+#ifdef dGODLIB_PLATFORM_WIN
 ULARGE_INTEGER	gClockBaseTime = { 0 };
+#endif
 
 void		Clock_TimeVbl( void ) 
 {

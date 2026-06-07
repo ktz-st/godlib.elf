@@ -23,6 +23,7 @@
 #endif
 
 #if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
+#include	<sys/stat.h>
 #include	<unistd.h>
 #endif
 
@@ -54,8 +55,10 @@ S32		Drive_CreateDirectory( const char * apDirName )
 
 #ifdef	dGODLIB_PLATFORM_ATARI
 				lRes = GemDos_Dcreate( lpDirBase );
-#else
+#elif defined(dGODLIB_PLATFORM_WIN)
 				lRes = CreateDirectory( lpDirBase, 0 );
+#else
+				lRes = mkdir( lpDirBase, 0777 );
 #endif
 			}
 			*lpDir = lOld;
@@ -67,8 +70,10 @@ S32		Drive_CreateDirectory( const char * apDirName )
 	{
 #ifdef	dGODLIB_PLATFORM_ATARI
 		lRes = GemDos_Dcreate( lpDirBase );
-#else
+#elif defined(dGODLIB_PLATFORM_WIN)
 		lRes = CreateDirectory( lpDirBase, 0 );
+#else
+		lRes = mkdir( lpDirBase, 0777 );
 #endif
 	}
 	return ( lRes );
@@ -84,7 +89,13 @@ S32		Drive_CreateDirectory( const char * apDirName )
 
 S32		Drive_DeleteDirectory( const char * apDirName )
 {
+#ifdef	dGODLIB_PLATFORM_ATARI
 	return( GemDos_Ddelete( apDirName ) );
+#elif defined(dGODLIB_PLATFORM_WIN)
+	return( RemoveDirectory( apDirName ) );
+#else
+	return( rmdir( apDirName ) );
+#endif
 }
 
 U8		Drive_DirectoryExists( const char * apDirName )
@@ -169,7 +180,7 @@ S32	Drive_GetPath( U16 aDrive, char * apPath )
 #elif defined(dGODLIB_COMPILER_GCC)
 	S32	lRes;
 	U16	i;
-	lRes = (S32)getcwd( apPath, 256 );
+	lRes = getcwd( apPath, 256 ) ? 0 : -1;
 	if( apPath[ 1 ] == ':' )
 	{
 		i = 2;

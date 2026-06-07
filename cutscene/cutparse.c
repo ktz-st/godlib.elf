@@ -159,14 +159,14 @@ sTokeniserMember	gCutSceneVarMembers[] =
 sTagValue	gCutSceneStructDefs[] =
 {
 	{	eCUTPARSE_CHUNK_NONE,		0								},
-	{	eCUTPARSE_CHUNK_ANIMATION,	(U32)gCutSceneAnimationMembers	},
-	{	eCUTPARSE_CHUNK_ASSET,		(U32)gCutSceneAssetMembers		},
-	{	eCUTPARSE_CHUNK_PAGE,		(U32)gCutScenePageMembers		},
-	{	eCUTPARSE_CHUNK_SAMPLE,		(U32)gCutSceneSampleMembers		},
-	{	eCUTPARSE_CHUNK_SCRIPT,		(U32)gCutSceneScriptMembers		},
-	{	eCUTPARSE_CHUNK_SPRITE,		(U32)gCutSceneSpriteMembers		},
-	{	eCUTPARSE_CHUNK_TEXT,		(U32)gCutSceneTextMembers		},
-	{	eCUTPARSE_CHUNK_VAR,		(U32)gCutSceneVarMembers		},
+	{	eCUTPARSE_CHUNK_ANIMATION,	(UPTR)gCutSceneAnimationMembers	},
+	{	eCUTPARSE_CHUNK_ASSET,		(UPTR)gCutSceneAssetMembers		},
+	{	eCUTPARSE_CHUNK_PAGE,		(UPTR)gCutScenePageMembers		},
+	{	eCUTPARSE_CHUNK_SAMPLE,		(UPTR)gCutSceneSampleMembers		},
+	{	eCUTPARSE_CHUNK_SCRIPT,		(UPTR)gCutSceneScriptMembers		},
+	{	eCUTPARSE_CHUNK_SPRITE,		(UPTR)gCutSceneSpriteMembers		},
+	{	eCUTPARSE_CHUNK_TEXT,		(UPTR)gCutSceneTextMembers		},
+	{	eCUTPARSE_CHUNK_VAR,		(UPTR)gCutSceneVarMembers		},
 };
 
 sTagValue	gCutSceneStructSizes[] =

@@ -139,7 +139,7 @@ U8	sTagString_IDExists( const U32 aID,const sTagString * apTagStrings,const U32 
 * AUTHOR      : 09.01.00 PNK
 *-----------------------------------------------------------------------------------*/
 
-U32		sTagValue_GetValue( const U32 aID, const sTagValue * apTagValues, const U32 aLimit )
+UPTR	sTagValue_GetValue( const U32 aID, const sTagValue * apTagValues, const U32 aLimit )
 {
 	const	sTagValue *	lpTagValue;
 	U32			i;
@@ -166,7 +166,7 @@ U32		sTagValue_GetValue( const U32 aID, const sTagValue * apTagValues, const U32
 * AUTHOR      : 09.01.00 PNK
 *-----------------------------------------------------------------------------------*/
 
-U32		sTagValue_GetID( const U32 aValue, const sTagValue * apTagValues, const U32 aLimit )
+U32		sTagValue_GetID( const UPTR aValue, const sTagValue * apTagValues, const U32 aLimit )
 {
 	const	sTagValue *	lpTagValue;
 	U32			i;
@@ -446,5 +446,4 @@ void Endian_Twiddle_U32(U8 * apU32)
 	}
 
 }
-
 

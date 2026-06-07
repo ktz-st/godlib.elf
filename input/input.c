@@ -67,9 +67,15 @@ void	Input_Init( sInput * apInput )
 	for( i=0; i<eINPUTKEY_LIMIT; i++ )
 	{
 		apInput->mKeyStatus[ i ] = eINPUTKEYSTATUS_NONE;
+		apInput->mScanCodes[ i ] = 0;
+		apInput->mRepeatCounts[ i ] = 0;
 	}
 
-	apInput->mInputType                     = eINPUTTYPE_IKBD;
+	apInput->mInputType = eINPUTTYPE_IKBD;
+	apInput->mX         = 0;
+	apInput->mY         = 0;
+	apInput->mMovedFlag = 0;
+
 	apInput->mScanCodes[ eINPUTKEY_LEFT   ] = eIKBDSCAN_LEFTARROW;
 	apInput->mScanCodes[ eINPUTKEY_RIGHT  ] = eIKBDSCAN_RIGHTARROW;
 	apInput->mScanCodes[ eINPUTKEY_DOWN   ] = eIKBDSCAN_DOWNARROW;
@@ -239,6 +245,9 @@ void	Input_Update( sInput * apInput )
 	case	eINPUTTYPE_TAP1_PADD:
 		IKBD_EnableTeamTap1();
 		Input_ProcessJagPad( apInput, IKBD_GetTeamTapPadDir(1,3), IKBD_GetTeamTapPadKey(1,3) );
+		break;
+
+	case	eINPUTTYPE_AI:
 		break;
 	}
 }
@@ -608,4 +617,3 @@ void Input_DirClear(sInput * apInput)
 
 
 /* ################################################################################ */
-

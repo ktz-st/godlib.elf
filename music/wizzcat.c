@@ -36,15 +36,20 @@ extern void	Wizzcat_Vbl( void );
 
 
 /*-----------------------------------------------------------------------------------*
-* FUNCTION : Wizzcat_Load( const char * apFileName )
+* FUNCTION : Wizzcat_LoadEx( const char * apFileName, U32 aWorkspaceSize )
 * ACTION   : loads a MOD and appends Wizzcat sample workspace
 *-----------------------------------------------------------------------------------*/
 
-sWizzcatModule *	Wizzcat_Load( const char * apFileName )
+sWizzcatModule *	Wizzcat_LoadEx( const char * apFileName, U32 aWorkspaceSize )
 {
 	sFileHandle		lHandle;
 	S32				lSize;
 	sWizzcatModule *	lpModule;
+
+	if( !aWorkspaceSize )
+	{
+		aWorkspaceSize = dWIZZCAT_MODULE_MARGIN_SIZE;
+	}
 
 	lSize = File_GetSize( apFileName );
 	if( lSize <= 0 )
@@ -58,7 +63,7 @@ sWizzcatModule *	Wizzcat_Load( const char * apFileName )
 		return( 0 );
 	}
 
-	lpModule = (sWizzcatModule*)mMEMCALLOC( (U32)sizeof(sWizzcatModule) - 1UL + (U32)lSize + dWIZZCAT_MODULE_MARGIN_SIZE );
+	lpModule = (sWizzcatModule*)mMEMCALLOC( (U32)sizeof(sWizzcatModule) - 1UL + (U32)lSize + aWorkspaceSize );
 	if( !lpModule )
 	{
 		File_Close( lHandle );
@@ -66,6 +71,7 @@ sWizzcatModule *	Wizzcat_Load( const char * apFileName )
 	}
 
 	lpModule->mDataSize = (U32)lSize;
+	lpModule->mWorkspaceSize = aWorkspaceSize;
 	if( File_Read( lHandle, (U32)lSize, lpModule->mData ) != lSize )
 	{
 		File_Close( lHandle );
@@ -76,6 +82,17 @@ sWizzcatModule *	Wizzcat_Load( const char * apFileName )
 	File_Close( lHandle );
 
 	return( lpModule );
+}
+
+
+/*-----------------------------------------------------------------------------------*
+* FUNCTION : Wizzcat_Load( const char * apFileName )
+* ACTION   : loads a MOD with the default Wizzcat sample workspace
+*-----------------------------------------------------------------------------------*/
+
+sWizzcatModule *	Wizzcat_Load( const char * apFileName )
+{
+	return( Wizzcat_LoadEx( apFileName, dWIZZCAT_MODULE_MARGIN_SIZE ) );
 }
 
 
@@ -101,13 +118,20 @@ void	Wizzcat_UnLoad( sWizzcatModule * apModule )
 void	Wizzcat_Init( sWizzcatModule * apModule )
 {
 	void *	lpWorkspaceEnd;
+	U32		lWorkspaceSize;
 
 	if( !apModule )
 	{
 		return;
 	}
 
-	lpWorkspaceEnd = &apModule->mData[ apModule->mDataSize + dWIZZCAT_MODULE_MARGIN_SIZE ];
+	lWorkspaceSize = apModule->mWorkspaceSize;
+	if( !lWorkspaceSize )
+	{
+		lWorkspaceSize = dWIZZCAT_MODULE_MARGIN_SIZE;
+	}
+
+	lpWorkspaceEnd = &apModule->mData[ apModule->mDataSize + lWorkspaceSize ];
 
 	WIZinit();
 	WIZmodInit( apModule->mData, lpWorkspaceEnd );

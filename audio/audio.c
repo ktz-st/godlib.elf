@@ -310,6 +310,11 @@ void	Audio_DmaPlaySound( sAudioDmaSound * apSound )
 	U8		lMode;
 	U8		lDMAc;
 
+	if( (!apSound) || (!apSound->mpSound) || (!apSound->mLength) )
+	{
+		return;
+	}
+
 	if( gAudioDMAHardWareFlag )
 	{
 		lpDMAc  = (U8*)0xFFFF8901L;
@@ -391,6 +396,11 @@ void	Audio_ToggleSign( sAudioDmaSound * apSound )
 	U8 *	lpSrc;
 	U8		lSam;
 
+	if( !apSound )
+	{
+		return;
+	}
+
 	lpSrc = apSound->mpSound;
 
 	if( lpSrc )
@@ -417,7 +427,14 @@ void	Audio_MaximiseVolume( sAudioDmaSound * apSound, U8 aAdd )
 	U8	lMin = 0xFF;
 	U32 i;
 	U16	scale;
-	U8	* lpS = apSound->mpSound;
+	U8	* lpS;
+
+	if( (!apSound) || (!apSound->mpSound) || (!apSound->mLength) )
+	{
+		return;
+	}
+
+	lpS = apSound->mpSound;
 
 	for( i = 0; i < apSound->mLength; i++ )
 	{
@@ -430,6 +447,10 @@ void	Audio_MaximiseVolume( sAudioDmaSound * apSound, U8 aAdd )
 	}
 
 	scale = 0xFFFF;
+	if( !lMax )
+	{
+		return;
+	}
 	scale /= lMax;
 
 	lpS = apSound->mpSound;
@@ -468,7 +489,7 @@ void	Audio_MaximiseVolumeSigned( sAudioDmaSound * apSound )
 
 void	Audio_MaximiseVolumeUnSigned( sAudioDmaSound * apSound )
 {
-	Audio_MaximiseVolume( apSound, 0x80 );
+	Audio_MaximiseVolume( apSound, 0 );
 }
 
 

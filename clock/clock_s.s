@@ -10,7 +10,7 @@
 ;	EXPORTS / IMPORTS
 **************************************************************************************
 
-	XDEF	Clock_TimeVblt
+	XDEF	Clock_TimeVbl
 
 	XREF	gClockTime
 	XREF	gClockTicks
@@ -25,12 +25,12 @@
 **************************************************************************************
 
 *------------------------------------------------------------------------------------*
-* FUNTION  : Clock_TimeVblt( void )
+* FUNTION  : Clock_TimeVbl( void )
 * ACTION   : updates clock based on vbl timing
 * CREATION : 24.01.01 PNK
 *------------------------------------------------------------------------------------*
 
-Clock_TimeVblt:
+Clock_TimeVbl:
 	move.l	d0,-(a7)						;	save registers
 	move.l	d1,-(a7)						;	save registers
 	move.l	d2,-(a7)						;	save registers

@@ -319,11 +319,7 @@ void *	Memory_Alloc( const U32 aSize )
 #ifdef	dMEMORY_GUARD
 	lSize += (dMEMORY_HEADER_SIZE + dMEMORY_TRAILER_SIZE);
 #endif
-#if 0
-	if( !aSize )
-	{
-		DebugChannel_Printf0( eDEBUGCHANNEL_MEMORY, "WARNING: 0 byte alloc" );
-	}
+#ifndef	dGODLIB_PLATFORM_ATARI
 	lpMem = malloc( lSize );
 #else
 	if( System_GetTosVersion() > 0x200 )
@@ -511,9 +507,9 @@ S32		_Memory_Release( void * apMem )
 		lpMem -= dMEMORY_HEADER_SIZE;
 #endif
 
-#if 0
-		free( lpMem );
-		return( 0 );
+#ifndef	dGODLIB_PLATFORM_ATARI
+	free( lpMem );
+	return( 0 );
 #else
 		return( (S32)GemDos_Mfree( lpMem ) );
 #endif
@@ -597,7 +593,11 @@ void	Memory_Copy_Internal( U32 aSize, const void * apSrc, void * apDst )
 
 U32		Memory_GetFree( void )
 {
+#if defined dGODLIB_PLATFORM_ATARI
+	return( (U32)GemDos_Malloc( 0xFFFFFFFFUL ) );
+#else
 	return( 0 );
+#endif
 }
 
 

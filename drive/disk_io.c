@@ -257,7 +257,7 @@ void DiskImage_DirDeInit( sDiskImage * apImage, sDiskImageDirEntry * apDir, U16 
 
 	for( i=0; i<aEntryCount; i++ )
 	{
-		sDiskImageDirEntry * entry = &apDir[ aEntryCount ];
+		sDiskImageDirEntry * entry = &apDir[ i ];
 		if( entry->mAttribute & dGEMDOS_FA_DIR )
 		{
 			if( entry->mpSubDirectory )
@@ -326,7 +326,7 @@ U16				DiskImage_FAT_GetLinkedClusterCount(  sDiskImage * apImage, U16 aClusterI
 
 	while( clusterIndex < 0xFF7 )
 	{
-		clusterIndex = DiskImage_FAT_GetLinkedClusterNext( apImage, aClusterIndex );
+		clusterIndex = DiskImage_FAT_GetLinkedClusterNext( apImage, clusterIndex );
 		count++;
 	}
 
@@ -345,20 +345,19 @@ U16				DiskImage_FAT_GetLinkedClusterCount(  sDiskImage * apImage, U16 aClusterI
 U16						DiskImage_FAT_GetFreeCluster( sDiskImage * apImage, U16 aStartIndex )
 {
 	U16	clusterCount = apImage->mClusterTotalCount - 1;
-	U8 * fat = apImage->mpFAT;
 	U16 i;
 
-	fat += 3;
-
-	(void)aStartIndex;
-
-	for( i = 2; i < clusterCount; i += 2 )
+	if( aStartIndex < 2 )
 	{
-		if( !fat[ 0 ] && !(fat[ 1 ] & 0x0F) )
+		aStartIndex = 2;
+	}
+
+	for( i = aStartIndex; i < clusterCount; i++ )
+	{
+		if( !DiskImage_FAT_GetLinkedClusterNext( apImage, i ) )
+		{
 			return i;
-		if( !fat[ 2 ] && !(fat[ 1 ] & 0xF0) )
-			return i+1;
-		fat += 3;
+		}
 	}
 
 	return 0;
@@ -1343,4 +1342,3 @@ sDiskImageDirEntry *	Disk_Image_ST_CreateDirectory( sDiskImageST * apImage, sDis
 
 
 /* ################################################################################ */
-

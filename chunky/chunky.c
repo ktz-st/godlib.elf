@@ -528,15 +528,15 @@ void	ChunkySurface_DrawBox_Clip( sGraphicCanvas * apCanvas,sGraphicRect * apCoor
 		( lRect.mY < apCanvas->mClipBox.mY1 ) )
 	{
 
-		lDiff = lRect.mX = apCanvas->mClipBox.mX0;
+		lDiff = (S16)(apCanvas->mClipBox.mX0 - lRect.mX);
 		if( lDiff > 0 )
 		{
 			lRect.mWidth = (S16)(lRect.mWidth - lDiff);
 			lRect.mX     = apCanvas->mClipBox.mX0;
 		}
 
-		lDiff = lRect.mY = apCanvas->mClipBox.mY0;
-		if( lRect.mY < 0 )
+		lDiff = (S16)(apCanvas->mClipBox.mY0 - lRect.mY);
+		if( lDiff > 0 )
 		{
 			lRect.mHeight = (S16)(lRect.mHeight - lDiff);
 			lRect.mY      = apCanvas->mClipBox.mY0;
@@ -706,13 +706,13 @@ void	ChunkySurface_DrawSprite_Clip( sGraphicCanvas * apCanvas,sGraphicPos * apCo
 		}
 
 		lDiff = (S16)((lX + lWidth) - apCanvas->mWidth);
-		if( lDiff )
+		if( lDiff > 0 )
 		{
 			lWidth = (S16)(lWidth-lDiff);
 		}
 
 		lDiff = (S16)((lY + lHeight) - apCanvas->mHeight);
-		if( lDiff )
+		if( lDiff > 0 )
 		{
 			lHeight = (S16)(lHeight-lDiff);
 		}

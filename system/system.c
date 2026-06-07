@@ -129,7 +129,7 @@ sTagString	gSystemNamesEMU[ EMU_LIMIT ] =
 	{	EMU_UNKNOWN,	"UNKNOWN"	},
 	{	EMU_PACIFIST,	"PACIFIST"	},
 	{	EMU_STEEM,		"STEEM"		},
-	{	EMU_STEEM,		"TOSBOX"	},
+	{	EMU_TOSBOX,		"TOSBOX"	},
 };
 
 

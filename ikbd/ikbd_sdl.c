@@ -100,7 +100,7 @@ U8 gIkbdSdlAsciiCaps[256] =
 U8 gIkbdSdlAsciiShift[256] =
 {
 	/*   0 - 9   */		0,		0,	'!',	'"',
-		0, /* was '£',	*/
+		0, /* was 'Â£',	*/
 		'$',	'%',	'^',	'&',	'*',
 	/*  10 - 19  */		'(',	')',	'_',	'+',	0,		0,		'Q',	'W',	'E',	'R',
 	/*  20 - 29  */		'T',	'Y',	'U',	'I',	'O',	'P',	'{',	'}',	0,		0,
@@ -359,19 +359,18 @@ void	IKBD_SDL_KbdUpdate( void )
 					{
 						gIKBD.mKeyPressedFlag = 0xFF;
 						gIKBD.mLastKeypress   = (U8)lIndex;
-						lIndex |= 0x80;
 					}
 				}
 				else
 				{
 					gIKBD.mKbdPressTable[ lIndex ] = 0;
+					lIndex |= 0x80;
 				}
 
 				if( gIkbdSdlClass.mKeyStates[ i ] != lpKeyStates[ i ] )
 				{
-//					gIKBD.mKbdBuffer[ gIKBD.mKbdTail ] = (U8)lIndex;
-
-					lPos  = gIKBD.mKbdTail += 1;
+					gIKBD.mKbdBuffer[ gIKBD.mKbdTail ] = (U8)lIndex;
+					lPos  = gIKBD.mKbdTail + 1;
 					lPos &= 2047;
 					if( lPos == gIKBD.mKbdHead )
 					{
@@ -381,7 +380,6 @@ void	IKBD_SDL_KbdUpdate( void )
 					{
 						gIKBD.mKbdTail = lPos;
 					}
-					gIKBD.mKbdBuffer[ gIKBD.mKbdTail ] = (U8)lIndex;
 				}
 
 				gIkbdSdlClass.mKeyStates[ i ] = lpKeyStates[ i ];

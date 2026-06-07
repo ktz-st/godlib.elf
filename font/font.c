@@ -431,7 +431,7 @@ void	Font_Delocate( sFont * apFont )
 		}
 
 		apFont->mpCharMap = (void *)((U32)apFont->mpCharMap - (U32)apFont);
-		apFont->mpRegions = (void *)((U32)apFont->mpSprites - (U32)apFont);
+		apFont->mpRegions = (void *)((U32)apFont->mpRegions - (U32)apFont);
 		apFont->mpSprites = (void *)((U32)apFont->mpSprites - (U32)apFont);
 
 		Endian_FromBigU16( &apFont->mWidthMax );
@@ -466,7 +466,7 @@ void	Font_Relocate( sFont * apFont )
 		Endian_FromBigU32( &apFont->mpSprites );
 
 		apFont->mpCharMap = (void *)((U32)apFont->mpCharMap + (U32)apFont);
-		apFont->mpRegions = (void *)((U32)apFont->mpSprites + (U32)apFont);
+		apFont->mpRegions = (void *)((U32)apFont->mpRegions + (U32)apFont);
 		apFont->mpSprites = (void *)((U32)apFont->mpSprites + (U32)apFont);
 
 		Endian_FromBigU16( &apFont->mSpriteCount );

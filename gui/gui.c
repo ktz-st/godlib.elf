@@ -1790,7 +1790,7 @@ void	GuiSlider_LineAdd( sGuiSlider * apSlider )
 				}
 				break;
 			case	eGUI_SLIDER_HORIZONTAL:
-				if( apSlider->mpWindow->mCanvas.mX > (apSlider->mpWindow->mCanvas.mWidth-apSlider->mInfo.mRectPair.mWorld.mWidth) )
+				if( apSlider->mpWindow->mCanvas.mX < (apSlider->mpWindow->mCanvas.mWidth-apSlider->mInfo.mRectPair.mWorld.mWidth) )
 				{
 					apSlider->mpWindow->mCanvas.mX++;
 				}

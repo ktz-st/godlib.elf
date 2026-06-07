@@ -118,6 +118,11 @@ void	AssetClient_Init( sAssetClient * apClient, const char * apFileName, const c
 	sContext * lpContext = ContextManager_ContextRegister( apContextName );
 	sAssetClient * parent;
 
+	apClient->mpAsset      = 0;
+	apClient->mpNext       = 0;
+	apClient->mpContext    = 0;
+	apClient->mpContextNext = 0;
+
 	for( i=0; i<12 && apFileName[i]; i++ )
 	{
 		apClient->mFileName[i] = apFileName[i];
@@ -134,6 +139,7 @@ void	AssetClient_Init( sAssetClient * apClient, const char * apFileName, const c
 	parent = Context_AssetClient_Add( lpContext, apClient );
 	if( parent && parent->mpAsset )
 	{
+		apClient->mpAsset = parent->mpAsset;
 		if( apClient->mppData )
 			*apClient->mppData = parent->mpAsset->mpData;
 

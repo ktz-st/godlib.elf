@@ -22,6 +22,7 @@
 typedef struct sWizzcatModule
 {
 	U32	mDataSize;
+	U32	mWorkspaceSize;
 	U8	mData[ 1 ];
 } sWizzcatModule;
 
@@ -37,6 +38,7 @@ typedef struct sWizzcatInfo
 ################################################################################### */
 
 sWizzcatModule *	Wizzcat_Load( const char * apFileName );
+sWizzcatModule *	Wizzcat_LoadEx( const char * apFileName, U32 aWorkspaceSize );
 void				Wizzcat_UnLoad( sWizzcatModule * apModule );
 
 void				Wizzcat_Init( sWizzcatModule * apModule );

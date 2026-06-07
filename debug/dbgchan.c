@@ -6,6 +6,7 @@
 #include	<godlib/cli/cli.h>
 #include	<godlib/drive/drive.h>
 #include	<godlib/file/file.h>
+#include	<godlib/xbios/xbios.h>
 #include	<string.h>
 
 #ifdef	dDEBUG
@@ -44,6 +45,7 @@ void	DebugChannel_FileWrite( U16 aChannel, const char * aString );
 void	DebugChannel_CliWrite( U16 aChannel, const char * aString );
 void	DebugChannel_ScreenWrite( U16 aChannel, const char * aString );
 void	DebugChannel_SteemWrite( U16 aChannel, const char * aString );
+void	DebugChannel_HatariWrite( U16 aChannel, const char * aString );
 
 
 /* ###################################################################################
@@ -202,6 +204,10 @@ void	DebugChannel_StringAdd_Internal( U16 aChannel, const char * apString )
 		{
 			DebugChannel_SteemWrite( aChannel, apString );
 		}
+		if( gDebugChannels[ aChannel ].mDestFlags & eDEBUGCHANNEL_DEST_HATARI )
+		{
+			DebugChannel_HatariWrite( aChannel, apString );
+		}
 	}
 }
 
@@ -256,6 +262,22 @@ void	DebugChannel_SteemWrite( U16 aChannel, const char * apString )
 	(void)apString;
 #ifdef	dGODLIB_PLATFORM_ATARI
 	*(U32*)0xFFFFC1F0L = (U32)apString;
+#endif
+}
+
+
+/*-----------------------------------------------------------------------------------*
+* FUNCTION : DebugChannel_HatariWrite( U16 aChannel, const char * apString )
+* ACTION   : DebugChannel_HatariWrite
+* CREATION : 07.06.2026
+*-----------------------------------------------------------------------------------*/
+
+void	DebugChannel_HatariWrite( U16 aChannel, const char * apString )
+{
+	(void)aChannel;
+	(void)apString;
+#ifdef	dGODLIB_PLATFORM_ATARI
+	Xbios_Dbmsg( 5, 0xF000, (S32)apString );
 #endif
 }
 

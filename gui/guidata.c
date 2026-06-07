@@ -380,6 +380,7 @@ void			GuiData_Delocate( sGuiData * apData )
 		mGUI_DELOC( mpButtons[ i ].mpOnRightRelease );
 		mGUI_DELOC( mpButtons[ i ].mpOnFocus );
 		mGUI_DELOC( mpButtons[ i ].mpOnDeFocus );
+		mGUI_DELOC( mpButtons[ i ].mpOnIKBD );
 
 		mGUI_DELOC( mpButtons[ i ].mpStyle );
 
@@ -556,7 +557,7 @@ void	GuiInfo_Relocate( sGuiInfo * apInfo, const sGuiData * apData )
 
 	Endian_FromBigU16( &apInfo->mEvent.mEvent );
 	Endian_FromBigU32( &apInfo->mFlags );
-	Endian_FromBigU16( &apInfo->mHash );
+	Endian_FromBigU32( &apInfo->mHash );
 	Endian_FromBigU16( &apInfo->mType );
 
 	GuiData_RectPairConvert( &apInfo->mRectPair );
@@ -579,7 +580,7 @@ void	GuiInfo_Delocate( sGuiInfo * apInfo, const sGuiData * apData )
 
 	Endian_FromBigU16( &apInfo->mEvent.mEvent );
 	Endian_FromBigU32( &apInfo->mFlags );
-	Endian_FromBigU16( &apInfo->mHash );
+	Endian_FromBigU32( &apInfo->mHash );
 	Endian_FromBigU16( &apInfo->mType );
 
 	GuiData_RectPairConvert( &apInfo->mRectPair );

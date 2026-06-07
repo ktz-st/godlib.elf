@@ -206,6 +206,10 @@ Graphic_4BP_Blit_Clip_BLT:
 	move.l	11*4(a7),a2
 	move.l	12*4(a7),a3
 
+	move.l	sGraphicCanvas_mpVRAM(a0),d6
+	cmp.l	sGraphicCanvas_mpVRAM(a3),d6
+	beq		.fallback
+
 	move.w	sGraphicRect_mX(a2),d0			; blit x
 	move.w	sGraphicRect_mY(a2),d1			; blit y
 	move.w	sGraphicRect_mWidth(a2),d2		; blit width
@@ -219,6 +223,7 @@ Graphic_4BP_Blit_Clip_BLT:
 
 	add.w	d0,d2							; Clip Width
 	ble		.clip							; Entirely off left, clip
+	sub.w	d0,d4							; Move destination right by clipped source amount
 	moveq	#0,d0							; Set New X0
 
 .rectx0_ok:
@@ -238,6 +243,7 @@ Graphic_4BP_Blit_Clip_BLT:
 
 	add.w	d1,d3							; Clip Height
 	ble		.clip							; Entirely Off Top, Cull
+	sub.w	d1,d5							; Move destination down by clipped source amount
 	moveq	#0,d1							; Clip Y
 
 .recty0_ok:
@@ -275,11 +281,11 @@ Graphic_4BP_Blit_Clip_BLT:
 
 	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d5
 	bge		.y0_ok
-	sub.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d4
+	sub.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d5
 	add.w	d5,d3												; adjust height
 	ble		.clip
 	sub.w	d5,d1												; shift src y0
-	move.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d4		; clip dst y0
+	move.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d5		; clip dst y0
 
 
 .y0_ok:
@@ -300,6 +306,10 @@ Graphic_4BP_Blit_Clip_BLT:
 .clip:
 	movem.l	(a7)+,d3-d7/a2-a6				; restore registers
 	rts
+
+.fallback:
+	movem.l	(a7)+,d3-d7/a2-a6
+	bra		Graphic_4BP_Blit_Clip
 
 
 *------------------------------------------------------------------------------------*
@@ -326,191 +336,42 @@ Graphic_4BP_Blit_BLT:
 
 	move.w	sGraphicPos_mX(a1),d4			; dst x
 	move.w	sGraphicPos_mY(a1),d5			; dst y
-	bra.s	Graphic_4BP_Blit_Go
+	bra		Graphic_4BP_Blit_Go
 
 .fallback:
 	movem.l	(a7)+,d3-d7/a2-a6
 	bra		Graphic_4BP_Blit
 
 Graphic_4BP_Blit_Go:					; Blit it
-	sub.l	#16,a7
+	sub.l	#34,a7
 
-	movea.w	#eBLITTER_BASE,a6
-	mBlitterWait_a6
-
-	move.w	d0,d6							; src x2
-	add.w	d2,d6
-	subq.w	#1,d6
-
-	move.w	d4,d7							; dst x2
-	add.w	d2,d7
-	subq.w	#1,d7
-
-	lsr.w	#4,d6							; src span
-	move.w	d6,(a7)
-	move.w	d0,d6
-	lsr.w	#4,d6
-	sub.w	d6,(a7)
-
-	lsr.w	#4,d7							; dst span
-	move.w	d7,2(a7)
-	move.w	d4,d6
-	lsr.w	#4,d6
-	sub.w	d6,2(a7)
-
-	move.w	2(a7),6(a7)						; count x
-	addq.w	#1,6(a7)
-
-	move.w	d4,d6							; skew = (dst low - src low) & 15
-	sub.w	d0,d6
-	and.w	#$000F,d6
-	move.w	d6,4(a7)
-
-	tst.w	2(a7)							; one dst word?
-	bne.s	.multi_dst
-
-	tst.w	(a7)							; source spans more than one word?
-	beq.s	.skew_done
-	or.w	#eBLITTERSKEW_FXSR_BIT,4(a7)
-	bra.s	.skew_done
-
-.multi_dst:
-	move.w	d0,d6							; index bit 0: src low > dst low
-	and.w	#$000F,d6
-	move.w	d4,d7
-	and.w	#$000F,d7
-	cmp.w	d7,d6
-	moveq	#0,d7
-	ble.s	.no_src_gt_dst
-	or.w	#1,d7
-	bra		.span_flag
-.no_src_gt_dst:
-.span_flag:
-	move.w	(a7),d6
-	cmp.w	2(a7),d6
-	bne.s	.flags_from_index
-	or.w	#2,d7
-.flags_from_index:
-	add.w	d7,d7
-	lea		Graphic_4BP_Blit_SkewFlags,a4
-	move.w	(a4,d7.w),d7
-	or.w	d7,4(a7)
-
-.skew_done:
-	move.w	d4,d6							; left endmask from dst x
-	and.w	#$000F,d6
-	add.w	d6,d6
-	lea		gGraphic_4BP_LeftMasks,a4
-	move.w	(a4,d6.w),d6
-
-	move.w	d4,d7							; right endmask from dst x2
-	add.w	d2,d7
-	subq.w	#1,d7
-	and.w	#$000F,d7
-	add.w	d7,d7
-	lea		gGraphic_4BP_RightMasks,a4
-	move.w	(a4,d7.w),d7
-
-	move.w	2(a7),d2						; dst span
-	bne.s	.not_one_word
-	and.w	d7,d6
-	move.w	d6,eBLITTER_ENDMASK_1(a6)
-	move.w	d6,eBLITTER_ENDMASK_2(a6)
-	move.w	d6,eBLITTER_ENDMASK_3(a6)
-	bra.s	.masks_done
-
-.not_one_word:
-	cmp.w	#1,d2
-	bgt.s	.more_than_two_words
-	move.w	d6,eBLITTER_ENDMASK_1(a6)
-	move.w	d7,eBLITTER_ENDMASK_2(a6)
-	move.w	d7,eBLITTER_ENDMASK_3(a6)
-	bra.s	.masks_done
-
-.more_than_two_words:
-	move.w	d6,eBLITTER_ENDMASK_1(a6)
-	move.w	#$FFFF,eBLITTER_ENDMASK_2(a6)
-	move.w	d7,eBLITTER_ENDMASK_3(a6)
-
-.masks_done:
-	move.w	#8,eBLITTER_SRC_INC_X(a6)
-	move.w	#8,eBLITTER_DST_INC_X(a6)
-	move.w	6(a7),eBLITTER_COUNT_X(a6)
-
-	move.w	6(a7),d6						; source reads = count x
-	btst	#7,5(a7)						; FXSR?
-	beq.s	.no_fxsr
-	addq.w	#1,d6
-.no_fxsr:
-	btst	#6,5(a7)						; NFSR?
-	beq.s	.no_nfsr
-	subq.w	#1,d6
-	bne.s	.no_nfsr
-	moveq	#1,d6
-.no_nfsr:
-	subq.w	#1,d6
-	lsl.w	#3,d6
-	move.l	sGraphicCanvas_mpLineOffsets(a3),a4
-	move.w	6(a4),d7
-	sub.w	d6,d7
-	move.w	d7,eBLITTER_SRC_INC_Y(a6)
-
-	move.w	2(a7),d6						; dst inc y = line bytes - dst span*8
-	lsl.w	#3,d6
-	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
-	move.w	6(a5),d7
-	sub.w	d6,d7
-	move.w	d7,eBLITTER_DST_INC_Y(a6)
-
-	move.l	sGraphicCanvas_mpVRAM(a3),a4	; src pointer
-	move.w	d1,d6
-	add.w	d6,d6
-	add.w	d6,d6
+	move.l	sGraphicCanvas_mpVRAM(a3),SRC_FORM(a7)
+	move.w	#8,SRC_NXWD(a7)
 	move.l	sGraphicCanvas_mpLineOffsets(a3),a5
-	add.l	(a5,d6.w),a4
-	move.w	d0,d6
-	and.w	#$FFF0,d6
-	lsr.w	#1,d6
-	add.l	d6,a4
+	move.w	6(a5),SRC_NXLN(a7)
+	move.w	#2,SRC_NXPL(a7)
+	move.w	d0,SRC_XMIN(a7)
+	move.w	d1,SRC_YMIN(a7)
 
-	move.l	sGraphicCanvas_mpVRAM(a0),a5	; dst pointer
-	move.w	d5,d6
-	add.w	d6,d6
-	add.w	d6,d6
-	move.l	sGraphicCanvas_mpLineOffsets(a0),a3
-	add.l	(a3,d6.w),a5
-	move.w	d4,d6
-	and.w	#$FFF0,d6
-	lsr.w	#1,d6
-	add.l	d6,a5
+	move.l	sGraphicCanvas_mpVRAM(a0),DST_FORM(a7)
+	move.w	#8,DST_NXWD(a7)
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
+	move.w	6(a5),DST_NXLN(a7)
+	move.w	#2,DST_NXPL(a7)
+	move.w	d4,DST_XMIN(a7)
+	move.w	d5,DST_YMIN(a7)
 
-	move.b	#eBLITTERHOP_SRC,eBLITTER_HOP(a6)
-	move.b	#eBLITTERLOP_SRC,eBLITTER_LOP(a6)
-	move.b	5(a7),eBLITTER_SKEW(a6)
+	move.w	d2,WIDTH(a7)
+	move.w	d3,HEIGHT(a7)
+	move.w	#4,PLANES(a7)
 
-	moveq	#4-1,d7
-.plane_loop:
-	mBlitterWait_a6
-	move.l	a4,eBLITTER_pSRC(a6)
-	move.l	a5,eBLITTER_pDST(a6)
-	move.w	d3,eBLITTER_COUNT_Y(a6)
-	move.b	#eBLITTERMODE_BUSY_BIT,eBLITTER_MODE(a6)
-	addq.l	#2,a4
-	addq.l	#2,a5
-	dbra	d7,.plane_loop
+	move.l	a7,a4
+	bsr		BLiT_iT
 
-	mBlitterWait_a6
-
-	add.l	#16,a7
+	add.l	#34,a7
 Graphic_4BP_Blit_Done:
 	movem.l	(a7)+,d3-d7/a2-a6
 	rts
-
-Graphic_4BP_Blit_SkewFlags:
-	dc.w	eBLITTERSKEW_NFSR_BIT
-	dc.w	eBLITTERSKEW_FXSR_BIT
-	dc.w	0
-	dc.w	eBLITTERSKEW_NFSR_BIT+eBLITTERSKEW_FXSR_BIT
 
 
 

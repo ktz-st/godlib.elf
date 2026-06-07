@@ -93,7 +93,7 @@ void	RenderGui_Init( void )
 	gRenderGui.mScreenSwapFlag       = 1;
 	gRenderGui.mCursor.mColour       = dRGUI_CURSOR_COLOUR;
 	gRenderGui.mCursor.mFlashRateOn  = dRGUI_CURSOR_RATEON;
-	gRenderGui.mCursor.mFlashRateOff = dRGUI_CURSOR_RATEON;
+	gRenderGui.mCursor.mFlashRateOff = dRGUI_CURSOR_RATEOFF;
 	gRenderGui.mCursor.mFlashCounter = 0;
 	gRenderGui.mCursor.mFlashMode    = 0;
 	gRenderGui.mMouseBlocks[ 0 ].mpScreen = 0;

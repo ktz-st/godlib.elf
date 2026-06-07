@@ -15,7 +15,7 @@
 	XDEF	Bios_Bconout
 	XDEF	Bios_Bconstat
 	XDEF	Bios_Drvmap
-	XDEF	Bios_Getmbpb
+	XDEF	Bios_Getmpb
 	XDEF	Bios_Kbshift
 	XDEF	Bios_Mediach
 	XDEF	Bios_Rwabs
@@ -161,12 +161,12 @@ Bios_Getbpb:
 
 
 *------------------------------------------------------------------------------------*
-* FUNCTION : Bios_Getmbpb
+* FUNCTION : Bios_Getmpb
 * ACTION   :
 * CREATION : 11.11.01 PNK
 *------------------------------------------------------------------------------------*
 
-Bios_Getmbpb:
+Bios_Getmpb:
 	mBIOS_P	0
 	rts
 

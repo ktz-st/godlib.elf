@@ -259,6 +259,10 @@ U32						 l;
 #  STRUCTS
 ################################################################################### */
 
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
+#pragma pack(push,8)
+#endif
+
 typedef struct
 {
 	U32		ID;
@@ -270,6 +274,10 @@ typedef struct
 	U32		ID;
 	UPTR	Value;
 } sTagValue;
+
+#if defined( dGODLIB_COMPILER_GCC ) && !defined( dGODLIB_PLATFORM_ATARI )
+#pragma pack(pop)
+#endif
 
 
 /* ###################################################################################

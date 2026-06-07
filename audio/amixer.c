@@ -117,8 +117,23 @@ void	AudioMixer_Init( void )
 
 
 	gpAudioMixerSilence        = (U8*)mMEMSCREENCALLOC( 4*1024 );
-	Memory_Clear( (4*1024), gpAudioMixerSilence );
 	gpAudioMixerBuffer         = (U8*)mMEMSCREENCALLOC( dAMIXER_BUFFER_SIZE+(2*1024) );
+	if( (!gpAudioMixerSilence) || (!gpAudioMixerBuffer) )
+	{
+		if( gpAudioMixerSilence )
+		{
+			mMEMSCREENFREE( gpAudioMixerSilence );
+			gpAudioMixerSilence = 0;
+		}
+		if( gpAudioMixerBuffer )
+		{
+			mMEMSCREENFREE( gpAudioMixerBuffer );
+			gpAudioMixerBuffer = 0;
+		}
+		gAudioMixerDMAHardWareFlag = 0;
+		return;
+	}
+	Memory_Clear( (4*1024), gpAudioMixerSilence );
 	gAudioMixerBufferOffset    = (4*1024);
 	gAudioMixerLockFlag        = 0;
 
@@ -303,6 +318,11 @@ U8		AudioMixer_PlaySampleDirect( sAudioDmaSound * apSpl, const U8 aPan )
 	U32				lLeft;
 	U32				lBest;
 	U16				i;
+
+	if( !apSpl )
+	{
+		return( 0 );
+	}
 
 	lBest = 0x7FFFFFFFL;
 

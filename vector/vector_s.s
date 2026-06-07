@@ -4,7 +4,7 @@
         xdef    Vector_Mul
         xdef    Vector_Normal
         xdef    Vector_Length
-        xdef    Vector_SquareLength
+        xdef    Vector_SquaredLength
         xdef    Vector_Dot
         xdef    Vector_Cross
         xdef    VecSqrt
@@ -124,9 +124,9 @@ Vector_Length:
         rts
 
 ;--------------------------------------------------------------------------------
-; Vector_SquareLength( const sVector* a0 ) -> d0 (U32)
+; Vector_SquaredLength( const sVector* a0 ) -> d0 (U32)
 ;--------------------------------------------------------------------------------
-Vector_SquareLength:
+Vector_SquaredLength:
         movem.w (a0),d0-d2
         muls.w  d0,d0
         muls.w  d1,d1

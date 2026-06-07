@@ -149,12 +149,25 @@ void		CookieJar_SetCookieValue( const U32 aCookie, const U32 aValue )
 		lpCookie = *(sCookie **)dCOOKIEJAR_BASE;
 		if( lpCookie )
 		{
+			U32	lUsed;
+			U32	lSize;
+
+			lUsed = 0;
 			while( lpCookie->mCookie )
 			{
 				lpCookie++;
+				lUsed++;
 			}
-			lpCookie->mCookie = aCookie;
-			lpCookie->mValue  = aValue;
+			lSize = lpCookie->mValue;
+
+			if( lSize && (lUsed < (lSize - 1)) )
+			{
+				lpCookie->mCookie = aCookie;
+				lpCookie->mValue  = aValue;
+				lpCookie++;
+				lpCookie->mCookie = 0;
+				lpCookie->mValue  = lSize;
+			}
 		}
 	}
 #else

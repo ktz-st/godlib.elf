@@ -30,6 +30,24 @@ sProgramHeader_mFlags:          rs.l    1
 sProgramHeader_mRelocationFlag: rs.w    1
 sProgramHeader_mSizeof:         rs.b    1
 
+	rsreset
+
+sBasePage_mpLowTPA:             rs.l    1
+sBasePage_mpHiTPA:              rs.l    1
+sBasePage_mpText:               rs.l    1
+sBasePage_mTextLength:          rs.l    1
+sBasePage_mpData:               rs.l    1
+sBasePage_mDataLength:          rs.l    1
+sBasePage_mpBSS:                rs.l    1
+sBasePage_mBSSLength:           rs.l    1
+sBasePage_mpDTA:                rs.l    1
+sBasePage_mpParentBasepage:     rs.l    1
+sBasePage_mReserved0:           rs.l    1
+sBasePage_mpEnvironment:        rs.l    1
+sBasePage_mReserved1:           rs.b    80
+sBasePage_mCommandLine:         rs.b    128
+sBasePage_sizeof:               rs.b    1
+
 **************************************************************************************
 ;	EQUATES
 **************************************************************************************

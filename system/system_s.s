@@ -58,37 +58,6 @@ System_SaveVectors:
 
 	rts
 
-	move.b	$FFFFFA03.w,(a0)+	;	save Active Edge Register
-	move.b	$FFFFFA05.w,(a0)+	;	save Data Directionr Register
-	move.b	$FFFFFA17.w,(a0)+	;	save Vector Register
-
-	move.b	$FFFFFA01.w,(a0)+	;	save Parallel Port Data
-	move.b	$FFFFFA1F.w,(a0)+	;	save Timer A Data
-	move.b	$FFFFFA21.w,(a0)+	;	save Timer B Data
-	move.b	$FFFFFA23.w,(a0)+	;	save Timer C Data
-	move.b	$FFFFFA25.w,(a0)+	;	save Timer D Data
-	move.b	$FFFFFA27.w,(a0)+	;	save Sync Character
-	move.b	$FFFFFA2F.w,(a0)+	;	save USART Data
-
-	move.b	$FFFFFA29.w,(a0)+	;	save USART Control
-	move.b	$FFFFFA2B.w,(a0)+	;	save Receiver Status
-	move.b	$FFFFFA2D.w,(a0)+	;	save Transmitter Status
-
-	move.b	$FFFFFA13.w,(a0)+	;	save Interrupt Mask A
-	move.b	$FFFFFA15.w,(a0)+	;	save Interrupt Mask B
-	move.b	$FFFFFA0F.w,(a0)+	;	save In Service A
-	move.b	$FFFFFA11.w,(a0)+	;	save In Service B
-	move.b	$FFFFFA0B.w,(a0)+	;	save Pending A
-	move.b	$FFFFFA0D.w,(a0)+	;	save Pending B
-	move.b	$FFFFFA07.w,(a0)+	;	save Enable A
-	move.b	$FFFFFA09.w,(a0)+	;	save Enab
-
-	move.b	$FFFFFA19.w,(a0)+	;	save Timer A Control
-	move.b	$FFFFFA1B.w,(a0)+	;	save Timer B Control
-	move.b	$FFFFFA1D.w,(a0)+	;	save Timer C+D Control
-
-
-
 *------------------------------------------------------------------------------------*
 * FUNTION  : System_RestoreVectors( U32 * apSaveArea )
 * ACTION   : restores all system vectors
@@ -113,40 +82,6 @@ System_RestoreVectors:
 	movem.l	(a7)+,d0-a6			;	restore registers
 
 	rts
-
-	clr.b	$FFFFFA19.w			;	stop Timer A
-	clr.b	$FFFFFA1B.w			;	stop Timer B
-	clr.b	$FFFFFA1D.w			;	stop Timer C+D
-
-	move.b	(a0)+,$FFFFFA03.w	;	restore Active Edge Register
-	move.b	(a0)+,$FFFFFA05.w	;	restore Data Directionr Register
-	move.b	(a0)+,$FFFFFA17.w	;	restore Vector Register
-
-	move.b	(a0)+,$FFFFFA01.w	;	restore Parallel Port Data
-	move.b	(a0)+,$FFFFFA1F.w	;	restore Timer A Data
-	move.b	(a0)+,$FFFFFA21.w	;	restore Timer B Data
-	move.b	(a0)+,$FFFFFA23.w	;	restore Timer C Data
-	move.b	(a0)+,$FFFFFA25.w	;	restore Timer D Data
-	move.b	(a0)+,$FFFFFA27.w	;	restore Sync Character
-	move.b	(a0)+,$FFFFFA2F.w	;	restore USART Data
-
-	move.b	(a0)+,$FFFFFA29.w	;	restore USART Control
-	move.b	(a0)+,$FFFFFA2B.w	;	restore Receiver Status
-	move.b	(a0)+,$FFFFFA2D.w	;	restore Transmitter Status
-
-	move.b	(a0)+,$FFFFFA13.w	;	restore Interrupt Mask A
-	move.b	(a0)+,$FFFFFA15.w	;	restore Interrupt Mask B
-	move.b	(a0)+,$FFFFFA0F.w	;	restore In Service A
-	move.b	(a0)+,$FFFFFA11.w	;	restore In Service B
-	move.b	(a0)+,$FFFFFA0B.w	;	restore Pending A
-	move.b	(a0)+,$FFFFFA0D.w	;	restore Pending B
-	move.b	(a0)+,$FFFFFA07.w	;	restore Enable A
-	move.b	(a0)+,$FFFFFA09.w	;	restore Enable B
-
-	move.b	(a0)+,$FFFFFA19.w	;	restore Timer A Control
-	move.b	(a0)+,$FFFFFA1B.w	;	restore Timer B Control
-	move.b	(a0)+,$FFFFFA1D.w	;	restore Timer C+D Control
-
 
 *------------------------------------------------------------------------------------*
 * FUNTION  : System_SetIML( U16 aIML )

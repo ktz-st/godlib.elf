@@ -19,6 +19,7 @@ SOURCES = \
 	clock/clock.c \
 	cookie/cookie.c \
 	cutscene/cut_sys.c cutscene/cutparse.c cutscene/cutscene.c cutscene/rel_cut.c \
+	debug/dbgchan.c \
 	debug/debug.c \
 	debuglog/debuglog.c \
 	drive/disk_io.c \
@@ -45,7 +46,7 @@ SOURCES = \
 	linea/linea.c \
 	linkfile/linkfile.c \
 	main/god_main.c \
-	memory/heap.c memory/memory.c \
+	memory/memory.c \
 	mfp/mfp.c \
 	music/lancemod.c music/pinknote.c music/snd.c music/wizzcat.c \
 	packer/ari_dec.c packer/ari_enc.c packer/brun1.c packer/bwt_dec.c packer/bwt_enc.c packer/godpack.c packer/godpackp.c packer/lz77_dec.c packer/lz77_enc.c packer/lz77bdec.c packer/lz77benc.c packer/mtf_dec.c packer/mtf_enc.c packer/packer.c packer/rle.c packer/rnc.c \

@@ -53,12 +53,13 @@ ePacker	Packer_GetType( sPackerHeader * apHeader )
 {
 	U32	lName;
 
-	Endian_ReadBigU32_Unaligned( &apHeader->m0, lName );
-
 	if( !apHeader )
 	{
 		return( ePACKER_NONE );
 	}
+
+	Endian_ReadBigU32_Unaligned( &apHeader->m0, lName );
+
 	if( lName == mSTRING_TO_U32( 'I', 'C', 'E', '!' ) )
 	{
 		return( ePACKER_ICE );

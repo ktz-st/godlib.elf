@@ -86,6 +86,7 @@ U32		Memory_GetLargestAlloc( void );
 U32		Memory_GetSmallestAlloc( void );
 U32		Memory_GetFailedSize( void );
 
+U32		Memory_GetFree( void );
 U32		Memory_GetSize( void );
 U8		Memory_Validate( void );
 

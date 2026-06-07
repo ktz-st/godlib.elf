@@ -34,163 +34,98 @@ U8		Graphic_4BP_Sprite_GetPixel( const sSprite * apSprite, const S16 aX, const S
 
 void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,sGraphicRect * apRect,struct sGraphicCanvas * apSrc )
 {
-#if	0
 	U16 *	lpSrc0;
 	U16 *	lpSrc1;
 	U16 *	lpDst0;
 	U16 *	lpDst1;
 	U16		i;
-	S16		lShiftL,lShiftR;
 	U16		lPixels;
 	U16		lGfx;
-	U16		lX0,lX1;
-	S16		lChunks;
+	U16		lX1;
+	U16		lWordCount;
+	U16		lWord;
 	U16		lW,lH;
-	U16		lSrcMaskLeft;
-	U16		lSrcMaskRight;
-	U16		lDstMaskLeft;
-	U16		lDstMaskRight;
+	U16		lMaskLeft;
+	U16		lMaskRight;
+	U16		lMask;
+	U32		lSrcLineWords;
+	U32		lDstLineWords;
 
-	lpDst0  =  apCanvas->mpVRAM;
-	lpDst0 += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
-	lpDst0 +=((apCoords->mX>>4)<<2);
-
-	lpSrc0  =  apSrc->mpVRAM;
-	lpSrc0 += (apSrc->mpLineOffsets[ apRect->mY ]>>1);
-	lpSrc0 +=((apRect->mX>>4)<<2);
-
-	lH     = apRect->mHeight;
-
-	lX0           = apRect->mX;
-	lX1           = apRect->mX + apRect->mWidth - 1;
-
-	lSrcMaskLeft  =   0xFFFF >>  (lX0 & 15);
-	lSrcMaskRight = ~(0xFFFF >> ((lX1 & 15)+1));
-
-	lX0           = apCoords->mX;
-	lX1           = apCoords->mX + apRect->mWidth - 1;
-
-	lDstMaskLeft  =   0xFFFF >>  (lX0 & 15);
-	lDstMaskRight = ~(0xFFFF >> ((lX1 & 15)+1));
-
-	lChunks = (lX1>>4) - (lX0>>4);
-
-	if( lDstMaskRight )
+	if( ((apCoords->mX ^ apRect->mX) & 15) == 0 )
 	{
-		lChunks--;
-	}
+		lpDst0  =  (U16*)apCanvas->mpVRAM;
+		lpDst0 += (apCanvas->mpLineOffsets[ apCoords->mY ]>>1);
+		lpDst0 +=((apCoords->mX>>4)<<2);
 
-	if( lChunks < 0 )
-	{
-		lDstMaskLeft &= lDstMaskRight;
-		lDstMaskRight = 0;
-		lChunks       = 0;
-	}
+		lpSrc0  =  (U16*)apSrc->mpVRAM;
+		lpSrc0 += (apSrc->mpLineOffsets[ apRect->mY ]>>1);
+		lpSrc0 +=((apRect->mX>>4)<<2);
 
-	lShiftR = (apCoords->mX & 15) - (apRect->mX&15);
-	if( lShiftR < 0 )
-	{
-	}
-	else if( lShiftR > 0 )
-	{
-		lShiftL = 16 - lShiftR;
+		lX1         = (U16)(apCoords->mX + apRect->mWidth - 1);
+		lWordCount  = (U16)((lX1>>4) - (apCoords->mX>>4) + 1);
+		lMaskLeft   = (U16)(0xFFFF >> (apCoords->mX & 15));
+		lMaskRight  = (U16)(~(0xFFFF >> ((lX1 & 15)+1)));
+		lSrcLineWords = apSrc->mpLineOffsets[ 1 ] >> 1;
+		lDstLineWords = apCanvas->mpLineOffsets[ 1 ] >> 1;
 
+		if( lWordCount == 1 )
+		{
+			lMaskLeft &= lMaskRight;
+		}
+
+		lH = apRect->mHeight;
 		while( lH-- )
 		{
-			lW     = lChunks;
-			lpDst1 = lpDst0;
 			lpSrc1 = lpSrc0;
-
-			for( i=0; i<4; i++ )
-			{
-				Endian_ReadBigU16( lpDst1, lPixels );
-				Endian_ReadBigU16( lpSrc1, lGfx );
-				lGfx    &= ~lSrcMaskLeft;
-				lPixels &=  lDstMaskLeft;
-				lPixels |= lGfx;
-				Endian_WriteBigU16( lpDst1, lPixels );
-				lpSrc1++;
-				lpDst1++;
-			}
-
-			while( lW-- )
-			{
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-			}
-
-			if( lDstMaskRight )
-			{
-				for( i=0; i<4; i++ )
-				{
-					Endian_ReadBigU16( lpDst1, lPixels );
-					Endian_ReadBigU16( lpSrc1, lGfx );
-					lGfx    &= ~lSrcMaskRight;
-					lPixels &=  lDstMaskRight;
-					lPixels |= lGfx;
-					Endian_WriteBigU16( lpDst1, lPixels );
-					lpSrc1++;
-					lpDst1++;
-				}
-			}
-
-			lpDst0 += apCanvas->mpLineOffsets[ 1 ]>>1;
-			lpSrc0 += apSrc->mpLineOffsets[ 1 ]>>1;
-		}
-	}
-	else
-	{
-		while( lH-- )
-		{
-			lW     = lChunks;
 			lpDst1 = lpDst0;
-			lpSrc1 = lpSrc0;
 
-			for( i=0; i<4; i++ )
+			for( lWord=0; lWord<lWordCount; lWord++ )
 			{
-				Endian_ReadBigU16( lpDst1, lPixels );
-				Endian_ReadBigU16( lpSrc1, lGfx );
-				lGfx    &=  lSrcMaskLeft;
-				lPixels &= ~lDstMaskLeft;
-				lPixels |= lGfx;
-				Endian_WriteBigU16( lpDst1, lPixels );
-				lpSrc1++;
-				lpDst1++;
-			}
-
-			while( lW-- )
-			{
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-				*lpDst1++ = *lpSrc1++;
-			}
-
-			if( lDstMaskRight )
-			{
-				for( i=0; i<4; i++ )
+				if( lWord == 0 )
 				{
-					Endian_ReadBigU16( lpDst1, lPixels );
-					Endian_ReadBigU16( lpSrc1, lGfx );
-					lGfx    &=  lSrcMaskRight;
-					lPixels &= ~lDstMaskRight;
-					lPixels |= lGfx;
-					Endian_WriteBigU16( lpDst1, lPixels );
-					lpSrc1++;
-					lpDst1++;
+					lMask = lMaskLeft;
 				}
+				else if( lWord == (U16)(lWordCount-1) )
+				{
+					lMask = lMaskRight;
+				}
+				else
+				{
+					lMask = 0xFFFF;
+				}
+
+				if( lMask == 0xFFFF )
+				{
+					lpDst1[ 0 ] = lpSrc1[ 0 ];
+					lpDst1[ 1 ] = lpSrc1[ 1 ];
+					lpDst1[ 2 ] = lpSrc1[ 2 ];
+					lpDst1[ 3 ] = lpSrc1[ 3 ];
+				}
+				else
+				{
+					for( i=0; i<4; i++ )
+					{
+						Endian_ReadBigU16( &lpDst1[ i ], lPixels );
+						Endian_ReadBigU16( &lpSrc1[ i ], lGfx );
+						lPixels &= (U16)~lMask;
+						lPixels |= (U16)(lGfx & lMask);
+						Endian_WriteBigU16( &lpDst1[ i ], lPixels );
+					}
+				}
+
+				lpSrc1 += 4;
+				lpDst1 += 4;
 			}
 
-			lpDst0 += apCanvas->mpLineOffsets[ 1 ]>>1;
-			lpSrc0 += apSrc->mpLineOffsets[ 1 ]>>1;
+			lpSrc0 += lSrcLineWords;
+			lpDst0 += lDstLineWords;
 		}
+
+		return;
 	}
-#else
+
 	S16	lSX,lSY;
 	S16	lDX,lDY;
-	S16	lW,lH;
 
 
 	lSY = apRect->mY;
@@ -213,8 +148,6 @@ void	Graphic_4BP_Blit( struct sGraphicCanvas * apCanvas,sGraphicPos * apCoords,s
 		lDY++;
 		lH--;
 	}
-
-#endif
 }
 
 

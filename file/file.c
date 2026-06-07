@@ -472,9 +472,7 @@ S32		File_ReadFirst( const char * apFspec, U16 aAttribs )
 #ifdef	dGODLIB_PLATFORM_ATARI
 	return( GemDos_Fsfirst( apFspec, aAttribs ) );
 #elif defined(dGODLIB_COMPILER_GCC)
-	fprintf( stderr, "File_ReadFirst( %s, %d)\n", apFspec, aAttribs );
 	gpFileDirentDIR   = opendir( apFspec );
-	fprintf( stderr, "File_ReadFirst: gpFileDirentDIR %p\n", gpFileDirentDIR );
 	gpFileDirentEntry = 0;
 	if( gpFileDirentDIR )
 	{
@@ -495,7 +493,6 @@ S32		File_ReadFirst( const char * apFspec, U16 aAttribs )
 				File_StatToDTA( &lStat, gpFileDTA, gpFileDirentEntry->d_name );
 			}
 			mMEMFREE( lpFullName );
-			fprintf( stderr, "File_ReadFirst: gpFileDirentEntry %p\n", gpFileDirentEntry );
 		}
 	}
 	return( (S32)(gpFileDirentEntry == 0) );
@@ -532,7 +529,6 @@ S32		File_ReadNext()
 #ifdef	dGODLIB_PLATFORM_ATARI
 	return( GemDos_Fsnext() );
 #elif defined(dGODLIB_COMPILER_GCC)
-	fprintf( stderr, "File_ReadNext() gpFileDirentDIR %p\n", gpFileDirentDIR );
 	gpFileDirentEntry = 0;
 
 	if( gpFileDirentDIR )
@@ -551,16 +547,15 @@ S32		File_ReadNext()
 				File_StatToDTA( &lStat, gpFileDTA, gpFileDirentEntry->d_name );
 			}
 			mMEMFREE( lpFullName );
-			fprintf( stderr, "File_ReadFirst: gpFileDirentEntry %p\n", gpFileDirentEntry );
 		}
 		else
 		{
 			File_Identifier_DeInit( &gFileFindID );
 			closedir( gpFileDirentDIR );
+			gpFileDirentDIR = 0;
 		}
 	}
 
-	fprintf( stderr, "File_ReadNext() : result: %ld\n", (gpFileDirentEntry!=0));
 	return( (S32)(gpFileDirentEntry==0) );
 
 #elif defined(dGODLIB_PLATFORM_WIN)
@@ -1196,7 +1191,7 @@ void	File_FileIdentifier_SetString( sFileIdentifier * apID, const U16 aIndex, co
 
 	if( apID->mpStrings[ aIndex ] )
 	{
-		if( String_StrLen( apID->mpStrings[ aIndex ] ) > apID->mMallocSizes[ aIndex ] )
+		if( lLen > apID->mMallocSizes[ aIndex ] )
 		{
 			mMEMFREE( apID->mpStrings[ aIndex ] );
 			apID->mpStrings[ aIndex ]    = (char*)mMEMCALLOC( lLen+1 );

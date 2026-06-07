@@ -1,5 +1,10 @@
-*.C eol=crlf
-*.H text eol=crlf
-*.S text eol=crlf
-*.sln text eol=crlf
-*.vcproj text eol=crlf
+* text=auto eol=lf
+
+*.C text eol=lf
+*.H text eol=lf
+*.S text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.s text eol=lf
+*.sln text eol=lf
+*.vcproj text eol=lf

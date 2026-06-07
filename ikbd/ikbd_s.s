@@ -507,7 +507,7 @@ IKBD_GrabAbsMouseX0:
 
 IKBD_GrabAbsMouseX1:
 	move.b	d0,sIKBD_MouseX+1(a3)						; store mouse X LSB
-	move.b	sIKBD_Temp,sIKBD_MouseX+0					; copy mouse X MSB to correct place
+	move.b	sIKBD_Temp(a3),sIKBD_MouseX+0(a3)			; copy mouse X MSB to correct place
 	move.l	#IKBD_GrabAbsMouseY0,kbdIkbdHandler			; next ikbd handler
 	rts
 
@@ -532,7 +532,7 @@ IKBD_GrabAbsMouseY0:
 
 IKBD_GrabAbsMouseY1:
 	move.b	d0,sIKBD_MouseY+1(a3)						; store mouse Y LSB
-	move.b	sIKBD_Temp,sIKBD_MouseY+0					; copy mouse Y MSB to correct place
+	move.b	sIKBD_Temp(a3),sIKBD_MouseY+0(a3)			; copy mouse Y MSB to correct place
 	move.l	#IKBD_KbdDeterminePacket,kbdIkbdHandler		; next ikbd handler
 	st.b	sIKBD_MouseMovedFlag(a3)					; flag mouse moved
 	rts
@@ -1445,4 +1445,3 @@ kbdPacketCounter:	dc.w	0
 kbdPacketPtr:		dc.l	kbdPacketBuffer
 
 kbdPacketBuffer:	ds.b	256
-

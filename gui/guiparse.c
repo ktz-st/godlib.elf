@@ -396,9 +396,9 @@ sTokeniserStructMember	gGuiParseButtonStyleMembers[] =
 sTokeniserStructMember	gGuiParseColourMembers[] =
 {
 	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"R",		mOFFSET( sGuiColour, mR )			},
-	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"G",		mOFFSET( sGuiColour, mR )			},
-	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"B",		mOFFSET( sGuiColour, mR )			},
-	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"A",		mOFFSET( sGuiColour, mR )			},
+	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"G",		mOFFSET( sGuiColour, mG )			},
+	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"B",		mOFFSET( sGuiColour, mB )			},
+	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"A",		mOFFSET( sGuiColour, mA )			},
 	{	eTOKENISER_TYPE_U8,	0,	0,	0,	"PALINDEX",	mOFFSET( sGuiColour, mPalIndex )	},
 	{	0,	0,	0	},
 };

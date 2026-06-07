@@ -14,6 +14,7 @@
 
 #include	"scrngrab.h"
 
+#include	<stdio.h>
 #include	<string.h>
 
 #include	<godlib/file/file.h>
@@ -100,7 +101,7 @@ void	ScreenGrab_Enable( void )
 
 void	ScreenGrab_Disable( void )
 {
-	gScreenGrabEnableFlag = 1;
+	gScreenGrabEnableFlag = 0;
 }
 
 

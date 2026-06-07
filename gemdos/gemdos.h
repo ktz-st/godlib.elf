@@ -431,7 +431,7 @@ S16				GemDos_Pmsg( const U16 aMode, const U32 aMboxid, sGemDosPMSG * apMsg );
 S16				GemDos_Pnice( const S16 aDelta );
 S32				GemDos_Prenice( const S16 aPID, const S16 aDelta );
 void			GemDos_Prusage( U32 * apResInfo );
-S32				GemDos_Psemaphoe( const U16 aMode, const U32 aID, const U32 aTimeOut );
+S32				GemDos_Psemaphore( const U16 aMode, const U32 aID, const U32 aTimeOut );
 S16				GemDos_Psetgid( const U16 aGID );
 S32				GemDos_Psetlimit( const U16 aLimit, const U32 aValue );
 S32				GemDos_Psetpgrp( const U16 aPID, const S16 aNewGrp );

@@ -176,14 +176,14 @@ void	Graphic_SetBlitterEnable( U8 aFlag )
 
 	if(  aFlag && (BLT_BLITTER == System_GetBLT()) )
 	{
-		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit;
+		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawPixel   = Graphic_4BP_DrawPixel_BLT;
 		gGraphicFuncs[ eGRAPHIC_COLOURMODE_4PLANE ].DrawSprite  = Graphic_4BP_DrawSprite_BLT;
 
-		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit_Clip;
+		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].Blit        = Graphic_4BP_Blit_Clip_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].ClearScreen = Graphic_4BP_ClearScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].CopyScreen  = Graphic_4BP_CopyScreen_BLT;
 		gGraphicFuncsClip[ eGRAPHIC_COLOURMODE_4PLANE ].DrawBox     = Graphic_4BP_DrawBox_Clip_BLT;

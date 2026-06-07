@@ -85,6 +85,7 @@ void	HashTree_Init( sHashTree * apTree )
 {
 	apTree->mVariableCount = 0;
 	apTree->mpVars = 0;
+	apTree->mpUnboundClients = 0;
 }
 
 
@@ -149,24 +150,42 @@ sHashTreeVarClient * HashTree_VarClient_Find( sHashTree * apTree, U32 aKey )
 void	HashTree_Var_Init( sHashTreeVar * apVar, sHashTree * apTree, const char * apName, const U32 aSize, void * apData )
 {
 	sHashTreeVarClient * client;
+	sHashTreeVarClient * next;
+	sHashTreeVarClient ** last;
 
 	apVar->mHashKey = HashTree_BuildHash( apName );
+	apVar->mFilterFlags = 0;
 	apVar->mDataSize = aSize;
 	apVar->mpData = apData;
+	apVar->mpClients = 0;
+	apVar->mpVarNext = 0;
 	if( apVar->mDataSize <= 4 )
 	{
 		apVar->mpData = &apVar->mDataSmall;
 	}
 
-	client = HashTree_VarClient_Find( apTree, apVar->mHashKey );
-	if( client )
+	last = &apTree->mpUnboundClients;
+	client = *last;
+	while( client )
 	{
-		GOD_LL_REMOVE( sHashTreeVarClient, apTree->mpUnboundClients, mpNext, client );
-		apVar->mpClients = client;
-		for( ;client;client=client->mpNext)
+		next = client->mpNext;
+		if( client->mHashKey == apVar->mHashKey )
 		{
-			client->mfOnInit( client );
+			*last = next;
+			client->mpNext = apVar->mpClients;
+			apVar->mpClients = client;
+			client->mpVar = apVar;
+
+			if( client->mfOnInit )
+			{
+				client->mfOnInit( client );
+			}
 		}
+		else
+		{
+			last = &client->mpNext;
+		}
+		client = next;
 	}
 
 	GOD_LL_INSERT( apTree->mpVars, mpVarNext, apVar );
@@ -205,6 +224,8 @@ void	HashTree_VarClient_Init( sHashTreeVarClient * apClient, sHashTree * apTree,
 {
 	apClient->mHashKey  = HashTree_BuildHash( apName );
 	apClient->mfOnWrite = aOnWrite;
+	apClient->mfOnInit  = 0;
+	apClient->mfOnDeInit = 0;
 	apClient->mpNext    = 0;
 	apClient->mpVar     = HashTree_Var_Find( apTree, apClient->mHashKey );
 

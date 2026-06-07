@@ -145,6 +145,12 @@ U32		Packer_GetDepackSize( sPackerHeader * apHeader )
 
 void	Packer_Depack( void * apSrc, void * apDst )
 {
+	if( Rnc_IsPacked( apSrc ) )
+	{
+		Rnc_Depack( apSrc, apDst );
+		return;
+	}
+
 	switch( Packer_GetType((sPackerHeader*)apSrc) )
 	{
 	case ePACKER_ICE:

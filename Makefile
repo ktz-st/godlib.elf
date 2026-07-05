@@ -127,7 +127,10 @@ OUT = libgod.a
 $(OUT): $(OBJECTS) $(OBJECTS_S)
 	$(AR) rcs $(OUT) $(OBJECTS) $(OBJECTS_S)
 
-$(OBJECTS): %.o: %.c
+except/except.o: except/except.c
+	$(CC) -c $(CFLAGS) -fdisable-tree-m68k-autoinc-split $< -o $@
+
+$(filter-out except/except.o,$(OBJECTS)): %.o: %.c
 	 $(CC) -c $(CFLAGS) $< -o $@
 
 $(OBJECTS_S): %.o: %.s

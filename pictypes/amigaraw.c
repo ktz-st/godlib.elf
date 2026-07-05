@@ -37,34 +37,34 @@ void	AmigaRaw_PaletteToST( const U16 * apAmigaPalette, U16 * apStPalette, U16 aC
 }
 
 
-void	AmigaRaw_To4Plane( const sAmigaRaw * apRaw, U16 * apPixels )
-{
-	U16	x;
-	U16	y;
-	U32	lSrcOffset;
-	U32	lDstOffset;
-
-	if( !apRaw || !apPixels )
+	void	AmigaRaw_To4Plane( const sAmigaRaw * apRaw, U16 * apPixels )
 	{
-		return;
-	}
+		U16	x;
+		U16	y;
+		U32	lSrcOffset;
+		U32	lDstOffset;
 
-	for( y=0; y<dAMIGARAW_HEIGHT; y++ )
-	{
-		for( x=0; x<dAMIGARAW_WORDS_WIDE; x++ )
+		if( !apRaw || !apPixels )
 		{
-			lSrcOffset  = (U32)y * dAMIGARAW_WORDS_WIDE;
-			lSrcOffset += x;
-			lDstOffset  = (U32)y * (dAMIGARAW_WIDTH >> 2);
-			lDstOffset += (U32)x << 2;
+			return;
+		}
 
-			apPixels[ lDstOffset + 0 ] = apRaw->mPixels[ 0 ][ lSrcOffset ];
-			apPixels[ lDstOffset + 1 ] = apRaw->mPixels[ 1 ][ lSrcOffset ];
-			apPixels[ lDstOffset + 2 ] = apRaw->mPixels[ 2 ][ lSrcOffset ];
-			apPixels[ lDstOffset + 3 ] = apRaw->mPixels[ 3 ][ lSrcOffset ];
+		for( y=0; y<dAMIGARAW_HEIGHT; y++ )
+		{
+			for( x=0; x<dAMIGARAW_WORDS_WIDE; x++ )
+			{
+				lSrcOffset  = (U32)y * dAMIGARAW_WORDS_WIDE;
+				lSrcOffset += x;
+				lDstOffset  = (U32)y * (dAMIGARAW_WIDTH >> 2);
+				lDstOffset += (U32)x << 2;
+
+				apPixels[ lDstOffset + 0 ] = apRaw->mPixels[ 0 ][ lSrcOffset ];
+				apPixels[ lDstOffset + 1 ] = apRaw->mPixels[ 1 ][ lSrcOffset ];
+				apPixels[ lDstOffset + 2 ] = apRaw->mPixels[ 2 ][ lSrcOffset ];
+				apPixels[ lDstOffset + 3 ] = apRaw->mPixels[ 3 ][ lSrcOffset ];
+			}
 		}
 	}
-}
 
 
 sCanvas *	AmigaRaw_ToCanvas( const sAmigaRaw * apRaw )

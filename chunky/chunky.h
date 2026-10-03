@@ -33,6 +33,12 @@ void ChunkySurface_DrawSprite_Clip(    sGraphicCanvas * apCanvas,  sGraphicPos *
 void ChunkySurface_DrawTri_Clip(       sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 void ChunkySurface_DrawQuad_Clip(      sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,   S16 aColour );
 
+/* Convert a source rectangle to apCoords in the destination canvas.
+ * From: 4PLANE -> 8BPP; To: 8BPP -> 4PLANE (low four bits).
+ * Uses each canvas's line offsets. Arbitrary X/width are supported;
+ * pixels outside the rectangle are preserved. Invalid/out-of-bounds regions
+ * are no-ops; these entry points do not clip or support overlapping buffers.
+ */
 void ChunkySurface_From4Plane(   sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect,  sGraphicCanvas * apSrc	);
 void ChunkySurface_To4Plane(     sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect,  sGraphicCanvas * apSrc	);
 

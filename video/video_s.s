@@ -45,6 +45,7 @@
 	XDEF	Video_SetFalconTC50VGA
 	XDEF	Video_SetFalconTC60VGA
 
+	XDEF Video_SetViewportSTE
 	XREF	gVideo
 	XREF	gVidelData
 
@@ -118,6 +119,19 @@ sVideoSaveState_PalFalcon:      rs.l    256
 **************************************************************************************
 	TEXT
 **************************************************************************************
+
+ ; Queue address and fine scroll together: VBL must not see half an update.
+ ; Supervisor mode, STE low resolution; a0=address, d0.w=fine X (0..15).
+Video_SetViewportSTE:
+	move.w sr,d1
+	ori.w #$0700,sr
+	move.l a0,gVideo+sVideo_pPhysic
+	and.w #15,d0
+	move.w d0,gVideo+sVideo_ScrollX
+	clr.b gVideo+sVideo_UpdateScrollFlag
+	clr.b gVideo+sVideo_UpdatePhysicFlag
+	move.w d1,sr
+	rts
 
 *------------------------------------------------------------------------------------*
 * FUNCTION:    void Video_SaveRegsST()
@@ -624,17 +638,20 @@ Video_UpdateRegsSTE:
 
 .no_physic:
 
-	tas		sVideo_UpdateScrollFlag(a0)			; xscroll to set?
-	bne.s	.no_scroll							; no
-
-	move.b	sVideo_ScrollX(a0),d0					; check fine scroll pos
-	beq.s	.scroll0								; special case on scroll of 0
-	move.b	d0,$FFFF8265.w							; set scroll position
-	move.b	sVideo_ScanLineWords0+1(a0),$FFFF820E.w	; set scanline length
-	bra.s	.no_scroll								; finish update
-.scroll0:
-	clr.b	$ffff8265.w								; set scroll 0
-	move.b	sVideo_ScanLineWords1+1(a0),$FFFF820E.w	; set scanline length
+	tas sVideo_UpdateScrollFlag(a0)
+	bne.s .no_scroll
+	move.w sVideo_ScrollX(a0),d0
+	move.b d0,$FFFF8265.w
+	; Line offset counts skipped WORDS after fetched display data.
+	; Nonzero fine scroll fetches one extra 16px group (four words).
+	move.w sVideo_mCanvasWidth(a0),d1
+	sub.w sVideo_Width(a0),d1
+	lsr.w #2,d1
+	tst.w d0
+	beq.s .stride_ready
+	subq.w #4,d1
+.stride_ready:
+	move.b d1,$FFFF820F.w
 .no_scroll:
 
 	tas		sVideo_UpdatePalSTFlag(a0)		; st palette to set?

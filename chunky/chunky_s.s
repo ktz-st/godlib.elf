@@ -1,125 +1,23 @@
-**************************************************************************************
-*	CHUNKY_S.S
-*
-*	Chunky <-> Bitplane routs
-*
-*	[c] 2004 Reservoir Gods
-**************************************************************************************
-
-**************************************************************************************
-;	EXPORTS / IMPORTS
-**************************************************************************************
-
-**************************************************************************************
-;	STRUCTS
-**************************************************************************************
-
-    ; -------- sGraphicPos --------
-    rsreset
-
-sGraphicPos_mX:         rs.w    1
-sGraphicPos_mY:         rs.w    1
-sGraphicPos_sizeof:     rs.w    1
-
-
-    ; -------- sGraphicBox --------
-    rsreset
-
-sGraphicBox_mX0:        rs.w    1
-sGraphicBox_mX1:        rs.w    1
-sGraphicBox_mY0:        rs.w    1
-sGraphicBox_mY1:        rs.w    1
-sGraphicBox_sizeof:     rs.w    1
-
-
-    ; -------- sGraphicRect --------
-    rsreset
-
-sGraphicRect_mX:        rs.w    1
-sGraphicRect_mY:        rs.w    1
-sGraphicRect_mWidth:    rs.w    1
-sGraphicRect_mHeight:   rs.w    1
-sGraphicRect_msizeof:   rs.w    1
-
-
-    ; -------- sGraphicCanvas --------
-    rsreset
-
-sGraphicCanvas_mpVRAM:      rs.l    1
-sGraphicCanvas_mColourMode: rs.w    1
-sGraphicCanvas_mWidth:      rs.w    1
-sGraphicCanvas_mHeight:     rs.w    1
-sGraphicCanvas_mPad:        rs.w    1
-sGraphicCanvas_mmClipBox:   rs.b    sGraphicBox_sizeof
-sGraphicCanvas_mpFuncs:     rs.l    1
-sGraphicCanvas_mpClipFuncs: rs.l    1
-sGraphicCanvas_mpLineOffsets:rs.l    1
-sGraphicCanvas_sizeof:      rs.w    1
-
-**************************************************************************************
-	TEXT
-**************************************************************************************
-
-; a0 -> src
-; a1 -> dst
-; a2 = width
-; a3 = width
-; a4 = height
-; a5 = srclinelen
-; a6 = dstlineadd
-
-*------------------------------------------------------------------*
-* FUNCTION : C2P_To4P( sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect,  sGraphicCanvas * apSrc )
-* ACTION   : converts byte chunky buffer to 4bp screen.
-* CREATION : 04.04.04 Kalms/PNK
-*------------------------------------------------------------------*
+; Chunky <-> ST interleaved four-plane blocks (16 pixels per block).
+; GCC -mshort -mfastcall: a0=source, a1=destination, d0.w=block count.
+; C wrappers handle rectangle positioning, strides and partial blocks.
+; To4P requires an even source address; both require even planar addresses.
+; Original C2P transpose: Kalms/PNK, Reservoir Gods (2004).
+	text
+	xdef C2P_To4P
+	xdef C2P_From4P
 
 C2P_To4P:
-	movem.l	d3-d7/a2-a6,-(a7)
-
-	move.l	11*4(a7),a2							; apRect
-	move.l	12*4(a7),a3							; apSrc
-
-	moveq	#0,d0								; clear d0
-	moveq	#0,d1								; clear d1
-	move.w	sGraphicPos_mX(a1),d0				; X
-	move.w	sGraphicPos_mY(a1),d1				; Y
-	move.l	sGraphicCanvas_mpLineOffsets(a0),a5
-	mulu.w	6(a5),d1							; y offset
-	lsr.w	#4,d0								; x/16
-	lsl.w	#3,d0								; x*8
-	add.l	d1,d0								; pixel offset
-	move.l	sGraphicCanvas_mpVRAM(a0),a1		; pdest
-	add.l	d0,a1								; get to screen pos
-
-	moveq	#0,d0
-	move.w	sGraphicCanvas_mWidth(a0),d0		; dst witdh
-	sub.w	sGraphicRect_mWidth(a2),d0			; src width
-	lsr.w	#4,d0								; off/16
-	lsl.w	#3,d0								; off*8
-	move.w	d0,a6								; dst line add
-
-	moveq	#0,d0								; clear d0
-	moveq	#0,d1								; clear d1
-	move.w	sGraphicRect_mX(a2),d0				; X
-	move.w	sGraphicRect_mY(a2),d1				; Y
-	mulu.w	sGraphicCanvas_mWidth(a2),d1		; y offset
-	add.l	d1,d0								; buffer offset
-	move.l	sGraphicCanvas_mpVRAM(a3),a0		; psrc
-	add.l	d0,a0								; get to pos in chunky buffer
-
-	move.w	sGraphicCanvas_mWidth(a2),d0		; width of src
-	sub.w	sGraphicRect_mWidth(a2),d0			; srclineadd
-	move.w	sGraphicRect_mWidth(a2),a3			; width
-	move.w	sGraphicRect_mHeight(a2),a4			; height
-
-	move.l	#$0f0f0f0f,d4						; mask
-	move.l	#$00ff00ff,d5						; mask
-	move.l	#$55555555,d6						; mask
-
-.loopY:
-	move.l	a3,a2								; width
-.loopX:
+	tst.w d0
+	beq .done
+	movem.l d2-d7/a2,-(sp)
+	moveq #0,d1
+	move.w d0,d1
+	move.l d1,a2
+	move.l #$0f0f0f0f,d4
+	move.l #$00ff00ff,d5
+	move.l #$55555555,d6
+.loop:
 	move.l	(a0)+,d0							; read pixels 0-3
 	move.l	(a0)+,d2							; read pixels 4-7
 	move.l	(a0)+,d1							; read pixels 8-11
@@ -184,131 +82,38 @@ C2P_To4P:
 	move.l	d1,(a1)+							; store planes 0-1
 	move.l	d0,(a1)+							; store planes 2-3
 
-	subq.l	#1,a2								; dec width
-	cmpa.l	#0,a2								; reached end of line?
-	bne		.loopX								; loop for all x
-
-	add.l	a5,a0								; pSrc += srclineoffset
-	add.l	a6,a1								; pDst += dstlineoffset
-
-	subq.l	#1,a4								; dec height
-	cmpa.l	#0,a4								; reached end of box?
-	bne		.loopY								; loop for all y
-
-
-	movem.l	(sp)+,d3-d7/a2-a6
+	subq.l #1,a2
+	cmpa.l #0,a2
+	bne .loop
+	movem.l (sp)+,d2-d7/a2
+.done:
 	rts
-
-; a0->p4bp
-; a1->pchunky
-; a2->srclineoff
-; a3->dstlineoff
-; a4->width
-; a5->height
-
-; d6 - width
-
-*------------------------------------------------------------------*
-* FUNCTION : C2P_To4P( sGraphicCanvas * apCanvas,  sGraphicPos * apCoords,  sGraphicRect * apRect,  sGraphicCanvas * apSrc )
-* ACTION   : converts 4biplane image to chunky buffer
-* CREATION : 04.04.04 Kalms/PNK
-*------------------------------------------------------------------*
 
 C2P_From4P:
-	movem.l	d3-d7/a2-a6,-(a7)
-
-	move.l	11*4(a7),a2							; apRect
-	move.l	12*4(a7),a3							; apSrc
-
-	move.w	sGraphicRect_mWidth(a2),a4			; width
-	subq.l	#1,a4								; -1 for dbra
-	move.w	sGraphicRect_mHeight(a2),a5			; height
-
-	moveq	#15,d4								; 15
-	and.w	sGraphicPos_mX(a1),d4				; x & 15
-
-	moveq	#0,d2
-	move.w	sGraphicCanvas_mWidth(a3),d2		; src witdh
-	sub.w	sGraphicRect_mWidth(a2),d2			; -block width
-	lsr.w	#4,d2								; off/16
-	lsl.w	#3,d2								; off*8
-
-	moveq	#0,d3
-	move.w	sGraphicCanvas_mWidth(a0),d3		; dst width
-	sub.w	sGraphicRect_mWidth(a0),d3			; -block width
-
-	moveq	#0,d0								; clear d0
-	moveq	#0,d1								; clear d1
-	move.w	sGraphicPos_mX(a1),d0				; X
-	move.w	sGraphicPos_mY(a1),d1				; Y
-	mulu.w	sGraphicCanvas_mWidth(a0),d1		; y offset
-	add.l	d1,d0								; buffer offset
-	move.l	sGraphicCanvas_mpVRAM(a0),a1		; psrc
-	add.l	d0,a1								; get to pos in chunky buffer
-
-	moveq	#0,d0								; clear d0
-	moveq	#0,d1								; clear d1
-	move.w	sGraphicRect_mX(a2),d0				; X
-	move.w	sGraphicRect_mY(a2),d1				; Y
-	move.l	sGraphicCanvas_mpLineOffsets(a3),a5
-	mulu.w	6(a5),d1							; y offset
-	lsr.w	#4,d0								; x/16
-	lsl.w	#3,d1								; x*8
-	add.l	d1,d0								; pixel offset
-	move.l	sGraphicCanvas_mpVRAM(a3),a0		; pdest
-	add.l	d0,a0								; get to screen pos
-
-	move.l	d2,a2								; src line off
-	move.l	d3,a3								; dst line off
-
-.loopY:
-
-	move.w	(a0)+,d0
-	move.w	(a0)+,d1
-	move.w	(a0)+,d2
-	move.w	(a0)+,d3
-
-	lsl.w	d4,d0
-	lsl.w	d4,d1
-	lsl.w	d4,d2
-	lsl.w	d4,d3
-
-	moveq	#15,d5
-	sub.w	d4,d5
-	move.l	a4,d6
-.loopX:
-	moveq	#0,d7
-	add.w	d0,d0
-	addx.w	d7,d7
-	add.w	d1,d1
-	addx.w	d7,d7
-	add.w	d2,d2
-	addx.w	d7,d7
-	add.w	d3,d3
-	addx.w	d7,d7
-
-	move.b	d4,(a1)+
-
-	dbra	d5,.chunkLoop
-
-	move.w	(a0)+,d0
-	move.w	(a0)+,d1
-	move.w	(a0)+,d2
-	move.w	(a0)+,d3
-
-	moveq	#15,d5
-
-.chunkLoop:
-	dbra	d6,.loopX
-
-	add.l	a2,a0
-	add.l	a3,a1
-
-	subq.l	#1,a5
-	cmpa.l	#0,a5
-	bne		.loopY
-
-	movem.l	(sp)+,d3-d7/a2-a6
+	tst.w d0
+	beq .done
+	movem.l d2-d7,-(sp)
+	move.w d0,d6
+	subq.w #1,d6
+.block:
+	move.w (a0)+,d0
+	move.w (a0)+,d1
+	move.w (a0)+,d2
+	move.w (a0)+,d3
+	moveq #15,d5
+.pixel:
+	moveq #0,d7
+	add.w d3,d3
+	addx.w d7,d7
+	add.w d2,d2
+	addx.w d7,d7
+	add.w d1,d1
+	addx.w d7,d7
+	add.w d0,d0
+	addx.w d7,d7
+	move.b d7,(a1)+
+	dbra d5,.pixel
+	dbra d6,.block
+	movem.l (sp)+,d2-d7
+.done:
 	rts
-
-

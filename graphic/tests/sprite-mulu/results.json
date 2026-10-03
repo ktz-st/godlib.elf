@@ -1,0 +1,52 @@
+{
+  "gAuditFailures": [
+    0,
+    0
+  ],
+  "gAuditFirstWidth": [
+    0,
+    0
+  ],
+  "gAuditFirstPhase": [
+    0,
+    0
+  ],
+  "ticks": [
+    809,
+    812,
+    0,
+    0,
+    1088,
+    1091,
+    0,
+    0,
+    1194,
+    1198,
+    0,
+    0,
+    1468,
+    1471,
+    0,
+    0,
+    1574,
+    1577,
+    0,
+    0,
+    1784,
+    1788,
+    0,
+    0,
+    1955,
+    1959,
+    0,
+    0,
+    2166,
+    2168,
+    0,
+    0
+  ],
+  "draws_per_case": 8000,
+  "fallback_failures": 0,
+  "timer_hz": 200,
+  "machine": "Hatari STE 8 MHz"
+}

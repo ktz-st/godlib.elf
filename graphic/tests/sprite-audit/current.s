@@ -24,6 +24,7 @@
 	XDEF	Graphic_4BP_DrawBox_BLT
 	XDEF	Graphic_4BP_DrawLine_BLT
 	XDEF	Graphic_4BP_DrawPixel_BLT
+	XDEF	Graphic_4BP_DrawSprite_Go
 	XDEF	Graphic_4BP_DrawSprite_BLT
 	XDEF	Graphic_4BP_DrawTri_BLT
 	XDEF	Graphic_4BP_DrawQuad_BLT
@@ -1062,7 +1063,7 @@ Graphic_4BP_DrawSprite_Clip_BLT:
     beq.s   .go
     or.b    #eBLITTERSKEW_FXSR_BIT,eBLITTER_SKEW(a6)
     move.w  #0,eBLITTER_SRC_INC_X(a6)
-	
+
 .go:
     addq.l  #2,a7           ; pop local flag
     bra     Graphic_4BP_DrawSprite_Go
@@ -1227,26 +1228,13 @@ Graphic_4BP_DrawSprite_Go:
 ;	lea		gAtariBlit,a4
 ;	bsr		BLiT_iT
 ;	bra		G4BP_DrawSprite_RTS
-	; Four-plane sprites are the common case. Only the low word of each
-	; product is written to the blitter, so word shifts preserve MULU results.
-	cmpi.w	#4,sGraphicSprite_mGfxPlaneCount(a2)
-	bne.s	.genericPlaneIncrements
-	move.w	eBLITTER_SRC_INC_Y(a6),d0
-	lsl.w	#2,d0
-	move.w	d0,eBLITTER_SRC_INC_Y(a6)
-	move.w	eBLITTER_SRC_INC_X(a6),d0
-	lsl.w	#2,d0
-	move.w	d0,eBLITTER_SRC_INC_X(a6)
-	bra.s	.planeIncrementsDone
-
-.genericPlaneIncrements:
 	move.w	eBLITTER_SRC_INC_Y(a6),d0
 	mulu	sGraphicSprite_mGfxPlaneCount(a2),d0
+;	lsl.w	#2,d0
 	move.w	d0,eBLITTER_SRC_INC_Y(a6)
-	move.w	eBLITTER_SRC_INC_X(a6),d0
+	move.w	eBLITTER_SRC_INC_X(a6),d0			; offset to next chunk
 	mulu	sGraphicSprite_mGfxPlaneCount(a2),d0
 	move.w	d0,eBLITTER_SRC_INC_X(a6)
-.planeIncrementsDone:
 
 	move.l	a3,eBLITTER_pSRC(a6)
 	move.l	a5,eBLITTER_pDST(a6)

@@ -2,6 +2,11 @@
 	xdef	Paula_SetReplayBuf
 	xdef	LanceMod_Init
 	xdef	LanceMod_Play
+	xdef	LanceMod_StartDma
+	xdef	LanceMod_MixNext
+	xdef	Paula_MixOnly
+	xdef	Paula_ClearReplay
+	xdef	LanceMod_StopMusic
 	xdef	LanceMod_Stop
 	xdef	LanceMod_SetMasterVolume
 	xdef	LanceMod_SetRasterDebug
@@ -37,6 +42,33 @@ LanceMod_Play:
 	beq.s	.done
 	move.w	LanceMod_RasterDebugColour,$ffff8240.w
 .done:
+	movem.l	(a7)+,d0-a6
+	rts
+
+LanceMod_StartDma:
+	jsr	paula_start_dma
+	rts
+
+LanceMod_MixNext:
+	movem.l	d0-a6,-(a7)
+	jsr	paula_mix_next
+	jsr	mt_music
+	movem.l	(a7)+,d0-a6
+	rts
+
+Paula_MixOnly:
+	jsr	paula_mix_next
+	rts
+
+Paula_ClearReplay:
+	movem.l	d0-d2/a0-a1,-(a7)
+	jsr	paula_clear_buffer
+	movem.l	(a7)+,d0-d2/a0-a1
+	rts
+
+LanceMod_StopMusic:
+	movem.l	d0-a6,-(a7)
+	jsr	mt_end
 	movem.l	(a7)+,d0-a6
 	rts
 

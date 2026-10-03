@@ -325,6 +325,10 @@ U8	Video_SetMode( const U16 aWidth, const U16 aHeight, const U16 aMode, const U1
 	gVideo.mNTSCFlag       = aNTSCFlag;
 	gVideo.mWideScreenFlag = aWideScreenFlag;
 	gVideo.mMode           = aMode;
+ if(System_GetVDO()==VDO_STE && aMode==eVIDEO_MODE_4PLANE) {
+  gVideo.mScrollX=0;
+  gVideo.mUpdateScrollFlag=0;
+ }
 
 	switch( aMode )
 	{

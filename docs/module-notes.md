@@ -3133,7 +3133,8 @@ Runtime setup:
 Supported operations:
 
 - `Blitter_CopyBox()` copies a rectangular area between two ST-low screens.
-  It clips source and destination rectangles to hard-coded `320x200` bounds.
+  It clips source and destination rectangles to their respective storage bounds.
+  Screen buffers supply their geometry; other raw buffers default to 320x200.
 - `Blitter_DrawSprite()` draws a masked planar sprite:
   - first ANDs the destination planes with mask data
   - then ORs sprite graphics into destination planes
@@ -3145,13 +3146,9 @@ Supported operations:
 
 Important limitations and risks:
 
-- The implementation is fixed to ST low resolution assumptions:
-  - width `320`
-  - height `200`
-  - line size `160` bytes / `80` words
-  - 4 bitplanes
-- It is not a generic canvas blitter; callers must pass ST-low compatible
-  screen memory.
+- The implementation supports four-plane canvases and independent row strides.
+  Screen-owned buffers are recognised by their base pointers; explicit canvas
+  entry points cover other layouts. Unrecognised raw buffers retain 320x200/160.
 - Horizontal sprite clipping is very conservative: negative X, off-right, or
   over-wide sprites are rejected rather than clipped. Vertical clipping is
   partially handled.
@@ -3269,6 +3266,16 @@ Font helpers:
 - `Graphic_Init()` sets `FontPrint` for 4-plane normal/clipped tables and for
   16bpp normal table when `dGODLIB_16BPP` is enabled.
 
+Sprite blitter source increments:
+
+- The common `Graphic_4BP_DrawSprite_Go` body scales source X/Y increments
+  by `mGfxPlaneCount` before the colour passes. For four-plane sprites it
+  uses `LSL.W #2` for both increments; other plane counts retain `MULU`.
+  Only the low word is written to the blitter, preserving the original
+  multiplication result even for encoded negative row increments.
+- `graphic/tests/sprite-mulu` compares both assembler snapshots against a
+  pixel reference at strides 160/320 and measures elapsed emulated HZ200 time.
+
 Dirty chunks:
 
 - `sGraphicChunkList` stores up to 32 chunks, each holding an offset and height.
@@ -3359,7 +3366,9 @@ Initialisation:
 Vertical scroll mode:
 
 - If `eSCREEN_SCROLL_V` is passed, the canvas height becomes `height + 32`.
-- The visible video mode still uses the requested visible height.
+- Four-plane Screen_Init uses a fixed 320x200 viewport; requested height describes
+  canvas storage before the legacy 32-line reserve. Other colour modes retain
+  their requested viewport dimensions.
 - `Video_SetResolution()` receives the wider/taller canvas width separately, so
   video code can know the real line layout.
 - `Screen_SetScrollY(y)` stores a line offset in `gScreenClass.mScrollY`.
@@ -3372,14 +3381,40 @@ Vertical scroll mode:
 
 Horizontal scroll mode:
 
-- `eSCREEN_SCROLL_H` is defined in `screen.h`, but `screen.c` currently has no
-  implementation for it.
-- The lower-level `video` module does have STE-style horizontal scroll support
-  through `Video_SetScrollX()` / `Video_UpdateRegsSTE()`, but `Screen_Init()`
-  and `Screen_Update()` do not connect `eSCREEN_SCROLL_H` to that path.
-- Missing work: decide how much extra canvas width/line padding horizontal
-  scroll should allocate, expose/store a screen-level X scroll value, and route
-  updates to the video scroll registers.
+- Four-plane `Screen_Init(width,height,mode,flags)` uses a fixed 320x200 viewport.
+  H requires STE; width 320 adds 32 pixels, larger widths are used directly.
+  V retains height+32: requesting 400 creates 432 rows and allows Y=0..232.
+  `Screen_Init(640,200,4PLANE,H)` creates a 640x200 canvas with X=0..320.
+  Widths are multiples of 16 in 320..1328; allocated heights 200..2047.
+  Widths above 320 require H/STE. Unsupported geometry leaves mpMemBase NULL.
+  The API retains its original void return; there is no separate virtual init.
+- `Screen_SetScrollX()` clamps to canvas width minus viewport width. Y
+  scrolling is clamped during Screen_Update. CPU canvases remain at the full
+  virtual-buffer base; only the hardware display address is offset.
+- Screen_Update adds `(X>>4)*8` and the existing Y*stride displacement. The
+  fine offset X&15 is queued atomically with the physical address through
+  `Video_SetViewportSTE()`, avoiding a VBL between the two updates.
+- The STE VBL path uses the low byte of mScrollX and writes $FFFF8265 and
+  $FFFF820F. Line offset is `(canvasWidth-visibleWidth)/4` words, minus four
+  words when fine X is nonzero (one extra 16-pixel group is fetched).
+- Canvas stride accounting remains separate from Video_GetScreenSize's full
+  canvas word count. Entering a four-plane STE mode resets fine scroll.
+- Physical, logical and background buffers each start on a 256-byte boundary;
+  padding does not change the canvas row stride. sScreenClass gained viewport
+  dimensions, scroll flags and X; consumers must be rebuilt.
+- `godlib.spl/hscroll` displays a generated 640x200 ST-palette panorama and a
+  moving masked bird, restoring a separate saved rectangle per screen page.
+  A separate 640x232 grid verification build checks simultaneous X/Y scrolling.
+  It verifies CPU/blitter masked sprites against independent
+  references on a 384-pixel canvas. Hatari STE checks every displayed pixel
+  for fine/coarse boundaries and simultaneous X/Y scrolling. Hardware untested.
+- Standalone Blitter helpers recognise live Screen buffers and use their canvas
+  stride/bounds. Explicit Blitter_*Canvas variants cover custom four-plane
+  canvases, including independent source/destination strides for CopyBox.
+  Unrecognised raw buffers keep 320x200 defaults. Font8x8 recognises active
+  Screen pages and uses canvas line offsets; other raw font buffers use stride 160.
+  Sprite creation from PI1 also expects 160-byte source rows; destination
+  canvas-based sprite drawing supports a wider stride.
 
 Update/flip:
 
@@ -3422,6 +3457,27 @@ Important limitations and risks:
   the selected machine/video mode.
 
 ## audio
+
+`desertmix.h` exposes the four-layer 12517-Hz mono gameplay mixer from Desert.
+Channels 0/1 loop; 2/3 are one-shots. See `audio/desertmix.md` and the
+`godlib.spl/desertmix` example. Desert, SGDL and SlugMix expose
+`*_SetRasterDebug` with the same palette-zero CPU indicator as LanceMod.
+
+`audio/sgdlmix.h` adds OrionSoft's SGDL four-channel signed 8-bit mono mixer,
+ported from `snd_asm.o` to vasm. It uses a VBL-serviced circular DMA buffer,
+supports 25033/12517 Hz, and preserves wrapping byte sums. Samples must be
+preconverted to the selected rate and padded to 512 bytes. Init/DeInit own the
+callback; frequency changes stop all voices. See `audio/sgdlmix.md` and the
+`godlib.spl/sgdlmix` example, whose F8 key changes rate. STE/MegaSTE only.
+
+`audio/slugmix.h` adds the optional `SlugMixer` backend extracted from Metal
+Slug: three channels, 12517 Hz mono, 250-byte blocks, automatic VBL callback.
+It is independent of `AudioMixer` and must exclusively own DMA playback.
+Use `SlugMixer_Init/Play/Stop/IsPlaying/DeInit`; stop it before freeing PCM
+or shutting down Platform. See `audio/slugmix.md` for sample preparation,
+50 Hz scheduling limitations, provenance and the original channel-0 loop
+restriction. `godlib.spl/slugmix` demonstrates it using the existing voice
+sample from the mixer example.
 
 `godlib/audio` contains low-level sound support: YM/PSG state handling, STE/TT
 and Falcon DMA sample playback, a small two-channel sample mixer, SPL asset
@@ -3698,8 +3754,8 @@ Important limitations and risks:
 ## font8x8
 
 `godlib/font8x8` is a built-in, fixed 8x8 debug/UI font for ST-low 4-plane
-screens. It writes directly into planar screen memory and does not use
-`sGraphicCanvas`.
+screens. It writes directly into planar screen memory, with canvas variants
+and automatic virtual-layout recognition for active Screen pages.
 
 Files:
 
@@ -3712,11 +3768,13 @@ Printing model:
   memory.
 - `Font8x8_PrintColour(text, screen, x, y, colour)` writes glyph pixels into all
   four bitplanes according to the low 4 bits of `colour`.
-- The code assumes:
-  - 320-pixel ST low-res layout
-  - 160 bytes per screen line
-  - 4 interleaved bitplanes
-  - 8x8 glyphs
+- `Font8x8_PrintCanvas(text, canvas, x, y)` and
+  `Font8x8_PrintColourCanvas(text, canvas, x, y, colour)` use each target row's
+  `mpLineOffsets` entry, including padded or nonuniform row layouts.
+- Existing raw-pointer functions recognise active Screen logic/physic/back
+  canvas buffers and use their line offsets. Other raw buffers retain the
+  original 160-byte row layout.
+- All variants assume four interleaved ST-low bitplanes and 8x8 glyphs.
 - `x` is effectively expected on 8-pixel boundaries. The implementation handles
   `x & 8` by selecting the alternate byte inside a 16-pixel planar group.
 - The glyph index is `(*text - 32) * 8`, so the font is intended for printable
@@ -3724,8 +3782,13 @@ Printing model:
 
 Important limitations and risks:
 
-- `font8x8` is not canvas-generic; it hard-codes `160` bytes per line and is
-  therefore tied to 320px ST-low 4-plane screens.
+- Font8x8 remains specific to ST-low four-plane pixels. Canvas variants ignore
+  null/incomplete canvases or a different colour mode; they do not clip text.
+- Raw buffer recognition requires the exact active canvas VRAM base pointer.
+  Use the canvas variants for custom buffers or padded rows.
+- Line addresses use U32 offsets, including drawing beyond byte 65535.
+  `font8x8/tests` checks monochrome/coloured output against a per-pixel reference,
+  all 16 colours, strides 160/176/320/336, nonuniform rows and active Screen APIs.
 - It does no clipping. Text outside the screen or near the right/bottom edge can
   write out of bounds.
 - `Font8x8_Print()` writes only one byte per row, effectively plane-0 style
@@ -3894,7 +3957,7 @@ Files:
   `graphic` function table when `dGODLIB_CHUNKY` is enabled.
 - `chunky_s.s` - assembler C2P/P2C routines named `C2P_To4P` and
   `C2P_From4P`.
-- `c2p_s.s` - another copy/variant of the same assembler conversion code.
+- `c2p_s.s` - historical copy; excluded from the build.
 - `chunky.s` - old assembler source fragment; not part of the current public C
   API.
 
@@ -3924,11 +3987,24 @@ Stubbed or incomplete areas:
 
 - `ChunkySurface_DrawTri()`, `DrawQuad()`, and `FontPrint()` are stubs.
 - The clipped variants of tri/quad are also stubs.
-- `ChunkySurface_From4Plane()` has an empty inner loop in C.
-- `ChunkySurface_To4Plane()` is a stub.
-- The assembler routines are named `C2P_To4P` / `C2P_From4P`, not
-  `ChunkySurface_From4Plane` / `ChunkySurface_To4Plane`, so the public C API
-  currently does not call them directly.
+
+Four-plane conversion:
+
+- `ChunkySurface_From4Plane()` and `ChunkySurface_To4Plane()` now call the
+  exported assembler block helpers on Atari. They convert between byte-per-pixel
+  indices and ST interleaved four-plane words; no Falcon hardware is required.
+- The helpers use GCC `-mshort -mfastcall`: A0=source, A1=destination,
+  D0.w=number of 16-pixel blocks. They are internal helpers, not the old
+  four-canvas-argument interface.
+- C wrappers use each canvas's row offsets and handle arbitrary X/width.
+  Partial planar words preserve surrounding pixels. An odd chunky source
+  address uses the C path because 68000 longword reads require even alignment.
+- Conversion to planar uses the low four colour bits; conversion from planar
+  produces indices 0..15. Nonpositive or out-of-bounds rectangles are no-ops.
+- `chunky/tests` compares both directions against independent references on a
+  68000 ST in Hatari: 240 cases cover full/partial blocks, odd chunky addresses,
+  all 16 destination bit positions, padded strides, multiple rows and guards.
+  Build with `make -C chunky/tests`, then run `python3 chunky/tests/verify-hatari.py`.
 
 Important fixes made:
 
@@ -3949,14 +4025,8 @@ Important limitations and risks:
   some other backends.
 - `ChunkySurface_DrawSprite_Clip()` clips against full canvas bounds, not
   `mClipBox`.
-- The old assembler `C2P_From4P` appears suspicious: it calculates the chunky
-  pixel in `d7` but stores `d4`. `c2p_s.o` also currently contains an undefined
-  `chunkLoop` symbol because one branch lacks the local-label dot. Since these
-  symbols are not the public `ChunkySurface_*` API, treat them as unfinished
-  historical code until there is a concrete user.
-- The C 4-plane conversion functions are effectively not implemented, so
-  `ChunkySurface_ConvertBlit()` from 4-plane to chunky currently does not
-  produce pixels through the public API.
+- Conversions require separate source/destination buffers and valid, even-aligned
+  planar storage. They do not implement overlapping blits.
 
 ## scrngrab
 
@@ -4239,3 +4309,20 @@ Important limitations and risks:
 - `guifs.c` dynamically replaces file-list controls and assumes ownership based
   on `gGuiFS.mAllocFlag`; this should be handled carefully if file selector
   windows are reused or customized.
+
+### Standalone blitter canvas geometry
+
+- Blitter_DrawSprite, DrawOpaqueSprite, DrawColouredSprite, DrawBox and CopyBox
+  now resolve the full geometry of active Screen logic/physical/background
+  buffers, rather than assuming 320x200 and 160 bytes per row.
+- Corresponding Blitter_*Canvas entry points accept explicit four-plane canvases.
+  Canvas stride comes from mpLineOffsets[1], including row padding; CopyBox uses
+  separate source and destination strides and bounds. Rows must be uniformly
+  spaced, even-sized and at least width/2 bytes; width must be a multiple of 16.
+- Row address products use U32, including Y beyond 200 on a 640-pixel canvas.
+- Other raw pointers retain the original 320x200 layout. Canvas APIs use storage
+  bounds (not custom mClipBox). Sprite helpers retain horizontal rejection and
+  vertical clipping. CopyBox retains forward-copy, non-overlap semantics.
+- godlib/blitter/tests verifies independent pixel references for masked, opaque
+  and coloured sprites, skewed copies between padded 192/336-byte row layouts,
+  boxes, and Screen wrappers at 640x200 and 640x432 including Y=400.

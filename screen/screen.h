@@ -45,6 +45,10 @@ typedef	struct	sScreenClass
 	U16		mScrollY;
 	U16		mPhysicIndex;
 	U16		mFirstTimeFlag;
+	U16 mScrollX;
+	U16 mScrollFlags;
+	U16 mViewportWidth;
+	U16 mViewportHeight;
 } sScreenClass;
 
 
@@ -52,7 +56,12 @@ typedef	struct	sScreenClass
 #  PROTOTYPES
 ################################################################################### */
 
+/* Four-plane mode: fixed 320x200 viewport. Width/height describe the canvas.
+ * V adds 32 lines (legacy); H requires STE and adds 32 pixels only at width 320.
+ * Unsupported geometry leaves mpMemBase NULL. Initialise once, then DeInit. */
 void	Screen_Init( const U16 aWidth, const U16 aHeight, const U16 aBitDepth, const U16 aScrollFlags );
+void Screen_SetScrollX(U16 aX);
+#define Screen_GetScrollX() gScreenClass.mScrollX
 void	Screen_Update( void );
 void	Screen_DeInit( void );
 

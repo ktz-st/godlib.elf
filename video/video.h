@@ -54,6 +54,8 @@ U16		Video_GetHeight( void );
 void	Video_GetConfig( sVideoConfig * apConfig );
 void	Video_SetConfig( sVideoConfig * apConfig );
 
+/* Queue an atomic STE low-resolution viewport update in supervisor mode. */
+void Video_SetViewportSTE( const void * apPhysic, U16 aFineX );
 void	Video_SetPhysic( const void * apPhysic );
 void *	Video_GetpPhysic( void );
 

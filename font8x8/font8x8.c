@@ -13,6 +13,7 @@
 ################################################################################### */
 
 #include	"font8x8.h"
+#include <godlib/screen/screen.h>
 
 
 /* ###################################################################################
@@ -32,16 +33,19 @@ extern	U8 	gFont8x8[12544];
 * CREATION : 16.01.01 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	Font8x8_Print( const char * apString, U16 * apScreen, U16 aX, U16 aY )
+static void Font8x8_PrintInternal( const char * apString, U16 * apScreen, U16 aX, U16 aY, const U32 * apLines )
 {
 	U32		lOffset;
+	U32		lRows[8];
+	U16		lIndex;
 	U16		lChar;
 	U16		lNextX;
 	U8 *	lpSrc;
 	U8 *	lpScreen;
 
-	lOffset   = aY;
-	lOffset  *= 160L;
+	lOffset = apLines ? apLines[aY] : (U32)aY * 160UL;
+	for( lIndex=0; lIndex<8; ++lIndex )
+		lRows[lIndex] = apLines ? apLines[aY+lIndex] - lOffset : (U32)lIndex * 160UL;
 	lOffset  += (aX>>4)<<3;
 	lpScreen  = (U8*)apScreen;
 	lpScreen  = &lpScreen[ lOffset ];
@@ -58,14 +62,14 @@ void	Font8x8_Print( const char * apString, U16 * apScreen, U16 aX, U16 aY )
 		lChar <<=3;
 		lpSrc   = &gFont8x8[ lChar ];
 
-		lpScreen[ 0*160 ] = *lpSrc++;
-		lpScreen[ 1*160 ] = *lpSrc++;
-		lpScreen[ 2*160 ] = *lpSrc++;
-		lpScreen[ 3*160 ] = *lpSrc++;
-		lpScreen[ 4*160 ] = *lpSrc++;
-		lpScreen[ 5*160 ] = *lpSrc++;
-		lpScreen[ 6*160 ] = *lpSrc++;
-		lpScreen[ 7*160 ] = *lpSrc++;
+		lpScreen[ lRows[0] ] = *lpSrc++;
+		lpScreen[ lRows[1] ] = *lpSrc++;
+		lpScreen[ lRows[2] ] = *lpSrc++;
+		lpScreen[ lRows[3] ] = *lpSrc++;
+		lpScreen[ lRows[4] ] = *lpSrc++;
+		lpScreen[ lRows[5] ] = *lpSrc++;
+		lpScreen[ lRows[6] ] = *lpSrc++;
+		lpScreen[ lRows[7] ] = *lpSrc++;
 
 		if( lNextX )
 		{
@@ -88,9 +92,11 @@ void	Font8x8_Print( const char * apString, U16 * apScreen, U16 aX, U16 aY )
 * CREATION : 15.05.26 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY, U16 aColour )
+static void Font8x8_PrintColourInternal( const char * apString, U16 * apScreen, U16 aX, U16 aY, U16 aColour, const U32 * apLines )
 {
 	U32		lOffset;
+	U32		lRows[8];
+	U16		lIndex;
 	U16		lChar;
 	U16		lNextX;
 	U16		lRow;
@@ -108,8 +114,9 @@ void	Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY,
 	lMask2 = (U8)((aColour & 4) ? 0xFF : 0x00);
 	lMask3 = (U8)((aColour & 8) ? 0xFF : 0x00);
 
-	lOffset   = aY;
-	lOffset  *= 160L;
+	lOffset = apLines ? apLines[aY] : (U32)aY * 160UL;
+	for( lIndex=0; lIndex<8; ++lIndex )
+		lRows[lIndex] = apLines ? apLines[aY+lIndex] - lOffset : (U32)lIndex * 160UL;
 	lOffset  += (aX>>4)<<3;
 	lpScreen  = (U8*)apScreen;
 	lpScreen  = &lpScreen[ lOffset ];
@@ -126,13 +133,13 @@ void	Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY,
 		lChar <<=3;
 		lpSrc   = &gFont8x8[ lChar ];
 
-		for( lRow=0; lRow<8*160; lRow+=160 )
+		for( lRow=0; lRow<8; ++lRow )
 		{
 			lGlyph = *lpSrc++;
-			lpScreen[ lRow + 0 ] = (U8)(lGlyph & lMask0);	/* plane 0 */
-			lpScreen[ lRow + 2 ] = (U8)(lGlyph & lMask1);	/* plane 1 */
-			lpScreen[ lRow + 4 ] = (U8)(lGlyph & lMask2);	/* plane 2 */
-			lpScreen[ lRow + 6 ] = (U8)(lGlyph & lMask3);	/* plane 3 */
+			lpScreen[ lRows[lRow] + 0 ] = (U8)(lGlyph & lMask0);	/* plane 0 */
+			lpScreen[ lRows[lRow] + 2 ] = (U8)(lGlyph & lMask1);	/* plane 1 */
+			lpScreen[ lRows[lRow] + 4 ] = (U8)(lGlyph & lMask2);	/* plane 2 */
+			lpScreen[ lRows[lRow] + 6 ] = (U8)(lGlyph & lMask3);	/* plane 3 */
 		}
 
 		if( lNextX )
@@ -149,3 +156,46 @@ void	Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY,
 	}
 }
 
+
+/* Legacy pointers to active Screen pages inherit their virtual line layout.
+ * Other raw buffers retain the original 320-pixel / 160-byte layout. */
+static const sGraphicCanvas * Font8x8_ScreenCanvas( const U16 * apScreen )
+{
+	const sGraphicCanvas * lpCanvases[3] =
+		{ &gScreenLogicGraphic, &gScreenPhysicGraphic, &gScreenBackGraphic };
+	U16 i;
+	if( !gScreenClass.mpMemBase ) return 0;
+	for( i=0; i<3; ++i )
+		if( apScreen == lpCanvases[i]->mpVRAM &&
+			lpCanvases[i]->mColourMode == eGRAPHIC_COLOURMODE_4PLANE &&
+			lpCanvases[i]->mpLineOffsets ) return lpCanvases[i];
+	return 0;
+}
+
+void Font8x8_Print( const char * apString, U16 * apScreen, U16 aX, U16 aY )
+{
+	const sGraphicCanvas * lpCanvas = Font8x8_ScreenCanvas( apScreen );
+	Font8x8_PrintInternal( apString, apScreen, aX, aY,
+		lpCanvas ? lpCanvas->mpLineOffsets : 0 );
+}
+
+void Font8x8_PrintColour( const char * apString, U16 * apScreen, U16 aX, U16 aY, U16 aColour )
+{
+	const sGraphicCanvas * lpCanvas = Font8x8_ScreenCanvas( apScreen );
+	Font8x8_PrintColourInternal( apString, apScreen, aX, aY, aColour,
+		lpCanvas ? lpCanvas->mpLineOffsets : 0 );
+}
+
+void Font8x8_PrintCanvas( const char * apString, sGraphicCanvas * apCanvas, U16 aX, U16 aY )
+{
+	if( !apCanvas || !apCanvas->mpVRAM || !apCanvas->mpLineOffsets ||
+		apCanvas->mColourMode != eGRAPHIC_COLOURMODE_4PLANE ) return;
+	Font8x8_PrintInternal( apString, (U16*)apCanvas->mpVRAM, aX, aY, apCanvas->mpLineOffsets );
+}
+
+void Font8x8_PrintColourCanvas( const char * apString, sGraphicCanvas * apCanvas, U16 aX, U16 aY, U16 aColour )
+{
+	if( !apCanvas || !apCanvas->mpVRAM || !apCanvas->mpLineOffsets ||
+		apCanvas->mColourMode != eGRAPHIC_COLOURMODE_4PLANE ) return;
+	Font8x8_PrintColourInternal( apString, (U16*)apCanvas->mpVRAM, aX, aY, aColour, apCanvas->mpLineOffsets );
+}

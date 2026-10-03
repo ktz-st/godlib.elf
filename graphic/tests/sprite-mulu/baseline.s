@@ -18,23 +18,24 @@
 ;	XDEFS / IMPORTS
 **************************************************************************************
 
-	XDEF	Graphic_4BP_Blit_BLT
-	XDEF	Graphic_4BP_ClearScreen_BLT
-	XDEF	Graphic_4BP_CopyScreen_BLT
-	XDEF	Graphic_4BP_DrawBox_BLT
-	XDEF	Graphic_4BP_DrawLine_BLT
-	XDEF	Graphic_4BP_DrawPixel_BLT
-	XDEF	Graphic_4BP_DrawSprite_BLT
+	XDEF	MuluBaseline_Graphic_4BP_Blit_BLT
+	XDEF	MuluBaseline_Graphic_4BP_ClearScreen_BLT
+	XDEF	MuluBaseline_Graphic_4BP_CopyScreen_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawBox_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawLine_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawPixel_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawSprite_Go
+	XDEF	MuluBaseline_Graphic_4BP_DrawSprite_BLT
 	XDEF	Graphic_4BP_DrawTri_BLT
 	XDEF	Graphic_4BP_DrawQuad_BLT
 
-	XDEF	Graphic_4BP_Blit_Clip_BLT
+	XDEF	MuluBaseline_Graphic_4BP_Blit_Clip_BLT
 	XDEF	Graphic_4BP_ClearScreen_Clip_BLT
 	XDEF	Graphic_4BP_CopyScreen_Clip_BLT
-	XDEF	Graphic_4BP_DrawBox_Clip_BLT
-	XDEF	Graphic_4BP_DrawLine_Clip_BLT
-	XDEF	Graphic_4BP_DrawPixel_Clip_BLT
-	XDEF	Graphic_4BP_DrawSprite_Clip_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawBox_Clip_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawLine_Clip_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawPixel_Clip_BLT
+	XDEF	MuluBaseline_Graphic_4BP_DrawSprite_Clip_BLT
 	XDEF	Graphic_4BP_DrawTri_Clip_BLT
 	XDEF	Graphic_4BP_DrawQuad_Clip_BLT
 
@@ -200,7 +201,7 @@ BLIT_SIZEOF	equ 32
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_Blit_Clip_BLT:
+MuluBaseline_Graphic_4BP_Blit_Clip_BLT:
 	movem.l	d3-d7/a2-a6,-(a7)				; save registers
 
 	move.l	11*4(a7),a2
@@ -301,7 +302,7 @@ Graphic_4BP_Blit_Clip_BLT:
 .y1_ok:
 
 
-	bra		Graphic_4BP_Blit_Go					; Blit it
+	bra		MuluBaseline_Graphic_4BP_Blit_Go					; Blit it
 
 .clip:
 	movem.l	(a7)+,d3-d7/a2-a6				; restore registers
@@ -318,7 +319,7 @@ Graphic_4BP_Blit_Clip_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_Blit_BLT:
+MuluBaseline_Graphic_4BP_Blit_BLT:
 	movem.l	d3-d7/a2-a6,-(a7)
 
 	move.l	11*4(a7),a2
@@ -332,17 +333,17 @@ Graphic_4BP_Blit_BLT:
 	move.w	sGraphicRect_mY(a2),d1			; src y
 	move.w	sGraphicRect_mWidth(a2),d2		; width
 	move.w	sGraphicRect_mHeight(a2),d3		; height
-	ble		Graphic_4BP_Blit_Done
+	ble		MuluBaseline_Graphic_4BP_Blit_Done
 
 	move.w	sGraphicPos_mX(a1),d4			; dst x
 	move.w	sGraphicPos_mY(a1),d5			; dst y
-	bra		Graphic_4BP_Blit_Go
+	bra		MuluBaseline_Graphic_4BP_Blit_Go
 
 .fallback:
 	movem.l	(a7)+,d3-d7/a2-a6
 	bra		Graphic_4BP_Blit
 
-Graphic_4BP_Blit_Go:					; Blit it
+MuluBaseline_Graphic_4BP_Blit_Go:					; Blit it
 	sub.l	#34,a7
 
 	move.l	sGraphicCanvas_mpVRAM(a3),SRC_FORM(a7)
@@ -366,10 +367,10 @@ Graphic_4BP_Blit_Go:					; Blit it
 	move.w	#4,PLANES(a7)
 
 	move.l	a7,a4
-	bsr		BLiT_iT
+	bsr		MuluBaseline_BLiT_iT
 
 	add.l	#34,a7
-Graphic_4BP_Blit_Done:
+MuluBaseline_Graphic_4BP_Blit_Done:
 	movem.l	(a7)+,d3-d7/a2-a6
 	rts
 
@@ -381,7 +382,7 @@ Graphic_4BP_Blit_Done:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_ClearScreen_BLT:
+MuluBaseline_Graphic_4BP_ClearScreen_BLT:
 	movea.w	#eBLITTER_BASE,a1
 
 	mBlitterWait_a1
@@ -413,7 +414,7 @@ Graphic_4BP_ClearScreen_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_CopyScreen_BLT:
+MuluBaseline_Graphic_4BP_CopyScreen_BLT:
 	move.l	a2,-(a7)							; save regs
 	movea.w	#eBLITTER_BASE,a2
 
@@ -448,7 +449,7 @@ Graphic_4BP_CopyScreen_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawBox_Clip_BLT:
+MuluBaseline_Graphic_4BP_DrawBox_Clip_BLT:
 	movem.l	d3-d7/a2-a3,-(a7)					; save regs
 
 	move.w	sGraphicRect_mX(a1),d1				; Pixel X
@@ -496,7 +497,7 @@ Graphic_4BP_DrawBox_Clip_BLT:
 
 .y1_ok:
 
-	bra		Graphic_4BP_DrawBox_Go				; Render box
+	bra		MuluBaseline_Graphic_4BP_DrawBox_Go				; Render box
 
 .clip:
 	movem.l	(a7)+,d3-d7/a2-a3					; restore registers
@@ -509,7 +510,7 @@ Graphic_4BP_DrawBox_Clip_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawBox_BLT:
+MuluBaseline_Graphic_4BP_DrawBox_BLT:
 	movem.l	d3-d7/a2-a3,-(a7)					; save regs
 
 	move.w	sGraphicRect_mX(a1),d1				; Pixel X
@@ -517,7 +518,7 @@ Graphic_4BP_DrawBox_BLT:
 	move.w	sGraphicRect_mWidth(a1),d3			; Width
 	move.w	sGraphicRect_mHeight(a1),d4			; Height
 
-Graphic_4BP_DrawBox_Go:
+MuluBaseline_Graphic_4BP_DrawBox_Go:
 	movea.w	#eBLITTER_BASE,a2
 
 	mBlitterWait_a2
@@ -564,9 +565,9 @@ Graphic_4BP_DrawBox_Go:
 	and.w	#15,d3								; X1 & 15
 	add.w	d1,d1
 	add.w	d3,d3
-	lea		gGraphic_4BP_LeftMasks,a0
+	lea		MuluBaseline_gGraphic_4BP_LeftMasks,a0
 	move.w	(a0,d1.w),d1
-	lea		gGraphic_4BP_RightMasks,a0
+	lea		MuluBaseline_gGraphic_4BP_RightMasks,a0
 	move.w	(a0,d3.w),d3
 
 	cmp.w	#1,d5
@@ -594,7 +595,7 @@ Graphic_4BP_DrawBox_Go:
 
 .start:
 
-	lea		Graphic_4BP_LopColours,a0
+	lea		MuluBaseline_Graphic_4BP_LopColours,a0
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),d0
@@ -637,10 +638,10 @@ Graphic_4BP_DrawBox_Go:
 * CREATION: 29.04.26
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawLine_BLT:
+MuluBaseline_Graphic_4BP_DrawLine_BLT:
 	bra		Graphic_4BP_DrawLine
 
-Graphic_4BP_DrawLine_Clip_BLT:
+MuluBaseline_Graphic_4BP_DrawLine_Clip_BLT:
 	bra		Graphic_4BP_DrawLine_Clip
 
 
@@ -650,7 +651,7 @@ Graphic_4BP_DrawLine_Clip_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawPixel_Clip_BLT:
+MuluBaseline_Graphic_4BP_DrawPixel_Clip_BLT:
 
 	move.w	sGraphicPos_mX(a1),d1				; Pixel X
 	move.w	sGraphicPos_mY(a1),d2				; Pixel Y
@@ -665,7 +666,7 @@ Graphic_4BP_DrawPixel_Clip_BLT:
 	bge		.clip
 
 
-	bra		Graphic_4BP_DrawPixel_Go			; Draw Pixel
+	bra		MuluBaseline_Graphic_4BP_DrawPixel_Go			; Draw Pixel
 
 .clip:
 	rts
@@ -677,12 +678,12 @@ Graphic_4BP_DrawPixel_Clip_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawPixel_BLT:
+MuluBaseline_Graphic_4BP_DrawPixel_BLT:
 
 	move.w	sGraphicPos_mX(a1),d1				; Pixel X
 	move.w	sGraphicPos_mY(a1),d2				; Pixel Y
 
-Graphic_4BP_DrawPixel_Go:
+MuluBaseline_Graphic_4BP_DrawPixel_Go:
 
 	add.w	d2,d2								; Y * 2
 	add.w	d2,d2								; Y * 4
@@ -698,7 +699,7 @@ Graphic_4BP_DrawPixel_Go:
 
 	and.w	#15,d1								; X & 15
 	add.w	d1,d1								; *2 As Offset In Table
-	lea		gGraphic_4BP_Points,a0
+	lea		MuluBaseline_gGraphic_4BP_Points,a0
 	move.w	(a0,d1.w),d1						; Read Point
 	move.w	d1,d2								; Copy Point
 	not.w	d2									; Make Mask
@@ -734,7 +735,7 @@ Graphic_4BP_DrawPixel_Go:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-; Graphic_4BP_DrawSprite_Clip_BLT:
+; MuluBaseline_Graphic_4BP_DrawSprite_Clip_BLT:
 ; 	movem.l	d3-d7/a2-a6,-(a7)
 
 ; 	move.l	11*4(a7),a2
@@ -859,7 +860,7 @@ Graphic_4BP_DrawPixel_Go:
 ; 	move.w	#0,eBLITTER_SRC_INC_X(a6)			; offset to next chunk
 
 ; .go:
-; 	bra		Graphic_4BP_DrawSprite_Go
+; 	bra		MuluBaseline_Graphic_4BP_DrawSprite_Go
 
 ; .clip:
 
@@ -868,7 +869,7 @@ Graphic_4BP_DrawPixel_Go:
 
 
 ; ---------------------------------------------------------------------------
-; Graphic_4BP_DrawSprite_Clip_BLT
+; MuluBaseline_Graphic_4BP_DrawSprite_Clip_BLT
 ; Draw a 4bpp sprite with per-row mask using the blitter, with full clipping.
 ;
 ; Calling convention (as in your original):
@@ -899,11 +900,11 @@ Graphic_4BP_DrawPixel_Go:
 ; ---------------------------------------------------------------------------
 
 ; ---------------------------------------------------------------------------
-; Graphic_4BP_DrawSprite_Clip_BLT
+; MuluBaseline_Graphic_4BP_DrawSprite_Clip_BLT
 ; Draw a 4bpp sprite with per-row mask using the blitter, with full clipping.
 ; ---------------------------------------------------------------------------
 
-Graphic_4BP_DrawSprite_Clip_BLT:
+MuluBaseline_Graphic_4BP_DrawSprite_Clip_BLT:
     movem.l d3-d7/a2-a6,-(a7)
 
     move.l  11*4(a7),a2                     ; a2 = sprite*
@@ -1062,10 +1063,10 @@ Graphic_4BP_DrawSprite_Clip_BLT:
     beq.s   .go
     or.b    #eBLITTERSKEW_FXSR_BIT,eBLITTER_SKEW(a6)
     move.w  #0,eBLITTER_SRC_INC_X(a6)
-	
+
 .go:
     addq.l  #2,a7           ; pop local flag
-    bra     Graphic_4BP_DrawSprite_Go
+    bra     MuluBaseline_Graphic_4BP_DrawSprite_Go
 
 .unwind_clip:
     addq.l  #2,a7
@@ -1080,7 +1081,7 @@ Graphic_4BP_DrawSprite_Clip_BLT:
 * CREATION: 01.02.02 PNK
 *------------------------------------------------------------------------------------*
 
-Graphic_4BP_DrawSprite_BLT:
+MuluBaseline_Graphic_4BP_DrawSprite_BLT:
 	movem.l	d3-d7/a2-a6,-(a7)
 
 	move.l	11*4(a7),a2
@@ -1102,7 +1103,7 @@ Graphic_4BP_DrawSprite_BLT:
 	move.b			d4,eBLITTER_SKEW(a6)
 	move.w			#2,eBLITTER_SRC_INC_X(a6)			; offset to next chunk
 
-Graphic_4BP_DrawSprite_Go:
+MuluBaseline_Graphic_4BP_DrawSprite_Go:
 
 
 	move.l	sGraphicCanvas_mpVRAM(a0),a5
@@ -1117,7 +1118,7 @@ Graphic_4BP_DrawSprite_Go:
 	lsr.w	#1,d1								; 8 Byte Offset for bitplane
 	add.l	d1,a5								; Get To X
 
-;	bsr		Atari_BlitInit
+;	bsr		MuluBaseline_Atari_BlitInit
 
 	subq.w	#1,d2								; width-1
 
@@ -1159,9 +1160,9 @@ Graphic_4BP_DrawSprite_Go:
 
 	add.w	d0,d0
 	add.w	d2,d2
-	lea		gGraphic_4BP_LeftMasks,a1
+	lea		MuluBaseline_gGraphic_4BP_LeftMasks,a1
 	move.w	(a1,d0.w),d0
-	lea		gGraphic_4BP_RightMasks,a1
+	lea		MuluBaseline_gGraphic_4BP_RightMasks,a1
 	move.w	(a1,d2.w),d2
 
 	tst.w	d5
@@ -1224,29 +1225,16 @@ Graphic_4BP_DrawSprite_Go:
 
 
 .noMASKING:
-;	lea		gAtariBlit,a4
-;	bsr		BLiT_iT
-;	bra		G4BP_DrawSprite_RTS
-	; Four-plane sprites are the common case. Only the low word of each
-	; product is written to the blitter, so word shifts preserve MULU results.
-	cmpi.w	#4,sGraphicSprite_mGfxPlaneCount(a2)
-	bne.s	.genericPlaneIncrements
-	move.w	eBLITTER_SRC_INC_Y(a6),d0
-	lsl.w	#2,d0
-	move.w	d0,eBLITTER_SRC_INC_Y(a6)
-	move.w	eBLITTER_SRC_INC_X(a6),d0
-	lsl.w	#2,d0
-	move.w	d0,eBLITTER_SRC_INC_X(a6)
-	bra.s	.planeIncrementsDone
-
-.genericPlaneIncrements:
+;	lea		MuluBaseline_gAtariBlit,a4
+;	bsr		MuluBaseline_BLiT_iT
+;	bra		MuluBaseline_G4BP_DrawSprite_RTS
 	move.w	eBLITTER_SRC_INC_Y(a6),d0
 	mulu	sGraphicSprite_mGfxPlaneCount(a2),d0
+;	lsl.w	#2,d0
 	move.w	d0,eBLITTER_SRC_INC_Y(a6)
-	move.w	eBLITTER_SRC_INC_X(a6),d0
+	move.w	eBLITTER_SRC_INC_X(a6),d0			; offset to next chunk
 	mulu	sGraphicSprite_mGfxPlaneCount(a2),d0
 	move.w	d0,eBLITTER_SRC_INC_X(a6)
-.planeIncrementsDone:
 
 	move.l	a3,eBLITTER_pSRC(a6)
 	move.l	a5,eBLITTER_pDST(a6)
@@ -1275,15 +1263,15 @@ Graphic_4BP_DrawSprite_Go:
 	mBlitterGoWait_a6
 
 
-G4BP_DrawSprite_RTS:
+MuluBaseline_G4BP_DrawSprite_RTS:
 
 	movem.l	(a7)+,d3-d7/a2-a6
 	rts
 
 
-Atari_BlitInit:
+MuluBaseline_Atari_BlitInit:
 	move.l	a4,-(a7)
-	lea	gAtariBlit,a4
+	lea	MuluBaseline_gAtariBlit,a4
 
 	move.l	a3,SRC_FORM(a4)
 ;	move.w	#8,SRC_NXWD(a4)
@@ -1364,10 +1352,10 @@ mLineSmudge    equ  $20
 *
 * 0: Destination  1: Source   <<< Invert right end mask data >>>
 
-lf_endmask:
+MuluBaseline_lf_endmask:
 	dc.w $FFFF
 
-rt_endmask:
+MuluBaseline_rt_endmask:
 	dc.w $7FFF
 	dc.w $3FFF
 	dc.w $1FFF
@@ -1385,7 +1373,7 @@ rt_endmask:
 	dc.w $0001
 	dc.w $0000
 
-* TiTLE:  BLiT_iT
+* TiTLE:  MuluBaseline_BLiT_iT
 *
 * PuRPoSE:
 *    Transfer a rectangular block of pixels located at an
@@ -1404,7 +1392,7 @@ rt_endmask:
 *
 
 
-BLiT_iT:
+MuluBaseline_BLiT_iT:
 
 	lea  BLiTTER,a5          ; a5-> BLiTTER register block
 
@@ -1432,13 +1420,13 @@ BLiT_iT:
 	and.w     d6,d4          ; d4<- DST_XMIN mod 16
 	add.w     d4,d4          ; d4<- offset into left end mask tbl
 
-	move.w    lf_endmask(pc,d4.w),d4        ; d4<- left endmask
+	move.w    MuluBaseline_lf_endmask(pc,d4.w),d4        ; d4<- left endmask
 
 	move.w    d3,d5          ; d5<- DST_XMAX
 	and.w     d6,d5          ; d5<- DST_XMAX mod 16
 	add.w     d5,d5          ; d5<- offset into right end mask tbl
 
-	move.w    rt_endmask(pc,d5.w),d5   ; d5<-inverted right end mask
+	move.w    MuluBaseline_rt_endmask(pc,d5.w),d5   ; d5<-inverted right end mask
 	not.w     d5                       ; d5<- right end mask
 
 *
@@ -1476,7 +1464,7 @@ BLiT_iT:
 	lsr.w     #4,d2     ; d2<- word offset to dst Xmin
 	lsr.w     #4,d3     ; d3<- word offset to dst Xmax
 	sub.w     d2,d3     ; d3<- Dst span - 1
-	bne       set_endmasks   ; 2nd discriminator is one word dst
+	bne       MuluBaseline_set_endmasks   ; 2nd discriminator is one word dst
 
 * When destination spans a single word, both end masks are merged
 * into Endmask1.  The other end masks will be ignored by the BLiTTER
@@ -1484,18 +1472,18 @@ BLiT_iT:
 	and.w     d5,d4          ; d4<- single word end mask
 	addq.w    #4,d6          ; d6[bit2]:1 => single word dst
 
-set_endmasks:
+MuluBaseline_set_endmasks:
 
 	move.w    d4,Endmask1(a5)     ; left end mask
 	move.w    #$FFFF,Endmask2(a5) ; center end mask
 	move.w    d5,Endmask3(a5)     ; right end mask
 
 	cmp.w     d1,d3          ; the last discriminator is the
-	bne       set_count      ; equality of src and dst spans
+	bne       MuluBaseline_set_count      ; equality of src and dst spans
 
 	addq.w    #2,d6          ; d6[bit1]:1 => equal spans
 
-set_count:
+MuluBaseline_set_count:
 	move.w    d3,d4
 	addq.w    #1,d4          ; d4<- number of words in dst line
 	move.w    d4,X_Count(a5) ; set value in BLiTTER
@@ -1551,7 +1539,7 @@ set_count:
 * NFSR states in skew flag table.
 
 	and.b     #$0F,d7                  ; d7<- isolated skew count
-	or.b      skew_flags(pc,d6.w),d7 ; d7<- necessary flags and skew
+	or.b      MuluBaseline_skew_flags(pc,d6.w),d7 ; d7<- necessary flags and skew
 	move.b    d7,Skew(a5)              ; load Skew register
 
 	move.b    #mHOP_Source,HOP(a5)     ; set HOP to source only
@@ -1560,7 +1548,7 @@ set_count:
 	lea       Line_Num(a5),a2     ; fast refer to Line_Num register
 	move.b    #fLineBusy,d2       ; fast refer to LineBusy flag
 	move.w    PLANES(a4),d7       ; d7 <- plane counter
-	bra       begin
+	bra       MuluBaseline_begin
 
 *    T h e   s e t t i n g   o f   s k e w   f l a g s
 *
@@ -1583,7 +1571,7 @@ set_count:
 *                    |..dddddddddddddd|dddddddddddddd..|
 
 
-skew_flags:
+MuluBaseline_skew_flags:
 
 	dc.b mSkewNFSR           ; Source span < Destination span
 	dc.b mSkewFXSR           ; Source span > Destination span
@@ -1598,7 +1586,7 @@ skew_flags:
 	dc.b mSkewFXSR ; Spans equal Shift Source left
 ;      dc.b 0         ; Destination spans are both one word
 
-next_plane:
+MuluBaseline_next_plane:
 	move.l    a0,Src_Addr(a5)     ; load Source pointer to this plane
 
 	move.l    a1,Dst_Addr(a5)     ; load Dest ptr to this plane
@@ -1622,7 +1610,7 @@ next_plane:
 * to the cpu by the BLiTTER, the cpu immediately resets the BUSY
 * flag, restarting the BLiTTER after just 7 bus cycles rather than
 * after the usual 64 cycles.  Interrupts pending will be serviced
-* before the restart code regains control.  If the BUSY flag is
+* before the MuluBaseline_restart code regains control.  If the BUSY flag is
 * reset when the Y_Count is zero, the flag will remain clear
 * indicating BLiTTER completion and the BLiTTER won't be restarted.
 *
@@ -1631,24 +1619,24 @@ next_plane:
 * The original BUSY flag state must be restored however, before
 * termination of the interrupt service routine.)
 
-restart:
+MuluBaseline_restart:
 	bset.b    d2,(a2)        ; Restart BLiTTER and test the BUSY
 	nop                      ; flag state.  The "nop" is executed
-	bne  restart             ; prior to the BLiTTER restarting.
+	bne  MuluBaseline_restart             ; prior to the BLiTTER restarting.
 *                             ; Quit if the BUSY flag was clear.
 
-begin:
-	dbra d7,next_plane
+MuluBaseline_begin:
+	dbra d7,MuluBaseline_next_plane
 	rts
 
 
 **************************************************************************************
 	DATA
 **************************************************************************************
-gAtariBlit:
+MuluBaseline_gAtariBlit:
 	ds.b	BLIT_SIZEOF
 
-gGraphic_4BP_LeftMasks:
+MuluBaseline_gGraphic_4BP_LeftMasks:
 	dc.w	$FFFF
 	dc.w	$7FFF
 	dc.w	$3FFF
@@ -1666,7 +1654,7 @@ gGraphic_4BP_LeftMasks:
 	dc.w	$0003
 	dc.w	$0001
 
-gGraphic_4BP_DoubleLeftMasks:
+MuluBaseline_gGraphic_4BP_DoubleLeftMasks:
 	dc.w	$FFFF,$FFFF
 	dc.w	$7FFF,$7FFF
 	dc.w	$3FFF,$3FFF
@@ -1684,7 +1672,7 @@ gGraphic_4BP_DoubleLeftMasks:
 	dc.w	$0003,$0003
 	dc.w	$0001,$0001
 
-gGraphic_4BP_RightMasks:
+MuluBaseline_gGraphic_4BP_RightMasks:
 	dc.w	$8000
 	dc.w	$C000
 	dc.w	$E000
@@ -1702,7 +1690,7 @@ gGraphic_4BP_RightMasks:
 	dc.w	$FFFE
 	dc.w	$FFFF
 
-gGraphic_4BP_DoubleRightMasks:
+MuluBaseline_gGraphic_4BP_DoubleRightMasks:
 	dc.w	$8000,$8000
 	dc.w	$C000,$C000
 	dc.w	$E000,$E000
@@ -1720,7 +1708,7 @@ gGraphic_4BP_DoubleRightMasks:
 	dc.w	$FFFE,$FFFE
 	dc.w	$FFFF,$FFFF
 
-gGraphic_4BP_LongMasks:
+MuluBaseline_gGraphic_4BP_LongMasks:
 	dc.l	$FFFF0000
 	dc.l	$7FFF8000
 	dc.l	$3FFFC000
@@ -1740,7 +1728,7 @@ gGraphic_4BP_LongMasks:
 	dc.l	$0000FFFF
 
 
-gGraphic_4BP_Points:
+MuluBaseline_gGraphic_4BP_Points:
 	dc.w	$8000
 	dc.w	$4000
 	dc.w	$2000
@@ -1758,7 +1746,7 @@ gGraphic_4BP_Points:
 	dc.w	$0002
 	dc.w	$0001
 
-Graphic_4BP_LopColours:
+MuluBaseline_Graphic_4BP_LopColours:
 	dc.l	$00000000
 	dc.l	$0000000F
 	dc.l	$00000F00
@@ -1776,7 +1764,7 @@ Graphic_4BP_LopColours:
 	dc.l	$0F0F0F00
 	dc.l	$0F0F0F0F
 
-Graphic_4BP_ColourChunks:
+MuluBaseline_Graphic_4BP_ColourChunks:
 	dc.w	$0000,$0000,$0000,$0000
 	dc.w	$FFFF,$0000,$0000,$0000
 	dc.w	$0000,$FFFF,$0000,$0000

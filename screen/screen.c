@@ -37,87 +37,75 @@ sScreenClass	gScreenClass;
 * CREATION : 01.04.2005 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	Screen_Init( const U16 aWidth,const U16 aHeight,const U16 aBitDepth, const U16 aScrollFlags )
+static U8 Screen_Allocate(U16 width,U16 height,U16 mode,U16 virtualWidth,U16 virtualHeight,U16 flags)
 {
-	U32	lSize;
-	U32	lTotal;
-	U32	lBase;
-	U16	lHeight;
-	U16	lWidth;
-
-	Memory_Clear( sizeof(sScreenClass), &gScreenClass );
-
-	if( aScrollFlags & eSCREEN_SCROLL_V )
-	{
-		lHeight = (U16)(aHeight + 32);
-		lWidth  = (U16)(aWidth);
-
-		GraphicCanvas_Init( &gScreenLogicGraphic,  aBitDepth, lWidth, lHeight );
-		GraphicCanvas_Init( &gScreenPhysicGraphic, aBitDepth, lWidth, lHeight );
-		GraphicCanvas_Init( &gScreenBackGraphic,   aBitDepth, lWidth, lHeight );
-		GraphicCanvas_Init( &gScreenMiscGraphic,   aBitDepth, lWidth, lHeight );
-
-		lSize  = gScreenLogicGraphic.mpLineOffsets[ 1 ];
-		lSize *= lHeight;
-		lTotal = lSize * 4;
-
-		lBase = (U32)mMEMSCREENCALLOC( lTotal + 255L );
-		gScreenClass.mpMemBase                   = (U16*)lBase;
-		lBase += 255L;
-		lBase &= 0xFFFFFF00L;
-
-		gScreenClass.mpBuffers[ eSCREEN_PHYSIC ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_BACK   ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_LOGIC  ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_MISC   ] = 0;
-		Video_SetResolution( aWidth, aHeight, aBitDepth, lWidth );
-
-	}
-	else
-	{
-		GraphicCanvas_Init( &gScreenLogicGraphic,  aBitDepth, aWidth, aHeight );
-		GraphicCanvas_Init( &gScreenPhysicGraphic, aBitDepth, aWidth, aHeight );
-		GraphicCanvas_Init( &gScreenBackGraphic,   aBitDepth, aWidth, aHeight );
-		GraphicCanvas_Init( &gScreenMiscGraphic,   aBitDepth, aWidth, aHeight );
-
-		lSize  = gScreenLogicGraphic.mpLineOffsets[ 1 ];
-		lSize *= aHeight;
-
-		lTotal = lSize * 3;
-
-		lBase = (U32)mMEMSCREENCALLOC( lTotal + 255L );
-		gScreenClass.mpMemBase                   = (U16*)lBase;
-		lBase += 255L;
-		lBase &= 0xFFFFFF00L;
-
-		gScreenClass.mpBuffers[ eSCREEN_PHYSIC ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_LOGIC  ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_BACK   ] = (U16*)lBase;
-		lBase += lSize;
-		gScreenClass.mpBuffers[ eSCREEN_MISC   ] = 0;
-		Video_SetResolution( aWidth, aHeight, aBitDepth, aWidth );
-	}
-
-	gScreenLogicGraphic.mpVRAM  = gScreenClass.mpBuffers[ eSCREEN_LOGIC  ];
-	gScreenPhysicGraphic.mpVRAM = gScreenClass.mpBuffers[ eSCREEN_PHYSIC ];
-	gScreenBackGraphic.mpVRAM   = gScreenClass.mpBuffers[ eSCREEN_BACK   ];
-	gScreenMiscGraphic.mpVRAM   = 0;
-
-	gScreenClass.mFrameRate     = 1;
-	gScreenClass.mPhysicIndex   = 0;
-	gScreenClass.mFirstTimeFlag = 1;
-
-
-	DebugChannel_Printf1( eDEBUGCHANNEL_GODLIB, "Screen_Init() base %lx", lBase );
-
-	Screen_Update();
+ U32 size, allocation, base;
+ Memory_Clear(sizeof(sScreenClass),&gScreenClass);
+ GraphicCanvas_Init(&gScreenLogicGraphic,mode,virtualWidth,virtualHeight);
+ GraphicCanvas_Init(&gScreenPhysicGraphic,mode,virtualWidth,virtualHeight);
+ GraphicCanvas_Init(&gScreenBackGraphic,mode,virtualWidth,virtualHeight);
+ GraphicCanvas_Init(&gScreenMiscGraphic,mode,virtualWidth,virtualHeight);
+ size=gScreenLogicGraphic.mpLineOffsets[1]*(U32)virtualHeight;
+ /* Every page starts on a 256-byte boundary, including wider canvases. */
+ allocation=(size+255UL)&~255UL;
+ base=(U32)mMEMSCREENCALLOC(allocation*3UL+255UL);
+ gScreenClass.mpMemBase=(U16*)base;
+ if(!base) {
+  GraphicCanvas_DeInit(&gScreenLogicGraphic); GraphicCanvas_DeInit(&gScreenPhysicGraphic);
+  GraphicCanvas_DeInit(&gScreenBackGraphic); GraphicCanvas_DeInit(&gScreenMiscGraphic);
+  return 0;
+ }
+ base=(base+255UL)&~255UL;
+ gScreenClass.mpBuffers[eSCREEN_PHYSIC]=(U16*)base;
+ gScreenClass.mpBuffers[eSCREEN_LOGIC]=(U16*)(base+allocation);
+ gScreenClass.mpBuffers[eSCREEN_BACK]=(U16*)(base+allocation*2UL);
+ gScreenLogicGraphic.mpVRAM=gScreenClass.mpBuffers[eSCREEN_LOGIC];
+ gScreenPhysicGraphic.mpVRAM=gScreenClass.mpBuffers[eSCREEN_PHYSIC];
+ gScreenBackGraphic.mpVRAM=gScreenClass.mpBuffers[eSCREEN_BACK];
+ gScreenMiscGraphic.mpVRAM=0;
+ gScreenClass.mViewportWidth=width; gScreenClass.mViewportHeight=height;
+ gScreenClass.mScrollFlags=flags;
+ gScreenClass.mFrameRate=1; gScreenClass.mFirstTimeFlag=1;
+ Video_SetResolution(width,height,mode,virtualWidth);
+ Screen_Update();
+ return 1;
 }
 
+void Screen_Init(const U16 width,const U16 height,const U16 mode,const U16 flags)
+{
+ U16 active=flags&eSCREEN_SCROLL_V;
+ U16 virtualWidth=width,virtualHeight=height;
+ U16 viewportWidth=width,viewportHeight=height;
+ /* ST-low always displays 320x200; dimensions describe the backing canvas. */
+ if(mode==eGRAPHIC_COLOURMODE_4PLANE) {
+  viewportWidth=320; viewportHeight=200;
+  if((flags&eSCREEN_SCROLL_H) && System_GetVDO()==VDO_STE) {
+   active|=eSCREEN_SCROLL_H;
+   if(virtualWidth==320) virtualWidth+=32;
+  }
+ }
+ /* Preserve the original vertical-scroll allocation, including height+32. */
+ if(active&eSCREEN_SCROLL_V) {
+  if(virtualHeight>65503U) { Memory_Clear(sizeof(sScreenClass),&gScreenClass); return; }
+  virtualHeight+=32;
+ }
+ if(mode==eGRAPHIC_COLOURMODE_4PLANE
+  && (virtualWidth<320 || virtualHeight<200 || (virtualWidth&15)
+   || virtualWidth>1328 || virtualHeight>2047
+   || (virtualWidth>320 && !(active&eSCREEN_SCROLL_H)))) {
+  Memory_Clear(sizeof(sScreenClass),&gScreenClass);
+  return;
+ }
+ Screen_Allocate(viewportWidth,viewportHeight,mode,virtualWidth,virtualHeight,active);
+}
+
+void Screen_SetScrollX(U16 x)
+{
+ U16 limit=0;
+ if(gScreenClass.mScrollFlags&eSCREEN_SCROLL_H)
+  limit=gScreenLogicGraphic.mWidth-gScreenClass.mViewportWidth;
+ gScreenClass.mScrollX=x>limit?limit:x;
+}
 
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : Screen_DeInit( void )
@@ -162,6 +150,10 @@ void	Screen_Update( void )
 	gScreenClass.mPhysicIndex ^= 1;
 	lScrn.l = ((U32)gScreenClass.mpBuffers[ gScreenClass.mPhysicIndex ]);
 
+ {
+  U16 limit=gScreenLogicGraphic.mHeight-gScreenClass.mViewportHeight;
+  if(gScreenClass.mScrollY>limit) gScreenClass.mScrollY=limit;
+ }
 	if( gScreenClass.mScrollY )
 	{
 		lOff     = gScreenLogicGraphic.mpLineOffsets[ 1 ];
@@ -169,7 +161,16 @@ void	Screen_Update( void )
 		lScrn.l += lOff;
 	}
 
-	Video_SetPhysic( (U16*)lScrn.l );
+ if(gScreenClass.mScrollFlags&eSCREEN_SCROLL_H) {
+  Screen_SetScrollX(gScreenClass.mScrollX);
+  lScrn.l += (U32)(gScreenClass.mScrollX>>4)*8UL;
+#ifdef dGODLIB_PLATFORM_ATARI
+  Video_SetViewportSTE((U16*)lScrn.l,gScreenClass.mScrollX&15);
+#else
+  Video_SetPhysic((U16*)lScrn.l);
+#endif
+ }
+ else Video_SetPhysic((U16*)lScrn.l);
 
 	if( System_GetMCH() == MCH_ST )
 	{

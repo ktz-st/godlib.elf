@@ -6,6 +6,7 @@
 ################################################################################### */
 
 #include	<godlib/base/base.h>
+#include <godlib/graphic/graphic.h>
 
 
 /* ###################################################################################
@@ -112,6 +113,16 @@ void					Blitter_DrawOpaqueSprite( sBlitterSprite * apSprite, U16 * apScreen, S1
 void					Blitter_DrawColouredSprite( sBlitterSprite * apSprite, U16 * apScreen, S16 aX, S16 aY, U8 aColour );
 void					Blitter_DrawBox( sBlitterBox * apBox, U16 * apScreen, U16 aX, U16 aY );
 void					Blitter_CopyBox( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aSrcY, U16 aDstX, U16 aDstY, U16 aWidth, U16 aHeight );
+
+/* Existing pointer APIs recognise live Screen pages; other raw buffers retain
+ * 320x200/160-byte defaults. Canvas APIs accept independent four-plane layouts.
+ * CopyBox does not provide memmove semantics for overlapping rectangles.
+ * Sprite helpers reject horizontal overflow and clip vertically as before. */
+void Blitter_CopyBoxCanvas(const sGraphicCanvas *src,sGraphicCanvas *dst,U16 sx,U16 sy,U16 dx,U16 dy,U16 width,U16 height);
+void Blitter_DrawSpriteCanvas(sBlitterSprite *sprite,sGraphicCanvas *canvas,S16 x,S16 y);
+void Blitter_DrawOpaqueSpriteCanvas(sBlitterSprite *sprite,sGraphicCanvas *canvas,S16 x,S16 y);
+void Blitter_DrawColouredSpriteCanvas(sBlitterSprite *sprite,sGraphicCanvas *canvas,S16 x,S16 y,U8 colour);
+void Blitter_DrawBoxCanvas(sBlitterBox *box,sGraphicCanvas *canvas,U16 x,U16 y);
 
 void					Blitter_Wait( void );
 

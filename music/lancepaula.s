@@ -1711,6 +1711,10 @@ paula_set_LMC_a1	;d1=mask, d0=data $ddmm
 
 ; VBL paula routine
 paula_calc:
+	bsr	paula_start_dma
+	bra	paula_mix_next
+
+paula_start_dma:
 	movem.l	d0-d7/a0-a6,-(sp)
 	lea	$FFFF8900.w,a1
 	lea	paula_buffer_str,a0
@@ -1739,7 +1743,12 @@ paula_calc:
 	movep.l	d2,$d(a1)
 	move.w	paula_frequency,$20(a1)
 	move.w	#1,(a1)			;start dma
+	movem.l	(sp)+,d0-d7/a0-a6
+	rts
 
+
+paula_mix_next:
+	movem.l	d0-d7/a0-a6,-(sp)
 	bsr	paula_mixer
 	eor.l	#$00010001,paula_buffer_rd_idx
 	movem.l	(sp)+,d0-d7/a0-a6

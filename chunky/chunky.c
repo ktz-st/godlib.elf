@@ -779,46 +779,93 @@ void	ChunkySurface_DrawQuad_Clip( sGraphicCanvas * apCanvas,sGraphicPos * apCoor
 * CREATION : 04.04.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	ChunkySurface_From4Plane( sGraphicCanvas * apCanvas,sGraphicPos * apCoords,sGraphicRect * apRect,sGraphicCanvas * apSrc )
+/* Internal assembler row helpers: count is in groups of 16 pixels. */
+#ifdef dGODLIB_PLATFORM_ATARI
+extern void C2P_To4P( const U8 * apSrc, U16 * apDst, U16 aBlocks );
+extern void C2P_From4P( const U16 * apSrc, U8 * apDst, U16 aBlocks );
+#endif
+
+static U8 ChunkySurface_ConversionValid( const sGraphicCanvas * apDst,
+ const sGraphicPos * apPos, const sGraphicRect * apRect, const sGraphicCanvas * apSrc )
 {
-	S16		lWidth,lHeight;
-	U8 *	lpDst;
-	U16 *	lpSrc;
-
-	(void)apSrc;
-
-	lHeight = apRect->mHeight;
-	lpDst   = (U8*)apCanvas->mpVRAM;
-	lpDst  += (apCoords->mY * apCanvas->mWidth);
-	lpDst  += apCoords->mX;
-
-	lpSrc   = (U16*)apCanvas->mpVRAM;
-	lpSrc  += (apCanvas->mpLineOffsets[apRect->mY]>>1);
-	lpSrc  += (apRect->mX >> 4);
-	while( lHeight-- )
-	{
-		lWidth = apRect->mWidth;
-		while( lWidth-- )
-		{
-		}
-	}
-
+ return apDst && apPos && apRect && apSrc && apDst->mpVRAM && apSrc->mpVRAM
+  && apDst->mpLineOffsets && apSrc->mpLineOffsets
+  && apRect->mWidth > 0 && apRect->mHeight > 0
+  && apPos->mX >= 0 && apPos->mY >= 0 && apRect->mX >= 0 && apRect->mY >= 0
+  && (U32)apPos->mX + (U16)apRect->mWidth <= apDst->mWidth
+  && (U32)apPos->mY + (U16)apRect->mHeight <= apDst->mHeight
+  && (U32)apRect->mX + (U16)apRect->mWidth <= apSrc->mWidth
+  && (U32)apRect->mY + (U16)apRect->mHeight <= apSrc->mHeight;
 }
 
-
-/*-----------------------------------------------------------------------------------*
-* FUNCTION : ChunkySurface_To4Plane( sGraphicCanvas * apCanvas,sGraphicPos * apCoords,sGraphicRect * apRect,sGraphicCanvas * apSrc )
-* ACTION   : ChunkySurface_To4Plane
-* CREATION : 04.04.2004 PNK
-*-----------------------------------------------------------------------------------*/
-
-void	ChunkySurface_To4Plane( sGraphicCanvas * apCanvas,sGraphicPos * apCoords,sGraphicRect * apRect,sGraphicCanvas * apSrc )
+void ChunkySurface_From4Plane( sGraphicCanvas * apCanvas, sGraphicPos * apCoords,
+ sGraphicRect * apRect, sGraphicCanvas * apSrc )
 {
-	(void)apCanvas;
-	(void)apCoords;
-	(void)apRect;
-	(void)apSrc;
+ U16 y, x;
+ if( !ChunkySurface_ConversionValid(apCanvas,apCoords,apRect,apSrc) ) return;
+ if( apCanvas->mColourMode != eGRAPHIC_COLOURMODE_8BPP
+  || apSrc->mColourMode != eGRAPHIC_COLOURMODE_4PLANE ) return;
+ for( y=0; y<(U16)apRect->mHeight; ++y )
+ {
+  U8 * dst = (U8*)apCanvas->mpVRAM + apCanvas->mpLineOffsets[apCoords->mY+y] + apCoords->mX;
+  const U16 * src = (const U16*)((const U8*)apSrc->mpVRAM + apSrc->mpLineOffsets[apRect->mY+y]);
+  x = 0;
+  while( x<(U16)apRect->mWidth )
+  {
+   U16 sx = apRect->mX+x;
+#ifdef dGODLIB_PLATFORM_ATARI
+   if( !(sx & 15) && apRect->mWidth-x >= 16 )
+   {
+    U16 blocks = (apRect->mWidth-x)>>4;
+    C2P_From4P(src+(sx>>4)*4,dst+x,blocks);
+    x += blocks<<4;
+   }
+   else
+#endif
+   {
+    const U16 * planes = src+(sx>>4)*4;
+    U16 mask = 0x8000U >> (sx&15);
+    dst[x++] = ((planes[0]&mask)?1:0) | ((planes[1]&mask)?2:0)
+     | ((planes[2]&mask)?4:0) | ((planes[3]&mask)?8:0);
+   }
+  }
+ }
 }
 
+void ChunkySurface_To4Plane( sGraphicCanvas * apCanvas, sGraphicPos * apCoords,
+ sGraphicRect * apRect, sGraphicCanvas * apSrc )
+{
+ U16 y, x;
+ if( !ChunkySurface_ConversionValid(apCanvas,apCoords,apRect,apSrc) ) return;
+ if( apCanvas->mColourMode != eGRAPHIC_COLOURMODE_4PLANE
+  || apSrc->mColourMode != eGRAPHIC_COLOURMODE_8BPP ) return;
+ for( y=0; y<(U16)apRect->mHeight; ++y )
+ {
+  const U8 * src = (const U8*)apSrc->mpVRAM + apSrc->mpLineOffsets[apRect->mY+y] + apRect->mX;
+  U16 * dst = (U16*)((U8*)apCanvas->mpVRAM + apCanvas->mpLineOffsets[apCoords->mY+y]);
+  x = 0;
+  while( x<(U16)apRect->mWidth )
+  {
+   U16 dx = apCoords->mX+x;
+#ifdef dGODLIB_PLATFORM_ATARI
+   if( !(dx & 15) && !((U32)(src+x)&1) && apRect->mWidth-x >= 16 )
+   {
+    U16 blocks = (apRect->mWidth-x)>>4;
+    C2P_To4P(src+x,dst+(dx>>4)*4,blocks);
+    x += blocks<<4;
+   }
+   else
+#endif
+   {
+    U16 * planes = dst+(dx>>4)*4;
+    U16 mask = 0x8000U >> (dx&15);
+    U8 colour = src[x++];
+    U16 p;
+    for( p=0; p<4; ++p )
+     planes[p] = (planes[p]&~mask) | ((colour&(1U<<p))?mask:0);
+   }
+  }
+ }
+}
 
 /* ################################################################################ */

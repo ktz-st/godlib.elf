@@ -2713,6 +2713,29 @@ Graphic_4BP_DrawBox_Go:
 *------------------------------------------------------------------------------------*
 
 Graphic_4BP_DrawLine_Clip:
+	; Convex clip box: if both endpoints are inside, every pixel is inside.
+	move.w	sGraphicBox_mX0(a1),d2
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d2
+	blt.s	.partial
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d2
+	bge.s	.partial
+	move.w	sGraphicBox_mX1(a1),d2
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d2
+	blt.s	.partial
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d2
+	bge.s	.partial
+	move.w	sGraphicBox_mY0(a1),d2
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d2
+	blt.s	.partial
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mY1(a0),d2
+	bge.s	.partial
+	move.w	sGraphicBox_mY1(a1),d2
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mY0(a0),d2
+	blt.s	.partial
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mY1(a0),d2
+	bge.s	.partial
+	bra	Graphic_4BP_DrawLine
+.partial:
 	movem.l	d3-d7/a2-a6,-(a7)
 	subq.l	#8,a7
 	move.l	a7,a4
@@ -2753,44 +2776,101 @@ Graphic_4BP_DrawLine_Clip:
 
 
 Graphic_4BP_DrawLine:
+	; Incremental address/mask; exact original Bresenham decisions and colours.
 	movem.l	d3-d7/a2-a6,-(a7)
 	subq.l	#8,a7
 	move.l	a7,a4
-	move.w	d0,(a4)								; colour
-	move.l	a0,a2								; canvas
-
+	move.w	d0,(a4)		; colour; sx/sy at +2/+4
+	move.l	a0,a2
 	move.w	sGraphicBox_mX0(a1),d1
 	move.w	sGraphicBox_mY0(a1),d2
 	move.w	sGraphicBox_mX1(a1),d3
 	move.w	sGraphicBox_mY1(a1),d4
-	bsr		Graphic_4BP_DrawLine_Setup
-
+	bsr	Graphic_4BP_DrawLine_Setup
+	move.w	d7,a5		; running Bresenham error
+	move.l	sGraphicCanvas_mpLineOffsets(a2),a1
+	move.w	d2,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	adda.w	d0,a1		; current row offset entry
+	move.l	sGraphicCanvas_mpVRAM(a2),a0
+	adda.l	(a1),a0
+	moveq	#0,d0
+	move.w	d1,d0
+	and.w	#$fff0,d0
+	lsr.w	#1,d0
+	adda.l	d0,a0		; current group of four plane words
+	move.w	d1,d0
+	and.w	#15,d0
+	move.w	#$8000,d7
+	lsr.w	d0,d7		; current pixel mask
 .loop:
-	bsr		Graphic_4BP_DrawLine_Plot
+	move.w	d7,d0
+	not.w	d0
+	and.w	d0,(a0)
+	and.w	d0,2(a0)
+	and.w	d0,4(a0)
+	and.w	d0,6(a0)
+	move.w	(a4),d0
+	lsr.w	#1,d0
+	bcc.s	.plane1
+	or.w	d7,(a0)
+.plane1:
+	lsr.w	#1,d0
+	bcc.s	.plane2
+	or.w	d7,2(a0)
+.plane2:
+	lsr.w	#1,d0
+	bcc.s	.plane3
+	or.w	d7,4(a0)
+.plane3:
+	lsr.w	#1,d0
+	bcc.s	.advance
+	or.w	d7,6(a0)
+.advance:
 	cmp.w	d1,d3
-	bne.s	.notdone
+	bne.s	.step
 	cmp.w	d2,d4
 	beq.s	.done
-.notdone:
-	move.w	d7,d0
-	add.w	d0,d0								; e2 = err * 2
+.step:
+	move.w	a5,d0
+	add.w	d0,d0
+	move.w	d0,a3		; both decisions use the same e2
 	cmp.w	d6,d0
 	blt.s	.no_x
-	add.w	d6,d7
+	adda.w	d6,a5
 	add.w	2(a4),d1
+	tst.w	2(a4)
+	bmi.s	.left
+	ror.w	#1,d7
+	bcc.s	.no_x
+	addq.l	#8,a0
+	bra.s	.no_x
+.left:
+	rol.w	#1,d7
+	bcc.s	.no_x
+	subq.l	#8,a0
 .no_x:
+	move.w	a3,d0
 	cmp.w	d5,d0
-	bgt.s	.no_y
-	add.w	d5,d7
+	bgt.s	.loop
+	adda.w	d5,a5
 	add.w	4(a4),d2
-.no_y:
-	bra.s	.loop
-
+	move.l	(a1),d0
+	tst.w	4(a4)
+	bmi.s	.up
+	addq.l	#4,a1
+	bra.s	.row
+.up:
+	subq.l	#4,a1
+.row:
+	sub.l	(a1),d0
+	suba.l	d0,a0		; supports nonuniform U32 row offsets
+	bra	.loop
 .done:
 	addq.l	#8,a7
 	movem.l	(a7)+,d3-d7/a2-a6
 	rts
-
 
 Graphic_4BP_DrawLine_Setup:
 	move.w	d3,d5								; dx = abs(x1-x0)
@@ -2833,7 +2913,8 @@ Graphic_4BP_DrawLine_Plot_Clip:
 
 
 Graphic_4BP_DrawLine_Plot:
-	movem.l	d0-d7/a0-a3,-(a7)
+	; Partial clipping uses per-pixel lookup, but only these five registers change.
+	movem.l	d0-d2/a0/a3,-(a7)
 
 	move.w	d2,d0								; Y * 4
 	add.w	d0,d0
@@ -2877,7 +2958,7 @@ Graphic_4BP_DrawLine_Plot:
 	bcc.s	.nbp3
 	or.w	d1,6(a3)
 .nbp3:
-	movem.l	(a7)+,d0-d7/a0-a3
+	movem.l	(a7)+,d0-d2/a0/a3
 	rts
 
 

@@ -10,7 +10,7 @@ SOURCES = \
 	achieve/ach_main.c achieve/ach_show.c achieve/ach_sign.c achieve/ach_unlk.c \
 	assert/assert.c \
 	asset/asset.c asset/context.c asset/package.c asset/pkg_dir.c asset/pkg_lnk.c asset/relocate.c \
-	audio/amixer.c audio/audio.c audio/rel_spl.c audio/ssd.c audio/slugmix.c audio/sgdlmix.c audio/desertmix.c \
+	audio/amixer.c audio/audio.c audio/rel_spl.c audio/ssd.c audio/slugmix.c audio/sgdlmix.c audio/desertmix.c audio/pacmadmix.c \
 	base/base.c \
 	blitter/blitter.c \
 	checksum/checksum.c \
@@ -69,7 +69,7 @@ SOURCES = \
 
 SOURCES_S = \
 	audio/amixer_s.s \
-	audio/slugmix_s.s audio/sgdlmix_s.s audio/desertmix_s.s \
+	audio/slugmix_s.s audio/sgdlmix_s.s audio/desertmix_s.s audio/pacmadmix_s.s \
 	audio/audio_s.s \
 	audio/ssd_s.s \
 	bios/bios_s.s \

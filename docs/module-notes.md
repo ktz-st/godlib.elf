@@ -3240,6 +3240,19 @@ Function tables:
   implementation is used depends on the archive/link order.
 - `grf_b4_s.s` provides blitter-backed 4-plane routines and forwards line draw
   to the non-blitter line implementation.
+- `Graphic_4BP_DrawLine` now keeps its word pointer and pixel mask in registers
+  across the Bresenham loop, replacing the former per-pixel address calculation
+  and 12-register save/restore. Colour replacement on all four planes, including
+  colour zero, and the original rasterization decisions are preserved.
+- Vertical line steps use adjacent U32 `mpLineOffsets` differences, so wider,
+  padded and nonuniform rows work. Fully visible clipped lines use the same
+  fast loop. Partial clipping keeps the original pixel clipping/error phase;
+  its plot helper now saves only five modified registers.
+- `graphic/tests/line` verifies production CPU/BLT-forwarding line routines
+  against an independent pixel reference and a frozen original ASM snapshot:
+  4096 calls, all colours, both directions, clipping, 16-pixel boundaries and
+  four layouts up to 432 rows. See its README/results for Hatari HZ200 elapsed
+  timings; these are not CPU-only profiles or physical Atari measurements.
 
 16bpp backend:
 
@@ -4326,3 +4339,15 @@ Important limitations and risks:
 - godlib/blitter/tests verifies independent pixel references for masked, opaque
   and coloured sprites, skewed copies between padded 192/336-byte row layouts,
   boxes, and Screen wrappers at 640x200 and 640x432 including Y=400.
+
+## PacMad PCM mixer
+
+`audio/pacmadmix.c` and `pacmadmix_s.s` provide three 12517-Hz mono channels
+with loops on every channel, even U32 byte lengths and one queued successor.
+The 1024-byte DMA ring is filled to a 640-byte lead using a coherent playhead
+read, rather than fixed 250-byte VBL refills. Late writes trigger controlled
+stop/clear/restart. Original packed ADD.L arithmetic is the default; optional
+independent-byte saturation prevents amplitude wraparound with full-scale PCM.
+One channel can consume a VBL-safe RAM stream callback, as used by Rogul. See
+`audio/pacmadmix.md` and `godlib.spl/pacmadmix` for constraints and tests.
+PacMad now uses this module; its game-specific priorities remain in src/sfx.c.

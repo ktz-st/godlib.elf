@@ -1,8 +1,8 @@
 #include <godlib/platform/platform.h>
 #include <godlib/gemdos/gemdos.h>
-#include <godlib/audio/sgdlmix.h>
-#include <godlib/audio/slugmix.h>
-#include <godlib/audio/desertmix.h>
+#include <godlib/audio/pcmblock.h>
+#include <godlib/audio/pcmframe.h>
+#include <godlib/audio/pcmlayer.h>
 #include <godlib/audio/amixer.h>
 #include <godlib/vbl/vbl.h>
 static U16 pcm[32768];
@@ -13,18 +13,18 @@ static void CountFrame(void) { ++gProfileFrames; }
 static void Prepare(U16 request)
 {
  U16 channel,count=request%10,kind=request/10;U8 ok=1;
- SgdlMixer_DeInit();SlugMixer_DeInit();DesertMixer_DeInit();
+ PcmBlockMixer_DeInit();PcmFrameMixer_DeInit();PcmLayerMixer_DeInit();
  if(legacyEnabled) {AudioMixer_DeInit();legacyEnabled=0;}
  if(kind<2) {
-  ok=SgdlMixer_Init(kind?eSGDLMIXER_FREQ_25K:eSGDLMIXER_FREQ_12K);
-  for(channel=0;channel<count;++channel) ok&=SgdlMixer_Play(channel,(const S8*)pcm,1024,1);
+  ok=PcmBlockMixer_Init(kind?ePCMBLOCK_FREQ_25K:ePCMBLOCK_FREQ_12K);
+  for(channel=0;channel<count;++channel) ok&=PcmBlockMixer_Play(channel,(const S8*)pcm,1024,1);
  } else if(kind==2) {
-  ok=SlugMixer_Init();
+  ok=PcmFrameMixer_Init();
   /* Channel zero is a long one-shot; other channels cross loop boundaries. */
-  for(channel=0;channel<count;++channel) ok&=SlugMixer_Play(channel,(const S8*)pcm,channel?4:255,channel?1:0);
+  for(channel=0;channel<count;++channel) ok&=PcmFrameMixer_Play(channel,(const S8*)pcm,channel?4:255,channel?1:0);
  } else if(kind==3) {
-  ok=DesertMixer_Init();
-  for(channel=0;channel<count;++channel) ok&=DesertMixer_Play(channel,(const S8*)pcm,channel<2?1024:65536UL,channel<2?1:0);
+  ok=PcmLayerMixer_Init();
+  for(channel=0;channel<count;++channel) ok&=PcmLayerMixer_Play(channel,(const S8*)pcm,channel<2?1024:65536UL,channel<2?1:0);
  }
  if(kind==4) {
   sAudioDmaSound sound;

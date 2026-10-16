@@ -6,13 +6,13 @@
 
 	opt	o+
 
-	xdef	PacmadMixer_CoreFill,PacmadMixer_Lock,PacmadMixer_Unlock
+	xdef	PcmVoiceMixer_CoreFill,PcmVoiceMixer_Lock,PcmVoiceMixer_Unlock
 
-PacmadMixer_Lock:
+PcmVoiceMixer_Lock:
  move.w sr,d0
  ori.w #$0700,sr
  rts
-PacmadMixer_Unlock:
+PcmVoiceMixer_Unlock:
  move.w d0,sr
  rts
 
@@ -31,13 +31,13 @@ SAMPLE_LEN	equ	4
 SAMPLE_PRIORITY	equ	8
 
 * m68k-atari-mintelf-gcc -mfastcall:
-* a0 = sPacmadMixAsmParams *
+* a0 = sPcmVoiceMixAsmParams *
 *   +0 channels
 *   +4 destination half-buffer
 *   +8 silence buffer
 *   +12 U16 byte count (even, <=1024). Remaining source spans use U32.
 *   +14 U16 independent-byte saturation enabled.
-PacmadMixer_CoreFill:
+PcmVoiceMixer_CoreFill:
 	movem.l	d0-d7/a0-a6,-(sp)
 
 	move.l	(a0),a6			; channels

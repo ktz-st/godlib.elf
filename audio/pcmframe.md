@@ -1,29 +1,29 @@
-# SlugMixer
+# PcmFrameMixer
 
 Optional three-channel SFX mixer extracted from the Metal Slug STE binary.
-Independent of AudioMixer and AGTools. Include `godlib/audio/slugmix.h`;
+Independent of AudioMixer and AGTools. Include `godlib/audio/pcmframe.h`;
 the module is part of `libgod.a` and is only linked when referenced.
 Do not enable AudioMixer, MOD replay or another DMA owner simultaneously.
 
-Call after `Platform_Init()` in supervisor mode. `SlugMixer_Init()` validates
+Call after `Platform_Init()` in supervisor mode. `PcmFrameMixer_Init()` validates
 DMA-capable machine type and ST-RAM placement of its 2162-byte state slab,
 then installs a VBL callback and starts DMA at 12517 Hz, signed 8-bit mono.
 It returns 0 when unsupported or the VBL queue is full. Call
-`SlugMixer_DeInit()` before freeing samples and before `Platform_DeInit()`;
+`PcmFrameMixer_DeInit()` before freeing samples and before `Platform_DeInit()`;
 the latter restores the audio hardware state saved by Platform_Init.
 Init is idempotent, DeInit removes its callback before stopping DMA.
 
 ```
-SlugMixer_Init();
-SlugMixer_Play(0, sample, blocks, 0);
-SlugMixer_Play(1, sample2, blocks2, 1);
+PcmFrameMixer_Init();
+PcmFrameMixer_Play(0, sample, blocks, 0);
+PcmFrameMixer_Play(1, sample2, blocks2, 1);
 /* VBL queue performs mixing, including while the main loop waits. */
-SlugMixer_Stop(1);
-SlugMixer_DeInit();
+PcmFrameMixer_Stop(1);
+PcmFrameMixer_DeInit();
 ```
 
 Check the return values of Init and Play in applications. Channels are 0..2.
-`SlugMixer_IsPlaying()` reports source activity, not whether the last queued
+`PcmFrameMixer_IsPlaying()` reports source activity, not whether the last queued
 DMA page has finished sounding. Stop/replacement can take a few blocks to
 become audible. Channel updates mask interrupts to avoid torn pointers.
 
@@ -37,7 +37,7 @@ Looping channel 0 is rejected: the original core clears its loop pointer.
 Channels 1/2 can loop. The game's music sequencer mode is left disabled.
 
 The original 926-byte core is preserved, with ELF symbol adaptation and a
-C callee-save wrapper. `SlugMixer_Lock/Unlock` use the GodLib fastcall ABI
+C callee-save wrapper. `PcmFrameMixer_Lock/Unlock` use the GodLib fastcall ABI
 (D0 for SR). Source executable SHA256:
 `43ad8bc98675884b5b7ff8001dd633d33383ebdb770592ee518a5205e6bc2e39`.
 Code range: TEXT-relative `$20DB8..$21155`; file offset adds `$1C`.
@@ -53,7 +53,7 @@ another DMA owner are not supported by this scheduler. Machine detection
 alone does not validate the display rate. Real hardware and Falcon need
 separate testing.
 
-Example: `godlib.spl/slugmix`, with F1/F2/F3 channel triggering, F4 overlap,
+Example: `godlib.spl/pcmframe`, with F1/F2/F3 channel triggering, F4 overlap,
 F5 channel 1 looping, F6 stop and ESC exit. The sample is generated from the
 existing mixer example, with gain 1/4 and zero padding to 94 blocks.
 
@@ -66,7 +66,9 @@ has not been verified by listening or recording; hardware testing remains.
 
 ## Raster CPU display
 
-SlugMixer_SetRasterDebug enables LanceMod-style red palette-zero stripes during
+PcmFrameMixer_SetRasterDebug enables LanceMod-style red palette-zero stripes during
 the audio callback. The old colour is restored afterwards; DeInit disables
 the meter. F9 toggles it in the example. It measures visible callback duration,
-not a numeric CPU percentage. See desertmix.md for comparison guidance.
+not a numeric CPU percentage. See pcmlayer.md for comparison guidance.
+
+See the [PCM mixer guide](pcm-mixers.md) for backend comparison and name migration.

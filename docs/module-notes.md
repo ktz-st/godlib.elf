@@ -4,6 +4,12 @@ These notes collect quick findings about GodLib modules while exploring the tree
 Each future discovery can either extend this file or get its own focused `.md`
 file in this directory.
 
+Source audit: 2026-10-16. Public function names were checked against the local
+source tree; graphics, screen, fonts, chunky conversion, PCM audio and cutscene
+notes were reviewed for recent changes. This is a source survey, not a hardware
+certification of every module. Test counts and timings below refer to the named
+test artifacts, not to a fresh run of every test. See the [documentation index](README.md).
+
 ## achieve
 
 `godlib/achieve` is an offline achievement/profile/high-score system rather than
@@ -93,8 +99,9 @@ this pass.
 
 ## docs and cutscene
 
-`godlib/docs` currently contains the original `cutscene.txt`, which documents the
-GodLib cutscene system.
+`godlib/docs` contains this module survey, a [documentation index](README.md),
+and the [cutscene text-format manual](cutscene.txt). The latter retains the
+original format with corrections and current implementation limitations.
 
 `godlib/cutscene` is a text-DSL-to-runtime cutscene system:
 
@@ -105,11 +112,16 @@ GodLib cutscene system.
   samples and callbacks;
 - `rel_cut.*` - asset relocator for `.CUT` files.
 
-The documented pipeline is:
+The original TOOLBASE pipeline is:
 
 ```text
 CUTBUILD SourceTextFile DestBinFile
 ```
+
+The local Python TOOLBASE subset does not implement `CUTBUILD` or `SPLMAKE`.
+The library includes `CutScene_Parse()` in `cutparse.c`, but the current host
+build does not supply a native CUTBUILD command. An original tool or a host
+integration of the parser is needed to compile text assets.
 
 Cutscene data chunks include:
 
@@ -122,8 +134,12 @@ Cutscene data chunks include:
 - `VAR`
 - `SCRIPT`
 
-Runtime commands include background control, fades, samples, sprite animation and
-movement, text display/animation, variable writes, callbacks and waits.
+Parsed commands cover backgrounds, fades, samples, sprite animation/movement,
+text, variables, callbacks and waits. Parsing support does not mean runtime
+support: `SAMPLE_ENABLE`, `SAMPLE_DISABLE` and `SAMPLE_WAIT` are no-ops;
+`TEXT_ANIM_SET` and `TEXT_ANIM_WAIT` do not implement animation or waiting.
+Cutscene samples are not connected to the PCM mixers. See `cutscene.txt` for
+the complete command table and these limitations.
 
 Integration notes:
 
@@ -3143,6 +3159,10 @@ Supported operations:
   bitplanes based on `aColour`.
 - `Blitter_DrawBox()` fills a rectangular box using per-plane all-zero/all-one
   patterns derived from a 4-bit colour.
+- `Blitter_CopyBoxCanvas()`, `Blitter_DrawSpriteCanvas()`,
+  `Blitter_DrawOpaqueSpriteCanvas()`, `Blitter_DrawColouredSpriteCanvas()` and
+  `Blitter_DrawBoxCanvas()` accept explicit canvases for custom buffer layouts.
+  They require uniform, even row strides and use storage bounds, not `mClipBox`.
 
 Important limitations and risks:
 
@@ -3154,9 +3174,11 @@ Important limitations and risks:
   partially handled.
 - Sprite width is effectively expected to be a multiple of 16 pixels because
   `lWords = Width >> 4`.
-- The old `apSprite->Width != 16` guard is commented out. Wider sprites are now
-  attempted, but correctness depends on the sprite data layout and blitter skew
-  path.
+- Wider sprites are supported when their source layout matches `sBlitterSprite`.
+  The caller must supply a positive width divisible by 16; this is not validated
+  by the draw routines. The standalone [blitter tests](../blitter/tests/README.md)
+  cover masked, opaque and coloured sprites across fine X alignments and vertical
+  clipping using independent pixel references.
 - `gBlitterHack` remains as a leftover global and is not actively used.
 - All hardware waits are busy loops.
 
@@ -3172,7 +3194,8 @@ Files:
 - `graphic.h` - public canvas, rectangle/box/position types, drawing function
   table and convenience macros.
 - `graphic.c` - global function-table setup, canvas init/deinit, font printing,
-  centring helper and dirty-chunk restore helpers.
+  centring helper and dirty-chunk list construction.
+- `chunk_s.s` - ASM background restore with adjacent-column merging.
 - `graphic.i` - assembler structure offsets matching `graphic.h`.
 - `grf_4.c` - C 4-bitplane drawing backend.
 - `grf_4_s.s` - Atari assembly 4-bitplane backend.
@@ -3235,9 +3258,9 @@ Function tables:
   changed.
 - `Graphic_4BP_DrawLine()`, `DrawTri()` and `DrawQuad()` in `grf_4.c` are
   stubs.
-- The assembly `grf_4_s.s` exports full 4-plane symbols including line and
-  sprite routines, but the C object also defines many of the same names. Which
-  implementation is used depends on the archive/link order.
+- The default Atari build uses the assembly `grf_4_s.s` symbols, including line
+  and sprite routines. A custom build must select one provider for symbols also
+  defined by `grf_4.c`, rather than relying on archive order to resolve duplicates.
 - `grf_b4_s.s` provides blitter-backed 4-plane routines and forwards line draw
   to the non-blitter line implementation.
 - `Graphic_4BP_DrawLine` now keeps its word pointer and pixel mask in registers
@@ -3291,12 +3314,18 @@ Sprite blitter source increments:
 
 Dirty chunks:
 
-- `sGraphicChunkList` stores up to 32 chunks, each holding an offset and height.
+- `sGraphicChunkList` stores up to 32 chunks, each holding a U32 byte offset and U16 height.
 - `Graphic_ChunkList_Store()` breaks a rectangle into 16-pixel aligned chunks
   and records 8-byte-wide planar spans.
-- `Graphic_ChunkList_ReStore()` copies those chunks from a source canvas to a
-  destination canvas, four words per line. This is useful for restoring
-  background under planar sprites.
+- `Graphic_ChunkList_ReStore()` is a 68000 assembly CPU copy. It merges consecutive
+  8-byte spans of equal height into runs of up to 32 spans and copies each run
+  row by row with unrolled `MOVE.L` instructions. Longer runs are split.
+- Offsets are U32, so virtual-buffer positions above byte 65535 are supported.
+  Each entry now occupies six bytes, and a 32-entry list occupies 196 bytes.
+  Rebuild clients after this ABI change. `mGODLIB_CHUNKLIST` reserves the new
+  entry size; all 32 entries of a standard list can be used.
+- See [chunk restore tests](../graphic/tests/chunk/README.md) for correctness
+  cases and elapsed-time comparison with the former C loop.
 
 Important limitations and risks:
 
@@ -3321,9 +3350,10 @@ Important limitations and risks:
   header.
 - `Graphic_ChunkList_Store()` trusts rectangle coordinates and can index
   `mpLineOffsets[lY]` without clipping.
-- `Graphic_ChunkList_ReStore()` computes both source and destination line
-  strides from `apSrc->mpLineOffsets[1]`; this assumes both canvases have the
-  same stride.
+- `Graphic_ChunkList_ReStore()` takes the row stride from
+  `apSrc->mpLineOffsets[1]`; this assumes both canvases have the
+  same uniform stride and matching row origins/layout, because the same saved
+  offset is applied to both canvases.
 - `mGODLIB_CHUNKLIST()` expands to a raw `U16` array while the functions expect
   `sGraphicChunkList *`; this relies on matching layout and is not type-safe.
 - The assembler backends depend on `graphic.i` staying exactly in sync with
@@ -3455,41 +3485,50 @@ Drawing API:
 
 Important limitations and risks:
 
-- `eSCREEN_SCROLL_H` is defined but not implemented in `screen.c`.
-- `Screen_Init()` does not check whether `GraphicCanvas_Init()` or
-  `mMEMSCREENCALLOC()` succeeded before using the resulting pointers.
-- In vertical scroll mode, `lTotal` is `lSize * 4`, but only three buffers are
-  assigned and `eSCREEN_MISC` remains `0`; this looks like leftover/unused
-  allocation.
+- `eSCREEN_SCROLL_H` is implemented for STE video; four-plane virtual storage
+  retains a 320x200 viewport. Horizontal storage wider than 320 requires the
+  active horizontal-scroll flag.
+- Screen-page allocation failure is checked and initialized canvases are
+  released, but `GraphicCanvas_Init()` still assumes its line-table allocation
+  succeeds; allocation failure is not completely recoverable.
+- Three separately 256-byte-aligned pages are allocated; the misc canvas has
+  no VRAM. Vertical mode keeps the historical extra 32 storage rows.
 - `Screen_Update()` flips buffers even on the first call from `Screen_Init()`,
   so the initial physical/logical index after init is already toggled once.
-- `Screen_SetScrollY()` does not clamp the scroll value; callers must keep it
-  within the extra scroll area.
+- Vertical scroll is clamped by `Screen_Update()` to virtual height minus
+  viewport height. Horizontal scroll is clamped by `Screen_SetScrollX()`.
 - The direct ST write to `$FFFF8200` is guarded by `dGODLIB_PLATFORM_ATARI`,
   but the surrounding logic still relies on screen addresses being valid for
   the selected machine/video mode.
 
 ## audio
 
-`desertmix.h` exposes the four-layer 12517-Hz mono gameplay mixer from Desert.
-Channels 0/1 loop; 2/3 are one-shots. See `audio/desertmix.md` and the
-`godlib.spl/desertmix` example. Desert, SGDL and SlugMix expose
+Current PCM backend names, preparation rules and game integrations are summarized
+in the [PCM mixer guide](../audio/pcm-mixers.md). The detailed modules are
+[PCM Block](../audio/pcmblock.md), [PCM Frame](../audio/pcmframe.md),
+[PCM Layer](../audio/pcmlayer.md) and [PCM Voice](../audio/pcmvoice.md).
+PCM Voice is used directly by PacMad (resident PCM) and Rogul STE DMA (optional
+music stream plus two effects, saturation enabled).
+
+`pcmlayer.h` exposes the four-layer 12517-Hz mono gameplay mixer from Desert.
+Channels 0/1 loop; 2/3 are one-shots. See `audio/pcmlayer.md` and the
+`godlib.spl/pcmlayer` example. PCM Layer, PCM Block and PCM Frame expose
 `*_SetRasterDebug` with the same palette-zero CPU indicator as LanceMod.
 
-`audio/sgdlmix.h` adds OrionSoft's SGDL four-channel signed 8-bit mono mixer,
+`audio/pcmblock.h` adds OrionSoft's SGDL four-channel signed 8-bit mono mixer,
 ported from `snd_asm.o` to vasm. It uses a VBL-serviced circular DMA buffer,
 supports 25033/12517 Hz, and preserves wrapping byte sums. Samples must be
 preconverted to the selected rate and padded to 512 bytes. Init/DeInit own the
-callback; frequency changes stop all voices. See `audio/sgdlmix.md` and the
-`godlib.spl/sgdlmix` example, whose F8 key changes rate. STE/MegaSTE only.
+callback; frequency changes stop all voices. See `audio/pcmblock.md` and the
+`godlib.spl/pcmblock` example, whose F8 key changes rate. STE/MegaSTE only.
 
-`audio/slugmix.h` adds the optional `SlugMixer` backend extracted from Metal
+`audio/pcmframe.h` adds the optional `PcmFrameMixer` backend extracted from Metal
 Slug: three channels, 12517 Hz mono, 250-byte blocks, automatic VBL callback.
 It is independent of `AudioMixer` and must exclusively own DMA playback.
-Use `SlugMixer_Init/Play/Stop/IsPlaying/DeInit`; stop it before freeing PCM
-or shutting down Platform. See `audio/slugmix.md` for sample preparation,
+Use `PcmFrameMixer_Init/Play/Stop/IsPlaying/DeInit`; stop it before freeing PCM
+or shutting down Platform. See `audio/pcmframe.md` for sample preparation,
 50 Hz scheduling limitations, provenance and the original channel-0 loop
-restriction. `godlib.spl/slugmix` demonstrates it using the existing voice
+restriction. `godlib.spl/pcmframe` demonstrates it using the existing voice
 sample from the mixer example.
 
 `godlib/audio` contains low-level sound support: YM/PSG state handling, STE/TT
@@ -3761,8 +3800,6 @@ Important limitations and risks:
   maps should be avoided.
 - `mWidthMax` and `mHeightMax` are computed as `x1-x0` and `y1-y0`, not
   inclusive widths/heights.
-- The directory currently contains active object files, and `font8x8` contains a
-  `.font8x8.c.swp` editor swap file.
 
 ## font8x8
 
@@ -3960,9 +3997,10 @@ Important limitations and risks:
 
 ## chunky
 
-`godlib/chunky` is the 8bpp chunky-pixel drawing backend for `graphic`. It also
-contains old assembler experiments for converting between 8bpp chunky and ST
-4-plane bitplanes.
+`godlib/chunky` provides 8bpp chunky drawing for `graphic` and active assembly
+conversion between chunky pixels and ST four-plane bitplanes. These conversions
+are suitable for ST/STE; they do not require a Falcon. Historical source copies
+remain in the directory but are excluded from the build.
 
 Files:
 
@@ -4282,8 +4320,11 @@ Data model:
 Runtime model:
 
 - `Gui_Init()` clears the global `gGuiClass`.
-- `Gui_SetpData()` attaches an `sGuiData`, initializes asset clients, registers
-  hash-tree vars/events, and opens the first window if present.
+- `Gui_DataAdd()` attaches an `sGuiData`, registers events and button string
+  variable clients, selects the first cursor if available, positions windows and
+  opens window zero. The data must contain at least one window.
+- `Gui_DataRemove()` unregisters those variable clients/events and clears the
+  attached data pointer.
 - `Gui_Update()` consumes queued GUI events, updates IKBD and mouse state, tracks
   focus/held/text-edit modes, and dispatches actions.
 - `RenderGui_Update()` restores the previous mouse background, draws visible
@@ -4340,14 +4381,23 @@ Important limitations and risks:
   and coloured sprites, skewed copies between padded 192/336-byte row layouts,
   boxes, and Screen wrappers at 640x200 and 640x432 including Y=400.
 
-## PacMad PCM mixer
+## PCM Voice mixer
 
-`audio/pacmadmix.c` and `pacmadmix_s.s` provide three 12517-Hz mono channels
+`audio/pcmvoice.c` and `pcmvoice_s.s` provide three 12517-Hz mono channels
 with loops on every channel, even U32 byte lengths and one queued successor.
 The 1024-byte DMA ring is filled to a 640-byte lead using a coherent playhead
 read, rather than fixed 250-byte VBL refills. Late writes trigger controlled
 stop/clear/restart. Original packed ADD.L arithmetic is the default; optional
 independent-byte saturation prevents amplitude wraparound with full-scale PCM.
 One channel can consume a VBL-safe RAM stream callback, as used by Rogul. See
-`audio/pacmadmix.md` and `godlib.spl/pacmadmix` for constraints and tests.
-PacMad now uses this module; its game-specific priorities remain in src/sfx.c.
+`audio/pcmvoice.md` and `godlib.spl/pcmvoice` for constraints and tests.
+PacMad uses this module for resident samples via `Play()` and `Queue()` without
+streaming; its priorities remain in `src/sfx.c`. Rogul STE DMA uses channel 0
+for music streaming and channels 1/2 for effects with saturation enabled.
+
+## PCM mixer naming
+
+See the [PCM mixer guide](../audio/pcm-mixers.md) for canonical names, sampling
+rates, input constraints and migration. Historical game/library-name headers
+provide source aliases; the interim PcmStreamMixer name is replaced by
+PcmVoiceMixer. Current game sources use PcmVoiceMixer directly.

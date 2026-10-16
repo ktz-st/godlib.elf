@@ -9,11 +9,11 @@ nm=subprocess.check_output(['m68k-atari-mintelf-nm','-n',str(exe)],text=True)
 syms={p[2]:int(p[0],16) for line in nm.splitlines() if len(p:=line.split())==3}
 textsyms=sorted((int(p[0],16),p[2]) for line in nm.splitlines() if len(p:=line.split())==3 and p[1] in 'Tt')
 addresses=[a for a,n in textsyms]
-asm_sizes={'Sgdl':0x1ea,'Slug':0x3b8,'Desert':0x2e6,'Audio':0x1c2}
+asm_sizes={'PcmBlock':0x1ea,'PcmFrame':0x3b8,'PcmLayer':0x2e6,'Audio':0x1c2}
 # The assembly sections start at their exported Lock symbol; the C callbacks
 # are bounded by the next text symbol. Sizes are checked against the objects.
 for name,size in asm_sizes.items():
- obj=root.parent.parent/('amixer_s.o' if name=='Audio' else name.lower()+'mix_s.o')
+ obj=root.parent.parent/('amixer_s.o' if name=='Audio' else name.lower()+'_s.o')
  header=subprocess.check_output(['m68k-atari-mintelf-objdump','-h',str(obj)],text=True)
  assert any(int(p[2],16)==size for line in header.splitlines() if len(p:=line.split())>=3 and p[1] in ('.text','text','CODE'))
 
@@ -28,12 +28,12 @@ def readmem(r,addr,size):
  return bytes(out[:size])
 
 def integer(r,addr,size):return int.from_bytes(readmem(r,addr,size),'big')
-cases=[(code,name,count) for kind,name,limit in [(0,'SGDL 12.5 kHz',4),(1,'SGDL 25 kHz',4),(2,'Slug 12.5 kHz',3),(3,'Desert 12.5 kHz',4)] for count in range(limit+1) for code in [kind*10+count]]
+cases=[(code,name,count) for kind,name,limit in [(0,'PCM Block 12.5 kHz',4),(1,'PCM Block 25 kHz',4),(2,'PCM Frame 12.5 kHz',3),(3,'PCM Layer 12.5 kHz',4)] for count in range(limit+1) for code in [kind*10+count]]
 legacy='--legacy-only' in sys.argv
 if legacy:cases=[(40+n,'AudioMixer 25 kHz stereo',n) for n in range(3)]
 output=root/('legacy-results.json' if legacy else 'results.json')
 results=[]
-with HatariSession(str(exe),hatari='hatari-hrdb',machine='ste',sound=False,debug_except='bus,address,illegal',extra_args=['--memsize','4','--monitor','rgb','--cpuclock','8']) as h:
+with HatariSession(str(exe),hatari='hatari-hrdb',machine='ste',sound=False,debug_except='bus,address,illegal',extra_args=['--confirm-quit','false','--memsize','4','--monitor','rgb','--cpuclock','8']) as h:
  h.wait(8);base=h.basepage()['text']
  try:r=Rdb()
  except OSError:
@@ -51,7 +51,7 @@ with HatariSession(str(exe),hatari='hatari-hrdb',machine='ste',sound=False,debug
   msg=r.take('!profile');assert msg,'No cycle profile'
   lines=profile_lines(msg);assert lines and sum(n for a,n,c in lines)>1000
   frames1=integer(r,base+syms['gProfileFrames'],4)
-  prefix=['Sgdl','Sgdl','Slug','Desert','Audio'][code//10]
+  prefix=['PcmBlock','PcmBlock','PcmFrame','PcmLayer','Audio'][code//10]
   lo=syms[prefix+'Mixer_Vbl' if legacy else prefix+'Mixer_Lock'];hi=lo+asm_sizes[prefix]
   vbl=syms[prefix+'Mixer_Vbl'];vi=bisect.bisect_right(addresses,vbl);vhi=addresses[vi]
   core=sum(c for a,n,c in lines if base+lo<=a<base+hi)

@@ -1,11 +1,11 @@
-#include "pacmadmix.h"
+#include "pcmvoice.h"
 #include <godlib/system/system.h>
 #include <godlib/vbl/vbl.h>
 #define HW8(a) (*(volatile U8 *)(a))
 #define RING 1024U
 #define LEAD 640U
 #define SILENCE 250U
-/* Layout shared with pacmadmix_s.s. Descriptors stay valid across VBLs. */
+/* Layout shared with pcmvoice_s.s. Descriptors stay valid across VBLs. */
 typedef struct {const S8 *data;U32 length;U8 priority,pad;} Sample;
 typedef struct {
  const Sample *sample;const S8 *current,*end;const Sample *next;
@@ -20,13 +20,13 @@ static Sample sSamples[3][2];
 static volatile U8 sEnabled,sRaster,sSaturate;
 static U16 sWrite;
 static U16 sStreamPcm[(LEAD-64U)/2];
-static fPacmadMixerStream sReader;
+static fPcmVoiceMixerStream sReader;
 static void *sReaderUser;
 static U16 sStreamChannel;
 static volatile U32 sUnderruns;
-extern U16 PacmadMixer_Lock(void);
-extern void PacmadMixer_Unlock(U16 sr);
-extern void PacmadMixer_CoreFill(Params *params);
+extern U16 PcmVoiceMixer_Lock(void);
+extern void PcmVoiceMixer_Unlock(U16 sr);
+extern void PcmVoiceMixer_CoreFill(Params *params);
 static void clear(U16 ch)
 {
  Channel *c=&sChannels[ch];c->sample=c->next=0;c->current=(S8*)sSilence;
@@ -55,7 +55,7 @@ static U32 playhead(void)
  return 0;
 }
 /* The pure span calculation is shared by the scheduler regression test. */
-U16 PacmadMixer_RefillCount(U16 write,U16 offset)
+U16 PcmVoiceMixer_RefillCount(U16 write,U16 offset)
 {return (U16)((((offset+LEAD)&(RING-1))&~1U)-write)&(RING-1);}
 static void fill(U16 offset,U16 count)
 {
@@ -70,22 +70,22 @@ static void fill(U16 offset,U16 count)
   c->sample=&stream;c->current=stream.data;c->end=stream.data+count;
   c->next=0;c->loop=0;c->active=1;
  }
- PacmadMixer_CoreFill(&p);
+ PcmVoiceMixer_CoreFill(&p);
  if(sReader)sChannels[sStreamChannel]=saved;
 }
-U8 PacmadMixer_SetStream(U16 ch,fPacmadMixerStream reader,void *user)
+U8 PcmVoiceMixer_SetStream(U16 ch,fPcmVoiceMixerStream reader,void *user)
 {
  U16 sr;if(!sEnabled || ch>=3 || !reader)return 0;
- sr=PacmadMixer_Lock();if(sReader)clear(sStreamChannel);
+ sr=PcmVoiceMixer_Lock();if(sReader)clear(sStreamChannel);
  clear(ch);sStreamChannel=ch;sReaderUser=user;sReader=reader;
- PacmadMixer_Unlock(sr);return 1;
+ PcmVoiceMixer_Unlock(sr);return 1;
 }
-static void PacmadMixer_Vbl(void)
+static void PcmVoiceMixer_Vbl(void)
 {
  U32 head,base=(U32)sRing;U16 offset,count,first,colour=0;U8 debug=sRaster;
  if(!sEnabled)return;
  head=playhead();if(head<base || head>=base+RING)return;
- offset=(U16)(head-base);count=PacmadMixer_RefillCount(sWrite,offset);
+ offset=(U16)(head-base);count=PcmVoiceMixer_RefillCount(sWrite,offset);
  if(!count)return;
  if(debug){colour=*(volatile U16*)0xffff8240UL;*(volatile U16*)0xffff8240UL=0x700;}
  /* Preserve 64 bytes of safety before DMA reaches the write cursor.
@@ -98,59 +98,59 @@ static void PacmadMixer_Vbl(void)
  }
  if(debug)*(volatile U16*)0xffff8240UL=colour;
 }
-U8 PacmadMixer_Init(void)
+U8 PcmVoiceMixer_Init(void)
 {
  U16 sr,i;eSYSTEM_MCH mch;
  if(sEnabled)return 1;
  mch=System_GetMCH();if(mch!=MCH_STE && mch!=MCH_MEGASTE)return 0;
  if((U32)sRing+sizeof(sRing)>0x1000000UL)return 0;
- sr=PacmadMixer_Lock();
- if(!Vbl_AddCall(PacmadMixer_Vbl)){PacmadMixer_Unlock(sr);return 0;}
+ sr=PcmVoiceMixer_Lock();
+ if(!Vbl_AddCall(PcmVoiceMixer_Vbl)){PcmVoiceMixer_Unlock(sr);return 0;}
  for(i=0;i<SILENCE/2;++i)sSilence[i]=0;
  for(i=0;i<3;++i)clear(i);
- sUnderruns=0;start();sEnabled=1;PacmadMixer_Unlock(sr);return 1;
+ sUnderruns=0;start();sEnabled=1;PcmVoiceMixer_Unlock(sr);return 1;
 }
-void PacmadMixer_DeInit(void)
+void PcmVoiceMixer_DeInit(void)
 {
- U16 sr=PacmadMixer_Lock();
- if(sEnabled){sEnabled=0;Vbl_RemoveCall(PacmadMixer_Vbl);HW8(0xffff8901UL)=0;}
- PacmadMixer_StopAll();sRaster=sSaturate=0;PacmadMixer_Unlock(sr);
+ U16 sr=PcmVoiceMixer_Lock();
+ if(sEnabled){sEnabled=0;Vbl_RemoveCall(PcmVoiceMixer_Vbl);HW8(0xffff8901UL)=0;}
+ PcmVoiceMixer_StopAll();sRaster=sSaturate=0;PcmVoiceMixer_Unlock(sr);
 }
 static U8 valid(U16 ch,const S8 *pcm,U32 length)
 {
  return sEnabled && ch<3 && pcm && !((U32)pcm&1UL) && length &&
  !(length&1UL) && length<=0x7fffffffUL && (U32)pcm+length>=(U32)pcm;
 }
-U8 PacmadMixer_Play(U16 ch,const S8 *pcm,U32 length,U8 loop)
+U8 PcmVoiceMixer_Play(U16 ch,const S8 *pcm,U32 length,U8 loop)
 {
  U16 sr;Sample *s;Channel *c;
  if(!valid(ch,pcm,length))return 0;
- sr=PacmadMixer_Lock();s=&sSamples[ch][0];s->data=pcm;s->length=length;s->priority=0;
+ sr=PcmVoiceMixer_Lock();s=&sSamples[ch][0];s->data=pcm;s->length=length;s->priority=0;
  if(sReader && sStreamChannel==ch)sReader=0;
  c=&sChannels[ch];c->sample=s;c->current=pcm;c->end=pcm+length;c->next=0;
- c->loop=!!loop;c->active=1;c->priority=0;PacmadMixer_Unlock(sr);return 1;
+ c->loop=!!loop;c->active=1;c->priority=0;PcmVoiceMixer_Unlock(sr);return 1;
 }
-U8 PacmadMixer_Queue(U16 ch,const S8 *pcm,U32 length)
+U8 PcmVoiceMixer_Queue(U16 ch,const S8 *pcm,U32 length)
 {
  U16 sr;Sample *s;
  if(!valid(ch,pcm,length))return 0;
- sr=PacmadMixer_Lock();
- if((sReader && sStreamChannel==ch) || !sChannels[ch].active || sChannels[ch].loop){PacmadMixer_Unlock(sr);return 0;}
+ sr=PcmVoiceMixer_Lock();
+ if((sReader && sStreamChannel==ch) || !sChannels[ch].active || sChannels[ch].loop){PcmVoiceMixer_Unlock(sr);return 0;}
  /* Queue into the descriptor not currently used by the source. */
  s=&sSamples[ch][sChannels[ch].sample==&sSamples[ch][0]?1:0];
  s->data=pcm;s->length=length;s->priority=0;sChannels[ch].next=s;
- PacmadMixer_Unlock(sr);return 1;
+ PcmVoiceMixer_Unlock(sr);return 1;
 }
-void PacmadMixer_Stop(U16 ch)
-{U16 sr;if(ch>=3)return;sr=PacmadMixer_Lock();if(sReader && ch==sStreamChannel)sReader=0;clear(ch);PacmadMixer_Unlock(sr);}
-void PacmadMixer_StopAll(void)
-{U16 sr,i;sr=PacmadMixer_Lock();sReader=0;sReaderUser=0;for(i=0;i<3;++i)clear(i);PacmadMixer_Unlock(sr);}
-U8 PacmadMixer_IsPlaying(U16 ch)
+void PcmVoiceMixer_Stop(U16 ch)
+{U16 sr;if(ch>=3)return;sr=PcmVoiceMixer_Lock();if(sReader && ch==sStreamChannel)sReader=0;clear(ch);PcmVoiceMixer_Unlock(sr);}
+void PcmVoiceMixer_StopAll(void)
+{U16 sr,i;sr=PcmVoiceMixer_Lock();sReader=0;sReaderUser=0;for(i=0;i<3;++i)clear(i);PcmVoiceMixer_Unlock(sr);}
+U8 PcmVoiceMixer_IsPlaying(U16 ch)
 {return sEnabled && ch<3 && ((sReader && ch==sStreamChannel) || sChannels[ch].active);}
-const S8 *PacmadMixer_GetSample(U16 ch)
-{U16 sr;const S8 *p=0;if(ch>=3 || !sEnabled)return 0;sr=PacmadMixer_Lock();if(sChannels[ch].active)p=sChannels[ch].sample->data;PacmadMixer_Unlock(sr);return p;}
-U32 PacmadMixer_GetRemaining(U16 ch)
-{U16 sr;U32 n=0;if(ch>=3 || !sEnabled)return 0;sr=PacmadMixer_Lock();if(sChannels[ch].active)n=(U32)(sChannels[ch].end-sChannels[ch].current);PacmadMixer_Unlock(sr);return n;}
-void PacmadMixer_SetSaturation(U8 flag){sSaturate=!!flag;}
-void PacmadMixer_SetRasterDebug(U8 flag){sRaster=!!flag;}
-U32 PacmadMixer_GetUnderruns(void){U16 sr=PacmadMixer_Lock();U32 n=sUnderruns;PacmadMixer_Unlock(sr);return n;}
+const S8 *PcmVoiceMixer_GetSample(U16 ch)
+{U16 sr;const S8 *p=0;if(ch>=3 || !sEnabled)return 0;sr=PcmVoiceMixer_Lock();if(sChannels[ch].active)p=sChannels[ch].sample->data;PcmVoiceMixer_Unlock(sr);return p;}
+U32 PcmVoiceMixer_GetRemaining(U16 ch)
+{U16 sr;U32 n=0;if(ch>=3 || !sEnabled)return 0;sr=PcmVoiceMixer_Lock();if(sChannels[ch].active)n=(U32)(sChannels[ch].end-sChannels[ch].current);PcmVoiceMixer_Unlock(sr);return n;}
+void PcmVoiceMixer_SetSaturation(U8 flag){sSaturate=!!flag;}
+void PcmVoiceMixer_SetRasterDebug(U8 flag){sRaster=!!flag;}
+U32 PcmVoiceMixer_GetUnderruns(void){U16 sr=PcmVoiceMixer_Lock();U32 n=sUnderruns;PcmVoiceMixer_Unlock(sr);return n;}

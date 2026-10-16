@@ -104,3 +104,13 @@ slSpr_Xloop:                     rs.w    1
 slSpr_Yloop:                     rs.w    1
 slSpr_LeftMask:                  rs.w    1
 slSpr_sizeof:                    rs.b    0
+
+; Dirty chunks: packed to two-byte alignment, matching GCC -mshort ABI.
+        rsreset
+sGraphicChunk_mOffset:           rs.l    1
+sGraphicChunk_mHeight:           rs.w    1
+sGraphicChunk_sizeof:            rs.b    0
+        rsreset
+sGraphicChunkList_mActiveCount:  rs.w    1
+sGraphicChunkList_mChunkCount:   rs.w    1
+sGraphicChunkList_mChunks:       rs.b    0

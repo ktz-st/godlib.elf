@@ -3,9 +3,23 @@
 ######################################################################################
 
 Cutscenes are controlled by simple text files.
-These are compiled into .CUT binary files using the CUTBUILD command in toolbase.
+The original TOOLBASE compiles these into .CUT binary files using CUTBUILD.
 The format of this command is:
 CUTBUILD SourceTextFile DestBinFile
+
+CURRENT LOCAL STATUS (source audit: 2026-10-16)
+
+The local Python TOOLBASE subset does not implement CUTBUILD or SPLMAKE.
+CutScene_Parse() exists in cutscene/cutparse.c, but no native CUTBUILD host
+command is supplied by the current build. The command above describes the
+original toolchain, not a working command in the local Python subset.
+
+The text format below was checked against cutparse.c and cutscene.c. Runtime
+support is incomplete: SAMPLE_ENABLE/DISABLE/WAIT have no effect, and
+TEXT_ANIM_SET/WAIT do not animate or wait. Sample volume, position and loop
+fields are parsed data, not working cutscene audio controls. There is no built-in
+connection to PcmVoiceMixer or the other PCM mixers. See the complete command
+reference at the end for accepted commands and runtime limitations.
 
 The cutscene text files have two distinct sets of components: code and data.
 The data is comprised of Animations, Assets, Samples, Sprites, Pages, Texts & Vars.
@@ -25,15 +39,15 @@ Off      : Show Frame0, Frame0+1, ... Frame1, stop at frame1
 Looping  : Show Frame0, Frame0+1,  ... Frame1, loop back to Frame0 & repeat
 PingPong : Frame0, Frame0+1,  ... Frame1, Frame1-1 .. Frame0 .. repeat
 
-+--------------+-------+-------------------------------------+
-| FIELD        | TYPE  | DESCRIPTION                         |
-+--------------+-------+-------------------------------------+
-| SPEED        | FLOAT | Speed through animation (frames/vbl)|
-| FRAME0       | INT   | Index of first frame of animation   |
-| FRAME1       | INT   | Index of last frame of animation    |
-| FLAGLOOP     | BOOL  | Looping on/off                      |
-| FLAGPINGPONG | BOOL  | PingPong on/off                     |
-+--------------+-------+-------------------------------------+
++---------------+-------+--------------------------------------+
+| FIELD         | TYPE  | DESCRIPTION                          |
++---------------+-------+--------------------------------------+
+| SPEED         | FLOAT | Speed through animation (frames/vbl) |
+| FRAME0        | INT   | Index of first frame of animation    |
+| FRAME1        | INT   | Index of last frame of animation     |
+| FLAG_LOOP     | BOOL  | Looping on/off                       |
+| FLAG_PINGPONG | BOOL  | PingPong on/off                      |
++---------------+-------+--------------------------------------+
 
 example:
 
@@ -61,23 +75,23 @@ depending on how it is set up in code.
 
 An example from Clogged Up.
 
-+---------+----------+
-| FOLDER  | CONTEXT  |
-+---------+----------+
-| GLOBAL  | GLOBAL   |
-| EXP     | EXP	     |
-| FE      |	FE_GFX   |
-| INTRO   |	INTRO	 |
-| LEVSEL  |	LEVSEL   |
-| HISCORES|	HISCORES |
-| WORLD0  |	GAME_GFX |
-| WORLD1  |	GAME_GFX |
-| WORLD2  |	GAME_GFX |
-| WORLD3  |	GAME_GFX |
-| WORLD4  |	GAME_GFX |
-| WORLD5  |	GAME_GFX |
-| WORLD6  |	GAME_GFX |
-+---------+----------+
++----------+----------+
+| FOLDER   | CONTEXT  |
++----------+----------+
+| GLOBAL   | GLOBAL   |
+| EXP      | EXP      |
+| FE       | FE_GFX   |
+| INTRO    | INTRO    |
+| LEVSEL   | LEVSEL   |
+| HISCORES | HISCORES |
+| WORLD0   | GAME_GFX |
+| WORLD1   | GAME_GFX |
+| WORLD2   | GAME_GFX |
+| WORLD3   | GAME_GFX |
+| WORLD4   | GAME_GFX |
+| WORLD5   | GAME_GFX |
+| WORLD6   | GAME_GFX |
++----------+----------+
 
 As you can see, all worlds used the same context.
 This meant that the game could ask for an asset called "BOARD.PI1" in the context
@@ -89,23 +103,23 @@ in the GLOBAL context.
 
 So for a game with 3 cutscenes, we may map the data like this:
 
-+---------+----------+
-| FOLDER  | CONTEXT  |
-+---------+----------+
-| GLOBAL  | GLOBAL   |
-| CUT0    | CUTSCENE |
-| CUT1    | CUTSCENE |
-| CUT2    | CUTSCENE |
-+---------+----------+
++--------+----------+
+| FOLDER | CONTEXT  |
++--------+----------+
+| GLOBAL | GLOBAL   |
+| CUT0   | CUTSCENE |
+| CUT1   | CUTSCENE |
+| CUT2   | CUTSCENE |
++--------+----------+
 
 So the fields in an asset are:
 
-+--------------+--------+-------------------------------------+
-| FIELD        | TYPE   | DESCRIPTION                         |
-+--------------+--------+-------------------------------------+
-| FILENAME     | STRING | Name of the file                    |
-| CONTEXT      | STRING | Name of context                     |
-+--------------+--------+-------------------------------------+
++----------+--------+------------------+
+| FIELD    | TYPE   | DESCRIPTION      |
++----------+--------+------------------+
+| FILENAME | STRING | Name of the file |
+| CONTEXT  | STRING | Name of context  |
++----------+--------+------------------+
 
 Types of assets that can be used in cutscenes:
 
@@ -152,16 +166,18 @@ Sound samples should be recorded as 8-bit signed mono.
 You can make SPL files using TOOLBASE's SPLMAKE command.
 
 In this structure you can reference an asset which contains a .SPL file.
-You can specify the volume and stereo position of the sample.
+The structure stores volume and stereo position, but the current runtime does
+not play cutscene samples. STEROPOS is the exact legacy parser spelling
+(without the second E); use it even though the English word is "stereo".
 
-+--------------+--------+-------------------------------------+
-| FIELD        | TYPE   | DESCRIPTION                         |
-+--------------+--------+-------------------------------------+
-| ASSET        | STRING | Name of asset                       |
-| VOLUME       | INT    | Playback volume (0-255)             |
-| STEREOPOS    | INT    | Stereo position (0-255)             |
-| FLAGLOOP     | BOOL   | Looping flag                        |
-+--------------+--------+-------------------------------------+
++-----------+--------+-------------------------+
+| FIELD     | TYPE   | DESCRIPTION             |
++-----------+--------+-------------------------+
+| ASSET     | STRING | Name of asset           |
+| VOLUME    | INT    | Playback volume (0-255) |
+| STEROPOS  | INT    | Stereo position (0-255) |
+| FLAG_LOOP | BOOL   | Looping flag            |
++-----------+--------+-------------------------+
 
 example:
 
@@ -169,8 +185,8 @@ example:
 {
  ASSET    = "ASS_BANG"
  VOLUME   = 255
- STEREPOS = 128
- FLAGLOOP = 0
+ STEROPOS = 128
+ FLAG_LOOP = 0
 }
 
 
@@ -189,15 +205,15 @@ The animation is a reference to an animation chunk which specifies how the frame
 of the sprite will appear.
 
 
-+--------------+--------+-------------------------------------+
-| FIELD        | TYPE   | DESCRIPTION                         |
-+--------------+--------+-------------------------------------+
-| ASSET        | STRING | Name of sprite asset                |
-| ANIMATION    | STRING | Name of animation                   |
-| SPEED        | FLOAT  | Movement speed (pixels/vbl)         |
-| X            | INT    | Initial X pos                       |
-| Y            | INT    | Initial Y pos                       |
-+--------------+--------+-------------------------------------+
++-----------+--------+-----------------------------+
+| FIELD     | TYPE   | DESCRIPTION                 |
++-----------+--------+-----------------------------+
+| ASSET     | STRING | Name of sprite asset        |
+| ANIMATION | STRING | Name of animation           |
+| SPEED     | FLOAT  | Movement speed (pixels/vbl) |
+| X         | INT    | Initial X pos               |
+| Y         | INT    | Initial Y pos               |
++-----------+--------+-----------------------------+
 
 example:
 
@@ -219,22 +235,23 @@ Text is a text rendering object.
 You can specify the rectangle on screen in which the text should appear and the font
 to use.
 
-+--------------+--------+-------------------------------------+
-| FIELD        | TYPE   | DESCRIPTION                         |
-+--------------+--------+-------------------------------------+
-| ASSET        | STRING | Name of font asset                  |
-| PAGE         | STRING | Name of page to use                 |
-| X            | INT    | Initial X pos                       |
-| Y            | INT    | Initial Y pos                       |
-| WIDTH        | INT    | Rectangle width                     |
-| HEIGHT       | INT    | Rectangle height                    |
-+--------------+--------+-------------------------------------+
++--------+--------+---------------------+
+| FIELD  | TYPE   | DESCRIPTION         |
++--------+--------+---------------------+
+| ASSET  | STRING | Name of font asset  |
+| PAGE   | STRING | Name of page to use |
+| X      | INT    | Initial X pos       |
+| Y      | INT    | Initial Y pos       |
+| WIDTH  | INT    | Rectangle width     |
+| HEIGHT | INT    | Rectangle height    |
++--------+--------+---------------------+
 
 example:
 
 <TEXT NAME="TXT_SUBTITLE">
 {
  ASSET     = "ASS_TINYFONT"
+ PAGE      = "PGE_SUB0"
  X         = 10
  Y         = 170
  WIDTH     = 300
@@ -253,11 +270,11 @@ of play.
 All variables are referenced by a simple string name.
 
 
-+--------------+--------+-------------------------------------+
-| FIELD        | TYPE   | DESCRIPTION                         |
-+--------------+--------+-------------------------------------+
-| VARNAME      | STRING | Name of variable                    |
-+--------------+--------+-------------------------------------+
++---------+--------+------------------+
+| FIELD   | TYPE   | DESCRIPTION      |
++---------+--------+------------------+
+| VARNAME | STRING | Name of variable |
++---------+--------+------------------+
 
 example:
 
@@ -321,7 +338,7 @@ Turns on background gfx.
 	BG_GFX_DISABLE
 ######################################################################################
 
-Turns on background gfx.
+Turns off background gfx.
 
 
 ######################################################################################
@@ -394,7 +411,7 @@ example:
 Turns a sprite on.
 
 example:
-	SPRITE_DISABLE	SPR_BOSS
+	SPRITE_ENABLE	SPR_BOSS
 
 
 ######################################################################################
@@ -511,3 +528,59 @@ Waits for a specified number of VBLs
 
 example:
 	WAIT	30
+
+######################################################################################
+ COMPLETE PARSER COMMAND REFERENCE (2026-10-16)
+######################################################################################
+
+Names are chunk references of the indicated type. INT is an integer; FIX16_16
+is written as a decimal speed (for example 2.5). A dash means no arguments.
+
+COMMAND                 ARGUMENT TYPES
+CALL                    SCRIPT
+CALLBACK                INT
+BG_GFX_CLEAR            -
+BG_GFX_SET              ASSET
+BG_GFX_ENABLE           -
+BG_GFX_DISABLE          -
+FADE_SET                ASSET, INT
+FADE_TOBLACK            INT
+FADE_TOPI1              ASSET, INT
+FADE_TOWHITE            INT
+FADE_WAIT               -
+RETURN                  INT
+SAMPLE_ENABLE           SAMPLE
+SAMPLE_DISABLE          SAMPLE
+SAMPLE_WAIT             SAMPLE
+SPRITE_ANIM_SET         SPRITE, ANIMATION
+SPRITE_ANIM_WAIT        SPRITE
+SPRITE_DISABLE          SPRITE
+SPRITE_ENABLE           SPRITE
+SPRITE_GFX_SET          SPRITE, ASSET
+SPRITE_MOVE_TO          SPRITE, INT, INT
+SPRITE_MOVE_WAIT        SPRITE
+SPRITE_POS_SET          SPRITE, INT, INT
+SPRITE_SPEED_SET        SPRITE, FIX16_16
+TEXT_ANIM_SET           TEXT, INT
+TEXT_ANIM_WAIT          TEXT
+TEXT_ENABLE             TEXT
+TEXT_FONT_SET           TEXT, ASSET
+TEXT_DISABLE            TEXT
+TEXT_PAGE_SET           TEXT, PAGE
+VAR_SET                 VAR, INT
+WAIT                    INT
+
+Additional runtime notes:
+- BG_GFX_CLEAR removes the background asset and requests redraw.
+- FADE_TOPI1 takes a PI1 asset and fades to its palette over the supplied frames.
+- CALLBACK yields control with result 2; it does not invoke a C callback itself.
+- RETURN takes an INT according to the parser table (for example RETURN 0).
+  The runtime ignores that value and returns to the caller, or finishes the
+  thread if there is no caller.
+- SAMPLE_ENABLE, SAMPLE_DISABLE and SAMPLE_WAIT are no-ops. SAMPLE_WAIT does
+  not suspend the script. Original SPLMAKE requires the original TOOLBASE.
+- TEXT_ANIM_SET accepts a text reference and integer but does not set animation;
+  TEXT_ANIM_WAIT does not suspend the script.
+
+Parser acceptance is not a guarantee of runtime implementation. Script authors
+must not rely on the above no-op commands for audio or synchronization.

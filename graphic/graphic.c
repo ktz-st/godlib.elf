@@ -551,13 +551,16 @@ void	Graphic_ChunkList_Store( sGraphicChunkList * apList, sGraphicCanvas * apCan
 
 	U16 lY = apRect->mY;
 	U16 lH = apRect->mHeight;
-	U16 lOff = (U16)apCanvas->mpLineOffsets[ lY ];
+	U32 lOff = apCanvas->mpLineOffsets[ lY ];
 	S16 lCount = (lX1-lX0) + 1;
 
 	sGraphicChunk * lpChunk = &apList->mChunks[ apList->mActiveCount ];
+	if( !apRect->mWidth || !lH || lCount <= 0 ||
+        (U32)apList->mActiveCount + lCount > apList->mChunkCount )
+        return;
 	lOff += (lX0<<3);
 
-	Assert( ( apList->mActiveCount + lCount ) < apList->mChunkCount );
+	Assert( ( apList->mActiveCount + lCount ) <= apList->mChunkCount );
 
 	apList->mActiveCount += lCount;
 
@@ -569,63 +572,6 @@ void	Graphic_ChunkList_Store( sGraphicChunkList * apList, sGraphicCanvas * apCan
 		lpChunk++;
 		lCount--;
 	}
-}
-
-
-void	Graphic_ChunkList_ReStore( sGraphicChunkList * apList, sGraphicCanvas * apSrc, sGraphicCanvas * apDst )
-{
-	S16 lCount;
-	sGraphicChunk * lpChunk;
-	U8 * lpS;
-	U8 * lpD;
-	U16	lAddSrc;
-	U16 lAddDst;
-
-	lpS = (U8*)apSrc->mpVRAM;
-	lpD = (U8*)apDst->mpVRAM;
-
-	lAddSrc = (U16)(apSrc->mpLineOffsets[ 1 ]>>1);
-	lAddDst = (U16)(apSrc->mpLineOffsets[ 1 ]>>1);
-
-	lCount = apList->mActiveCount;
-
-
-	lpChunk = &apList->mChunks[ 0 ];
-	while( lCount )
-	{
-		U16 * lpSrc;
-		U16 * lpDst;
-		U16 lOff;
-		U16 lHeight;
-
-		lOff = lpChunk->mOffset;
-		lpSrc = (U16*)( lpS + lOff );
-		lpDst = (U16*)( lpD + lOff );
-
-		lHeight = lpChunk->mHeight;
-		while( lHeight )
-		{
-			lpDst[ 0 ] = lpSrc[ 0 ];
-			lpDst[ 1 ] = lpSrc[ 1 ];
-			lpDst[ 2 ] = lpSrc[ 2 ];
-			lpDst[ 3 ] = lpSrc[ 3 ];
-/*
-			lpDst[ 0 ] = 0xFFFF;
-			lpDst[ 1 ] = 0xFFFF;
-			lpDst[ 2 ] = 0xFFFF;
-			lpDst[ 3 ] = 0xFFFF;
-*/
-			lpSrc += lAddSrc;
-			lpDst += lAddDst;
-
-			lHeight--;
-		}
-
-		lpChunk++;
-		lCount--;
-	}
-
-	apList->mActiveCount = 0;
 }
 
 

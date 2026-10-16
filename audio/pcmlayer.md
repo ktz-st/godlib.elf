@@ -1,8 +1,8 @@
-# Desert gameplay mixer for GodLib
+# PcmLayerMixer
 
 Four-layer signed 8-bit mono PCM mixer recovered from desert/game.ovl. This is
 the gameplay sound path; the Lance/Paula MOD replay from title.ovl is separate.
-Include `godlib/audio/desertmix.h`. The optional module is linked from libgod.a
+Include `godlib/audio/pcmlayer.h`. The optional module is linked from libgod.a
 only when referenced. Call Platform_Init in supervisor mode before Init and
 DeInit before freeing samples or Platform_DeInit. STE/MegaSTE only; DMA ring
 placement outside the 24-bit address range is rejected. Use one DMA owner.
@@ -10,14 +10,14 @@ placement outside the 24-bit address range is rejected. Use one DMA owner.
 ## API and source ownership
 
 ```c
-if (DesertMixer_Init()) {
-    DesertMixer_Play(0, pcm, length, 1); /* base loop */
-    DesertMixer_Play(1, pcm, length, 1); /* additional loop */
-    DesertMixer_Play(2, pcm, length, 0); /* one-shot */
-    DesertMixer_SetRasterDebug(1);
+if (PcmLayerMixer_Init()) {
+    PcmLayerMixer_Play(0, pcm, length, 1); /* base loop */
+    PcmLayerMixer_Play(1, pcm, length, 1); /* additional loop */
+    PcmLayerMixer_Play(2, pcm, length, 0); /* one-shot */
+    PcmLayerMixer_SetRasterDebug(1);
     /* The GodLib VBL callback performs refills. */
-    DesertMixer_StopAll();
-    DesertMixer_DeInit();
+    PcmLayerMixer_StopAll();
+    PcmLayerMixer_DeInit();
 }
 ```
 
@@ -59,8 +59,8 @@ CPU time for refills, and avoid lengthy interrupt stalls. No timer is claimed.
 
 ## Raster CPU meter
 
-DesertMixer_SetRasterDebug, SgdlMixer_SetRasterDebug and
-SlugMixer_SetRasterDebug use LanceMod's palette-zero technique: save the old
+PcmLayerMixer_SetRasterDebug, PcmBlockMixer_SetRasterDebug and
+PcmFrameMixer_SetRasterDebug use LanceMod's palette-zero technique: save the old
 colour, write $0700 during the audio callback, restore afterwards. F9 toggles
 it in each mixer example. The red stripe shows elapsed callback time; it is
 not a numeric percentage or a CPU-cycle counter. It includes DMA scheduling
@@ -69,12 +69,12 @@ Debug disabled still incurs a flag check, without palette writes. Very short
 callbacks can finish inside the nonvisible vertical blanking interval, making
 their stripe invisible at the normal screen crop.
 
-SGDL at 12517 Hz fills 512 samples about every 40.9 ms, so its heavy stripe
-appears only on refill frames. SlugMix fills 250 samples every VBL. Desert
+PCM Block at 12517 Hz fills 512 samples about every 40.9 ms, so its heavy stripe
+appears only on refill frames. PCM Frame fills 250 samples every VBL. PCM Layer
 usually fills around 250 aligned bytes per VBL, depending on DMA position.
 Compare multiple frames with matching sample rate and number of active layers,
-not a single stripe. Desert skips inactive extra layers; SGDL/SlugMix retain
-their fixed source-addition loops. The fourth channel has no SlugMix equivalent.
+not a single stripe. PCM Layer skips inactive extra layers; PCM Block/PCM Frame retain
+their fixed source-addition loops. The fourth channel has no PCM Frame equivalent.
 
 ## Verification
 
@@ -87,3 +87,5 @@ all four layers, both loops past sample duration, one-shot completion, stop,
 DMA mode $81, live ring PCM comparison, raster toggling, palette restoration
 and ESC to TOS without CPU exceptions. Runtime evidence is in the example's
 analysis folder. Audio fidelity is not established by PCM checks alone; listening and real STE hardware testing are still needed.
+
+See the [PCM mixer guide](pcm-mixers.md) for backend comparison and name migration.

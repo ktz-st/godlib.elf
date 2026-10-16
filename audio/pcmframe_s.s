@@ -1,68 +1,68 @@
-; Extracted from Metal Slug, TEXT $20DB8..$21155. See slugmix.md.
+; Extracted from Metal Slug, TEXT $20DB8..$21155. See pcmframe.md.
 ; ELF symbol adaptation; original mixing instructions preserved.
     section text
-    xdef SlugMixer_Lock,SlugMixer_Unlock
-SlugMixer_Lock:
+    xdef PcmFrameMixer_Lock,PcmFrameMixer_Unlock
+PcmFrameMixer_Lock:
     move.w sr,d0
     ori.w #$0700,sr
     rts
-SlugMixer_Unlock:
+PcmFrameMixer_Unlock:
     move.w d0,sr
     rts
     ifd VERIFY_ORIGINAL
-gSlugMixerState equ $C36B0
+gPcmFrameMixerState equ $C36B0
     else
     section text
-    xref gSlugMixerState
-    xdef SlugMixer_CoreTick
-SlugMixer_CoreTick:
+    xref gPcmFrameMixerState
+    xdef PcmFrameMixer_CoreTick
+PcmFrameMixer_CoreTick:
     movem.l d2-d7/a2-a6,-(sp)
     bsr.w mslug_core
     movem.l (sp)+,d2-d7/a2-a6
     rts
     endc
-_BC36B6 equ gSlugMixerState+$6
-_BC36C6 equ gSlugMixerState+$16
-_BC36CE equ gSlugMixerState+$1E
-_BC36D2 equ gSlugMixerState+$22
-_BC36D6 equ gSlugMixerState+$26
-_BC36D7 equ gSlugMixerState+$27
-_BC36D8 equ gSlugMixerState+$28
-_BC36D9 equ gSlugMixerState+$29
-_BC36DA equ gSlugMixerState+$2A
-_BC36DB equ gSlugMixerState+$2B
-_BC36DC equ gSlugMixerState+$2C
-_BC36DD equ gSlugMixerState+$2D
-_BC36DE equ gSlugMixerState+$2E
-_BC36DF equ gSlugMixerState+$2F
-_BC36E0 equ gSlugMixerState+$30
-_BC36E1 equ gSlugMixerState+$31
-_BC36E2 equ gSlugMixerState+$32
-_BC36E3 equ gSlugMixerState+$33
-_BC36E4 equ gSlugMixerState+$34
-_BC36E5 equ gSlugMixerState+$35
-_BC36E6 equ gSlugMixerState+$36
-_BC36E7 equ gSlugMixerState+$37
-_BC36EF equ gSlugMixerState+$3F
-_BC36F1 equ gSlugMixerState+$41
-_BC36F2 equ gSlugMixerState+$42
-_BC36F3 equ gSlugMixerState+$43
-_BC36F5 equ gSlugMixerState+$45
-_BC36F6 equ gSlugMixerState+$46
-_BC36F7 equ gSlugMixerState+$47
-_BC36FB equ gSlugMixerState+$4B
-_BC36FF equ gSlugMixerState+$4F
-_BC3701 equ gSlugMixerState+$51
-_BC3702 equ gSlugMixerState+$52
-_BC3703 equ gSlugMixerState+$53
-_BC3705 equ gSlugMixerState+$55
-_BC3706 equ gSlugMixerState+$56
-_BC3708 equ gSlugMixerState+$58
-_BC3B08 equ gSlugMixerState+$458
-_BC3B0A equ gSlugMixerState+$45A
-_BC3F12 equ gSlugMixerState+$862
-_BC3F1A equ gSlugMixerState+$86A
-_BC3F1E equ gSlugMixerState+$86E
+_BC36B6 equ gPcmFrameMixerState+$6
+_BC36C6 equ gPcmFrameMixerState+$16
+_BC36CE equ gPcmFrameMixerState+$1E
+_BC36D2 equ gPcmFrameMixerState+$22
+_BC36D6 equ gPcmFrameMixerState+$26
+_BC36D7 equ gPcmFrameMixerState+$27
+_BC36D8 equ gPcmFrameMixerState+$28
+_BC36D9 equ gPcmFrameMixerState+$29
+_BC36DA equ gPcmFrameMixerState+$2A
+_BC36DB equ gPcmFrameMixerState+$2B
+_BC36DC equ gPcmFrameMixerState+$2C
+_BC36DD equ gPcmFrameMixerState+$2D
+_BC36DE equ gPcmFrameMixerState+$2E
+_BC36DF equ gPcmFrameMixerState+$2F
+_BC36E0 equ gPcmFrameMixerState+$30
+_BC36E1 equ gPcmFrameMixerState+$31
+_BC36E2 equ gPcmFrameMixerState+$32
+_BC36E3 equ gPcmFrameMixerState+$33
+_BC36E4 equ gPcmFrameMixerState+$34
+_BC36E5 equ gPcmFrameMixerState+$35
+_BC36E6 equ gPcmFrameMixerState+$36
+_BC36E7 equ gPcmFrameMixerState+$37
+_BC36EF equ gPcmFrameMixerState+$3F
+_BC36F1 equ gPcmFrameMixerState+$41
+_BC36F2 equ gPcmFrameMixerState+$42
+_BC36F3 equ gPcmFrameMixerState+$43
+_BC36F5 equ gPcmFrameMixerState+$45
+_BC36F6 equ gPcmFrameMixerState+$46
+_BC36F7 equ gPcmFrameMixerState+$47
+_BC36FB equ gPcmFrameMixerState+$4B
+_BC36FF equ gPcmFrameMixerState+$4F
+_BC3701 equ gPcmFrameMixerState+$51
+_BC3702 equ gPcmFrameMixerState+$52
+_BC3703 equ gPcmFrameMixerState+$53
+_BC3705 equ gPcmFrameMixerState+$55
+_BC3706 equ gPcmFrameMixerState+$56
+_BC3708 equ gPcmFrameMixerState+$58
+_BC3B08 equ gPcmFrameMixerState+$458
+_BC3B0A equ gPcmFrameMixerState+$45A
+_BC3F12 equ gPcmFrameMixerState+$862
+_BC3F1A equ gPcmFrameMixerState+$86A
+_BC3F1E equ gPcmFrameMixerState+$86E
 mslug_core:
     LEA       ($FFFF8902).W,A0            ; $020DB8 |
     LEA       ($FFFF8904).W,A1            ; $020DBC |

@@ -58,9 +58,10 @@ typedef	struct	sGraphicBox
 	S16	mY1;
 } sGraphicBox;
 
+/* Six-byte records with the Atari two-byte structure alignment. Rebuild clients. */
 typedef struct sGraphicChunk
 {
-	U16 mOffset;
+	U32 mOffset;
 	U16 mHeight;
 } sGraphicChunk;
 
@@ -71,7 +72,7 @@ typedef struct sGraphicChunkList
 	sGraphicChunk			mChunks[32];
 } sGraphicChunkList;
 
-#define mGODLIB_CHUNKLIST( _aName, _aSize )	U16 _aName[ (_aSize<<1) + 2 ] = { 0, _aSize }
+#define mGODLIB_CHUNKLIST( _aName, _aSize )	U16 _aName[ (_aSize*3) + 2 ] = { 0, _aSize }
 
 
 struct	sGraphicCanvas;
@@ -129,6 +130,7 @@ void	Graphic_FontPrintCentred( sGraphicCanvas * apCanvas, struct sFont * apFont,
 
 void	Graphic_ChunkList_Clear( sGraphicChunkList * apList );
 void	Graphic_ChunkList_Store( sGraphicChunkList * apList, sGraphicCanvas * apCanvas, const sGraphicRect * apRect );
+/* ASM restore: identical uniform layouts, even and non-overlapping storage. */
 void	Graphic_ChunkList_ReStore( sGraphicChunkList * apList, sGraphicCanvas * apSrc, sGraphicCanvas * apDst );
 
 #define GraphicCanvas_Blit( apCanvas, apCoords, apRect, apSrc )				apCanvas->mpFuncs->Blit( apCanvas, apCoords, apRect, apSrc )

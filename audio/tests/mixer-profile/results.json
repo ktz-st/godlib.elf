@@ -3,7 +3,7 @@
   "method": "per-instruction CPU cycles, idle busy loop, actual DMA/VBL playback; initialization excluded",
   "cases": [
     {
-      "mixer": "SGDL 12.5 kHz",
+      "mixer": "PCM Block 12.5 kHz",
       "active_channels": 0,
       "frames": 87,
       "vbl_calls": 87,
@@ -18,7 +18,7 @@
       "us_per_vbl": 1400.942528735632
     },
     {
-      "mixer": "SGDL 12.5 kHz",
+      "mixer": "PCM Block 12.5 kHz",
       "active_channels": 1,
       "frames": 86,
       "vbl_calls": 86,
@@ -33,7 +33,7 @@
       "us_per_vbl": 1380.0581395348838
     },
     {
-      "mixer": "SGDL 12.5 kHz",
+      "mixer": "PCM Block 12.5 kHz",
       "active_channels": 2,
       "frames": 86,
       "vbl_calls": 86,
@@ -48,7 +48,7 @@
       "us_per_vbl": 1380.7906976744187
     },
     {
-      "mixer": "SGDL 12.5 kHz",
+      "mixer": "PCM Block 12.5 kHz",
       "active_channels": 3,
       "frames": 87,
       "vbl_calls": 87,
@@ -63,7 +63,7 @@
       "us_per_vbl": 1360.4195402298851
     },
     {
-      "mixer": "SGDL 12.5 kHz",
+      "mixer": "PCM Block 12.5 kHz",
       "active_channels": 4,
       "frames": 86,
       "vbl_calls": 86,
@@ -78,7 +78,7 @@
       "us_per_vbl": 1376.406976744186
     },
     {
-      "mixer": "SGDL 25 kHz",
+      "mixer": "PCM Block 25 kHz",
       "active_channels": 0,
       "frames": 87,
       "vbl_calls": 87,
@@ -93,7 +93,7 @@
       "us_per_vbl": 2694.2528735632186
     },
     {
-      "mixer": "SGDL 25 kHz",
+      "mixer": "PCM Block 25 kHz",
       "active_channels": 1,
       "frames": 87,
       "vbl_calls": 87,
@@ -108,7 +108,7 @@
       "us_per_vbl": 2696.6609195402298
     },
     {
-      "mixer": "SGDL 25 kHz",
+      "mixer": "PCM Block 25 kHz",
       "active_channels": 2,
       "frames": 87,
       "vbl_calls": 87,
@@ -123,7 +123,7 @@
       "us_per_vbl": 2685.402298850575
     },
     {
-      "mixer": "SGDL 25 kHz",
+      "mixer": "PCM Block 25 kHz",
       "active_channels": 3,
       "frames": 87,
       "vbl_calls": 87,
@@ -138,7 +138,7 @@
       "us_per_vbl": 2687.82183908046
     },
     {
-      "mixer": "SGDL 25 kHz",
+      "mixer": "PCM Block 25 kHz",
       "active_channels": 4,
       "frames": 87,
       "vbl_calls": 87,
@@ -153,7 +153,7 @@
       "us_per_vbl": 2676.5862068965516
     },
     {
-      "mixer": "Slug 12.5 kHz",
+      "mixer": "PCM Frame 12.5 kHz",
       "active_channels": 0,
       "frames": 87,
       "vbl_calls": 87,
@@ -168,7 +168,7 @@
       "us_per_vbl": 609.6034482758621
     },
     {
-      "mixer": "Slug 12.5 kHz",
+      "mixer": "PCM Frame 12.5 kHz",
       "active_channels": 1,
       "frames": 87,
       "vbl_calls": 87,
@@ -183,7 +183,7 @@
       "us_per_vbl": 594.5
     },
     {
-      "mixer": "Slug 12.5 kHz",
+      "mixer": "PCM Frame 12.5 kHz",
       "active_channels": 2,
       "frames": 87,
       "vbl_calls": 87,
@@ -198,7 +198,7 @@
       "us_per_vbl": 589.7183908045977
     },
     {
-      "mixer": "Slug 12.5 kHz",
+      "mixer": "PCM Frame 12.5 kHz",
       "active_channels": 3,
       "frames": 87,
       "vbl_calls": 87,
@@ -213,7 +213,7 @@
       "us_per_vbl": 577.8620689655172
     },
     {
-      "mixer": "Desert 12.5 kHz",
+      "mixer": "PCM Layer 12.5 kHz",
       "active_channels": 0,
       "frames": 87,
       "vbl_calls": 87,
@@ -228,7 +228,7 @@
       "us_per_vbl": 554.9885057471264
     },
     {
-      "mixer": "Desert 12.5 kHz",
+      "mixer": "PCM Layer 12.5 kHz",
       "active_channels": 1,
       "frames": 87,
       "vbl_calls": 87,
@@ -243,7 +243,7 @@
       "us_per_vbl": 378.17816091954023
     },
     {
-      "mixer": "Desert 12.5 kHz",
+      "mixer": "PCM Layer 12.5 kHz",
       "active_channels": 2,
       "frames": 87,
       "vbl_calls": 87,
@@ -258,7 +258,7 @@
       "us_per_vbl": 1115.2413793103449
     },
     {
-      "mixer": "Desert 12.5 kHz",
+      "mixer": "PCM Layer 12.5 kHz",
       "active_channels": 3,
       "frames": 87,
       "vbl_calls": 87,
@@ -273,7 +273,7 @@
       "us_per_vbl": 1816.655172413793
     },
     {
-      "mixer": "Desert 12.5 kHz",
+      "mixer": "PCM Layer 12.5 kHz",
       "active_channels": 4,
       "frames": 87,
       "vbl_calls": 87,

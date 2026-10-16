@@ -1,24 +1,24 @@
-# SGDL mixer for GodLib
+# PcmBlockMixer
 
 Four-channel signed 8-bit mono PCM mixer by OrionSoft, recovered from the SGDL
-object and transcribed to vasm Motorola syntax. Include `godlib/audio/sgdlmix.h`.
+object and transcribed to vasm Motorola syntax. Include `godlib/audio/pcmblock.h`.
 The module is linked from libgod.a only when referenced. It is independent of
-AudioMixer, SlugMixer and MOD replay; use only one DMA owner at a time.
+AudioMixer, PcmFrameMixer and MOD replay; use only one DMA owner at a time.
 
 ## Use
 
-Call Platform_Init in supervisor mode before SgdlMixer_Init. Check its return
+Call Platform_Init in supervisor mode before PcmBlockMixer_Init. Check its return
 value. STE and MegaSTE are supported; other machine types are rejected.
 Platform's audio lifecycle saves/restores the hardware; remove the mixer before
 Platform_DeInit and before freeing samples.
 
 ```c
-if (SgdlMixer_Init(eSGDLMIXER_FREQ_25K)) {
-    SgdlMixer_Play(0, pcm25, paddedLength, 0);
-    SgdlMixer_Play(1, pcm25, paddedLength, 1);
+if (PcmBlockMixer_Init(ePCMBLOCK_FREQ_25K)) {
+    PcmBlockMixer_Play(0, pcm25, paddedLength, 0);
+    PcmBlockMixer_Play(1, pcm25, paddedLength, 1);
     /* VBL callback performs mixing while the main loop runs. */
-    SgdlMixer_Stop(1);
-    SgdlMixer_DeInit();
+    PcmBlockMixer_Stop(1);
+    PcmBlockMixer_DeInit();
 }
 ```
 
@@ -29,7 +29,7 @@ entire padded sample. Odd byte alignment is allowed. The wrapper rejects invalid
 channel numbers, null pointers, non-block lengths and wrapping end addresses.
 It does not load WAV files or resample at runtime.
 
-SgdlMixer_SetFrequency changes the DMA rate, stops every channel and clears
+PcmBlockMixer_SetFrequency changes the DMA rate, stops every channel and clears
 queued audio. Use samples prepared for the new rate after switching. Changing
 only the DMA mode while retaining the same PCM changes speed/pitch. The example
 ships two versions of the same voice to demonstrate a rate/quality switch.
@@ -62,7 +62,7 @@ mask interrupts and shared channel pointers are volatile.
 Input: workspace `sgdl/sgdl/lib/snd_asm.o`, a.out-zero-big object.
 SHA256: `4f2cda19dc0525a7090d3f9d3af4c388bf375049d196895dd72b14b1b61beb3a`.
 Disassembly with relocation records and rg-dis inspection are retained in
-`godlib.spl/sgdlmix/analysis`. Original TEXT offsets are section-relative,
+`godlib.spl/pcmblock/analysis`. Original TEXT offsets are section-relative,
 not file offsets or runtime addresses:
 
 - $0000..$0037: DMA initialization (mode $82).
@@ -82,12 +82,12 @@ original offsets and the existing SGDL objects are not modified.
 
 ## Verification
 
-The startup test in `godlib.spl/sgdlmix/verify.c` executes the actual vasm
+The startup test in `godlib.spl/pcmblock/verify.c` executes the actual vasm
 68000 core before DMA starts. It checks all 16 active-channel masks, full byte
 values and wrapping sums, output guards, one-shot endings, two-block progress,
 and looping on all four channels.
 
-Builds: GodLib and SGDLMIX.TOS pass with the existing GCC ELF/vasm toolchain.
+Builds: GodLib and PCMBLOCK.TOS pass with the existing GCC ELF/vasm toolchain.
 Hatari 2.6.1, STE 8 MHz, 4 MB, TOS 2.06, RGB 50 Hz, sound enabled: self-test
 PASS; four-channel loops remain active past sample duration at both rates;
 DMA mode reads $82/$81 and both halves of the live DMA ring match the
@@ -99,7 +99,9 @@ has not been assessed by listening or recording. Real hardware remains untested.
 
 ## Raster CPU display
 
-SgdlMixer_SetRasterDebug enables LanceMod-style red palette-zero stripes during
+PcmBlockMixer_SetRasterDebug enables LanceMod-style red palette-zero stripes during
 the audio callback. The old colour is restored afterwards; DeInit disables
 the meter. F9 toggles it in the example. It measures visible callback duration,
-not a numeric CPU percentage. See desertmix.md for comparison guidance.
+not a numeric CPU percentage. See pcmlayer.md for comparison guidance.
+
+See the [PCM mixer guide](pcm-mixers.md) for backend comparison and name migration.

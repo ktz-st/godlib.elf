@@ -2,37 +2,37 @@
 ; Original GCC stack ABI and mixing instructions retained.
     section .text
     ifd VERIFY_ORIGINAL
-gDesertMixerState equ $2da74
+gPcmLayerMixerState equ $2da74
     else
-    xref gDesertMixerState
-    xdef DesertMixer_CoreFill,DesertMixer_Lock,DesertMixer_Unlock
-DesertMixer_Lock:
+    xref gPcmLayerMixerState
+    xdef PcmLayerMixer_CoreFill,PcmLayerMixer_Lock,PcmLayerMixer_Unlock
+PcmLayerMixer_Lock:
     move.w sr,d0
     ori.w #$0700,sr
     rts
-DesertMixer_Unlock:
+PcmLayerMixer_Unlock:
     move.w d0,sr
     rts
 ; GodLib fastcall: D0=ring offset, D1=byte count (both U32).
-DesertMixer_CoreFill:
+PcmLayerMixer_CoreFill:
     move.l d1,-(sp)
     move.l d0,-(sp)
     bsr.w Desert_1F78
     addq.l #8,sp
     rts
     endc
-_B2DA74 equ gDesertMixerState+$0
-_B2DA78 equ gDesertMixerState+$4
-_B2DA7C equ gDesertMixerState+$8
-_B2DA80 equ gDesertMixerState+$c
-_B2DA84 equ gDesertMixerState+$10
-_B2DA88 equ gDesertMixerState+$14
-_B2DA8C equ gDesertMixerState+$18
-_B2DA90 equ gDesertMixerState+$1c
-_B2DB2C equ gDesertMixerState+$b8
-_B2DB80 equ gDesertMixerState+$10c
-_B2DB84 equ gDesertMixerState+$110
-_B2DB8C equ gDesertMixerState+$118
+_B2DA74 equ gPcmLayerMixerState+$0
+_B2DA78 equ gPcmLayerMixerState+$4
+_B2DA7C equ gPcmLayerMixerState+$8
+_B2DA80 equ gPcmLayerMixerState+$c
+_B2DA84 equ gPcmLayerMixerState+$10
+_B2DA88 equ gPcmLayerMixerState+$14
+_B2DA8C equ gPcmLayerMixerState+$18
+_B2DA90 equ gPcmLayerMixerState+$1c
+_B2DB2C equ gPcmLayerMixerState+$b8
+_B2DB80 equ gPcmLayerMixerState+$10c
+_B2DB84 equ gPcmLayerMixerState+$110
+_B2DB8C equ gPcmLayerMixerState+$118
 
 Desert_1F78:
     LEA       -$C(A7),A7

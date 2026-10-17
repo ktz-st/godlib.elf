@@ -88,45 +88,6 @@ returns zero. Repeated `StopVbl`/`ShutdownPaula` and failed-start cleanup are sa
 Sample preparation modifies the loaded MOD, as before. Reload the original MOD
 before preparing it again; these changes do not make `LanceMod_Init` idempotent.
 
-## Verification
-
-`music/tests/lancemod-memory/run.py` builds and runs a target test on STE, 8 MHz,
-1 MiB, **German TOS 1.62**. It guards every replay heap allocation, exercises
-empty and sparse sample banks/short loops/EF1, tests malformed files, allocation
-failures, same-rate reinitialization, frequency changes and repeated shutdown.
-It records generated code sizes and allocation sizes for each module/rate.
-
-With `--baseline PATH`, the path supplies the pre-change Lance source files.
-The baseline test increases only its static code capacity to 151114 bytes to
-avoid the known 50 kHz overflow. Every generated PCM byte is recorded and compared
-between baseline and optimized code. Generated binaries, copied fixtures and PCM
-captures stay in the ignored `build/` directory. `results.json` records the matrix
-and per-case SHA256 checksums.
-
-The completed comparison used five real modules (LOSTPARO, BOOTUP, CANNONFO,
-QUICKIE and 4matwave) plus two synthetic fixtures, each at all three rates:
-21000 mixer calls per implementation and **49000000 identical PCM bytes**.
-Allocation guards, malformed-input tests, injected workspace/scratch allocation
-failures, repeated initialization/shutdown and DMA-stop assertions all pass.
-For the three supplied example modules, combined savings in module allocation
-plus large workspace buffers are:
-
-| Module | Saved at 12.5 kHz | Saved at 25 kHz |
-| --- | ---: | ---: |
-| LOSTPARO.MOD | 51774 bytes | 18600 bytes |
-| BOOTUP.MOD | 47126 bytes | 13952 bytes |
-| CANNONFO.MOD | 47126 bytes | 13952 bytes |
-
-This comparison excludes small state structures, executable size changes and
-allocator overhead. The 50 kHz comparison requires the corrected baseline size.
-
-The graphical `godlib.spl/lancemod` example remains the VBL/DMA integration test;
-its framebuffer verifier also checks visualizer ages, both pages and exit.
-
-Live 25 kHz VBL/DMA tests of LOSTPARO, BOOTUP and CANNONFO also pass on the same
-German TOS 1.62 / 8 MHz / 1 MiB setup, with no missed VBLs and clean exit/DMA stop.
-See `godlib.spl/lancemod/analysis/live-memory-results.json`.
-
 The optional `GetOscilloscope` getter supplies four pitched, volume-scaled source
 previews without changing replay state. O switches bars/scopes in the example;
 V hides/shows the selected mode. See [the shared scope API](modscope.md).

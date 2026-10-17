@@ -61,39 +61,12 @@ with the existing bar renderer/artwork. Its 512-byte signed-Y lookup removes
 runtime multiply/divide from point plotting. The getters/sampler are in GodLib;
 the screen layout and XOR renderer belong to the examples.
 
-## Verification
-
-- `music/tests/modscope/run.py`: ASM sampler versus an independent target C
-  oracle, 256 configurations / 1024 voices. Covers loop overshoot, one-shots,
-  short loops, signed seven/eight-bit data, invalid/idle voices, volume clamp
-  and guarded odd output pointers. No faults or output guard violations.
-- `music/tests/{lancemod,leonardmod,wizzcat}-memory/run.py --scopes`: calls the
-  respective getter after every mixed block, with destination guards. **42000
-  calls** across 21 Lance, 14 Leonard and 7 Wizzcat module/rate combinations.
-  PCM SHA256 values match every pre-scope result; memory guards remain intact.
-- `godlib.spl/lancemod/analysis/verify-scopes.py`: boots all four executables on
-  STE / 8 MHz / 1 MiB / German TOS 1.62. Independently reconstructs the entire
-  screen from original bar artwork or captured signed scope samples. Checks both
-  pages, four active traces, bars/scopes/off transitions and clean DMA/TOS exit.
-  Results are in `scope-results.json` next to the verifier.
-
-To build all variants before the visual test:
-
-```sh
-make -C godlib
-make -C godlib.spl/lancemod debug
-make -C godlib.spl/leonard debug
-make -C godlib.spl/leonard RATE=12 debug
-make -C godlib.spl/wizzcat debug
-python3 godlib.spl/lancemod/analysis/verify-scopes.py
-```
-
 ## ICE delayed stereo XY plots
 
 The third example mode adapts Techwave's `MODOSC.S` from ICE's Digital World II:
 `pixels_out` / `oscillo_l` / `oscillo_r`, `xyput` and `pixels_clear`.
 Source path and hash are in
-`godlib.spl/lancemod/analysis/ice-xy-source.json`; the original source is unchanged.
+`godlib.spl/lancemod/assets/ice-xy-source.json`; the original source is unchanged.
 
 Unlike the four channel source previews, this mode uses **actual mixed stereo
 PCM**. Each replay now exposes `*_GetStereoOscilloscope(S8 samples[328])`.
@@ -127,16 +100,6 @@ clear addresses and screen/VBL/shifter ownership with GodLib's normal lifecycle.
 The XY drawing regions have a plain black background; full-word clearing is
 valid there. Page history is reset on mode/visibility transitions.
 
-`analysis/verify-scopes.py` now also verifies every XY pixel and saved clear
-offset, switching through all three modes and hidden state on both pages.
-Its updated output is `analysis/xy-results.json`. The guarded memory harnesses
-with `--scopes` call both waveform getters each block and compare PCM hashes
-with the pre-visualizer results.
-
-Verified XY integration: 56 complete framebuffer comparisons for each of the
-four executables (224 total), including both pages and clean exit on German
-TOS 1.62. Both getters passed the 42000-block guarded PCM regression.
-
 ## Stereo and mono time traces
 
 The fourth and fifth example modes use the same actual PCM snapshot as ICE XY.
@@ -160,8 +123,4 @@ only the first 128 history bytes. No additional audio buffers or heap allocation
 are needed. Zero traces are initialized on a page transition; subsequent frames
 XOR old/new marks only. Native sample rate determines the time span.
 
-O cycles **all five modes**, and V hides/shows the selected mode. The full-frame
-verifier covers stereo and mono, all transitions, both pages, hiding/showing,
-and injected PCM extremes (-128/+127), silence and opposite-channel cancellation.
-It also checks restoration after synthetic frames. Results:
-`godlib.spl/lancemod/analysis/stereo-results.json`.
+O cycles **all five modes**, and V hides/shows the selected mode.

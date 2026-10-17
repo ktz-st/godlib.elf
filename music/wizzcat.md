@@ -112,20 +112,6 @@ as Lance/Leonard: CH1/CH4 left, CH2/CH3 right. V toggles bars, F1 colours palett
 zero during native replay and restores it afterwards. 1/2 jump to the first/last
 song position; Space/Esc exits. `Wizzcat_Jump` rejects out-of-range positions.
 
-## Verification
-
-`tests/wizzcat-memory/run.py` runs on STE / 8 MHz / 1 MiB / German TOS 1.62.
-Canaries guard allocations during preparation, mixing and free. Tests cover five
-real MODs and sparse/empty synthetic instruments, 1000 blocks each, transient
-scratch release, workspace/scratch OOM, invalid MODs, undersized margins,
-repeated preparation rejection and unloading a playing module. Optional
-`--baseline <old sources>` checks exact tables and 10 MB PCM from five real MODs.
-See the test README and `results.json`.
-
-`godlib.spl/wizzcat/analysis/verify-hatari.py` independently checks native DMA audio,
-complete rendered pages against the original artwork, both screen buffers, all
-four channels, V/F1 controls and clean return to TOS.
-
 The optional `GetOscilloscope` getter supplies four pitched, volume-scaled source
 previews without changing replay state. O switches bars/scopes in the example;
 V hides/shows the selected mode. See [the shared scope API](modscope.md).

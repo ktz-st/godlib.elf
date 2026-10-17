@@ -77,22 +77,6 @@ Ages saturate at 0x4000; stopped playback returns idle. `SetRasterDebug(1)` colo
 palette zero during Tick and restores it afterwards; this shows elapsed replay
 time rather than a numeric CPU percentage.
 
-## Verification
-
-`tests/leonardmod-memory/run.py` runs on STE / 8 MHz / 1 MiB with German TOS 1.62.
-It checks allocation guards during mixing and free, generated code lengths,
-module/workspace accounting, allocation failure, rate changes, repeated cleanup,
-DMA/trap restoration and malformed MOD rejection. Five real modules plus sparse
-and empty synthetic modules run for 1000 blocks at each rate. An independent
-PCM oracle checks periods 108, 113, 127 and 141 with a six-byte loop at 12.5K.
-The optional `--baseline <source snapshot>` compares 25K PCM against the old
-private example core. See `tests/leonardmod-memory/README.md` and `results.json`.
-
-The example's separate native-DMA tests exercise playback, four activity bars,
-both screen pages, V/F1 controls and exit. The UGH reference is read-only: it uses
-Leonard with **TFMX**, whereas this module exposes **ProTracker MOD** playback.
-Source notices and hashes are retained in `leonard-source.json`.
-
 The optional `GetOscilloscope` getter supplies four pitched, volume-scaled source
 previews without changing replay state. O switches bars/scopes in the example;
 V hides/shows the selected mode. See [the shared scope API](modscope.md).

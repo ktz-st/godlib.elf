@@ -81,6 +81,7 @@ SOURCES_S = \
 	file/file_s.s \
 	gemdos/gemdos_s.s \
 	graphic/chunk_s.s \
+	graphic/grf_reflect_s.s \
 	graphic/grf_16_s.s \
 	graphic/grf_4_s.s \
 	graphic/grf_b4_s.s \

@@ -1,9 +1,12 @@
 # GodLib documentation
 
+- [Missing Link REFLECT](reflection.md): native ASM water reflection and original-code verification.
 - [Module notes](module-notes.md): source survey, integration details and known
   limitations across the library.
 - [Cutscene format](cutscene.txt): legacy text DSL, corrected field names,
   complete parser command signatures and current runtime limitations.
+- [8x8 ASM text scrollers](../../godlib.spl/scroll8/README.md): MCoder versus
+  optimized Griff, cache layouts, CPU measurements and integration constraints.
 - [Library overview and build](../readme.md).
 - [PCM mixer guide](../audio/pcm-mixers.md): backend selection, rates, loops,
   arithmetic, migration and links to individual mixer manuals.

@@ -56,6 +56,13 @@ It is controlled by `dCLI`:
 Other systems use `Cli_PrintLine` or the `Cli_PrintfLine*` helpers for optional
 debug output.
 
+## graphic reflection effect
+
+`Graphic_Reflect()` in `graphic/reflection.h` implements the STOS Missing Link
+REFLECT water algorithm in 68000 ASM, with per-instance state. It requires
+320x200 four-plane buffers with 160-byte stride. See [reflection.md](reflection.md)
+for exact behavior, original-code comparison and the castle example.
+
 ## reflect
 
 `godlib/reflect` is a very small reflection/type-description layer used to map
@@ -3848,6 +3855,36 @@ Important limitations and risks:
   unexpected glyph data.
 - It writes whole 8x8 cells; background pixels inside the cell are cleared to
   colour 0 by `Font8x8_PrintColour()`.
+
+
+### ASM text scrolling example
+
+[`godlib.spl/scroll8`](../../godlib.spl/scroll8/README.md) uses `gFont8x8`
+with two example-local 68000 scrollers, MCoder and Griff. These are not
+additional `Font8x8_*` library entry points. Both render a 320x8 one-plane
+strip at 2 pixels per frame on ST/STE; their screen-copy code assumes the
+standard 160-byte screen stride.
+
+Griff keeps only eight even phases, with eight 84-byte rows per phase:
+42 bytes of circular data plus a duplicate per row. Its cache is **5376 bytes**
+plus eight guard bytes, down from 16384 plus guards. The extra word beyond
+the 40-byte viewport is required for incoming character-pair merging.
+Unused phase generation is removed, register saves are reduced and row loops
+are unrolled. One-pixel scrolling requires changes to phase storage and update
+logic; changing the increment alone does not work.
+
+Hatari-HRDB, ST/68000 at 8 MHz, 1 MB, TOS 2.06, PAL, measured Griff at
+**4312 cycles / 0.539 ms / 2.69%** per update, versus 5257 cycles / 3.28%
+previously (18.0% fewer cycles). MCoder uses 2560 cache bytes and about
+6598 cycles / 4.12%. These are kernel costs including their screen copies,
+not whole-program CPU usage. Timing bands are disabled for profiling.
+
+The example records 819 complete-screen reference comparisons across ST/TOS
+2.06 and STE/TOS 2.06/1.62, including all reachable phase/ring positions,
+pause, text wrap, mode changes and clean exit, without missed VBLs.
+See its [optimization results](../../godlib.spl/scroll8/analysis/griff-optimization.json),
+[verification summary](../../godlib.spl/scroll8/analysis/verification-summary.json)
+and README for reproduction commands and visible CPU-band checks.
 
 ## packer
 

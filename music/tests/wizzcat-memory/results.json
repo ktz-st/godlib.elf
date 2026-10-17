@@ -1,0 +1,133 @@
+{
+  "new": {
+    "errors": 0,
+    "frames": 7000,
+    "records": [
+      {
+        "heap_bytes": 74480,
+        "workspace_bytes": 19510,
+        "init_hz200_ticks": 152,
+        "pcm_hash": 833193359,
+        "module_bytes": 54960,
+        "pcm_sha256": "873495da124c16c883a23a9f2734dce41a25ae246fd85147849dba453b6f3d3e"
+      },
+      {
+        "heap_bytes": 128068,
+        "workspace_bytes": 44756,
+        "init_hz200_ticks": 76,
+        "pcm_hash": 3277673554,
+        "module_bytes": 83302,
+        "pcm_sha256": "81fe61d43e9a39408d4f7123ce36a0549dc6fd2b9d87f9b0e3702537174e9589"
+      },
+      {
+        "heap_bytes": 293994,
+        "workspace_bytes": 44804,
+        "init_hz200_ticks": 194,
+        "pcm_hash": 3707554037,
+        "module_bytes": 249180,
+        "pcm_sha256": "ed3d04c1e25c31586380d57a46a28c22cae57a16cbb746875649076c5f5b6ff4"
+      },
+      {
+        "heap_bytes": 42478,
+        "workspace_bytes": 19140,
+        "init_hz200_ticks": 24,
+        "pcm_hash": 67947719,
+        "module_bytes": 23328,
+        "pcm_sha256": "75d589f6e470304d3228a3a33ef4fbae0f06c360aa67e304a0e48a112c878856"
+      },
+      {
+        "heap_bytes": 130980,
+        "workspace_bytes": 98678,
+        "init_hz200_ticks": 40,
+        "pcm_hash": 1907662229,
+        "module_bytes": 32292,
+        "pcm_sha256": "54f142ec2990cabf492519db3f48e3d29865a1225ba7e7f416218eaeb967bc87"
+      },
+      {
+        "heap_bytes": 14960,
+        "workspace_bytes": 12804,
+        "init_hz200_ticks": 8,
+        "pcm_hash": 1496899808,
+        "module_bytes": 2146,
+        "pcm_sha256": "42ab97e362c74ed735f83df5fff4d6e75d46052ccbb6d07074e395bccb1a486b"
+      },
+      {
+        "heap_bytes": 5322,
+        "workspace_bytes": 3204,
+        "init_hz200_ticks": 3,
+        "pcm_hash": 305419896,
+        "module_bytes": 2108,
+        "pcm_sha256": "13aea96040f2133033d103008d5d96cfe98b3361f7202d77bea97b2424a7a6cd"
+      }
+    ],
+    "faults": [],
+    "pcm_bytes": 14000000,
+    "tables_sha256": "c53a091ed28d43559c2291f683baa37ff4d047bcc15c7eec5983730f6bb34e9c",
+    "module_sources": [
+      "godlib.spl/lancemod/LOSTPARO.MOD",
+      "godlib.spl/lancemod/BOOTUP.MOD",
+      "godlib.spl/lancemod/CANNONFO.MOD",
+      "godlib.spl/wizzcat/QUICKIE.MOD",
+      "atari-ste-protracker-23f/lance/4matwave.mod",
+      "synthetic sparse/short loops",
+      "synthetic empty samples"
+    ]
+  },
+  "old": {
+    "errors": 0,
+    "frames": 5000,
+    "records": [
+      {
+        "heap_bytes": 186041,
+        "workspace_bytes": 131072,
+        "init_hz200_ticks": 542,
+        "pcm_hash": 833193359,
+        "module_bytes": 54960,
+        "pcm_sha256": "873495da124c16c883a23a9f2734dce41a25ae246fd85147849dba453b6f3d3e"
+      },
+      {
+        "heap_bytes": 214383,
+        "workspace_bytes": 131072,
+        "init_hz200_ticks": 580,
+        "pcm_hash": 3277673554,
+        "module_bytes": 83302,
+        "pcm_sha256": "81fe61d43e9a39408d4f7123ce36a0549dc6fd2b9d87f9b0e3702537174e9589"
+      },
+      {
+        "heap_bytes": 380261,
+        "workspace_bytes": 131072,
+        "init_hz200_ticks": 699,
+        "pcm_hash": 3707554037,
+        "module_bytes": 249180,
+        "pcm_sha256": "ed3d04c1e25c31586380d57a46a28c22cae57a16cbb746875649076c5f5b6ff4"
+      },
+      {
+        "heap_bytes": 154409,
+        "workspace_bytes": 131072,
+        "init_hz200_ticks": 529,
+        "pcm_hash": 67947719,
+        "module_bytes": 23328,
+        "pcm_sha256": "75d589f6e470304d3228a3a33ef4fbae0f06c360aa67e304a0e48a112c878856"
+      },
+      {
+        "heap_bytes": 163373,
+        "workspace_bytes": 131072,
+        "init_hz200_ticks": 545,
+        "pcm_hash": 1907662229,
+        "module_bytes": 32292,
+        "pcm_sha256": "54f142ec2990cabf492519db3f48e3d29865a1225ba7e7f416218eaeb967bc87"
+      }
+    ],
+    "faults": [],
+    "pcm_bytes": 10000000,
+    "tables_sha256": "c53a091ed28d43559c2291f683baa37ff4d047bcc15c7eec5983730f6bb34e9c",
+    "module_sources": [
+      "godlib.spl/lancemod/LOSTPARO.MOD",
+      "godlib.spl/lancemod/BOOTUP.MOD",
+      "godlib.spl/lancemod/CANNONFO.MOD",
+      "godlib.spl/wizzcat/QUICKIE.MOD",
+      "atari-ste-protracker-23f/lance/4matwave.mod"
+    ]
+  },
+  "baseline": "PASS: 29728 table bytes and 10 MB PCM identical across five real MODs"
+}

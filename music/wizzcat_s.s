@@ -11,7 +11,7 @@
 *-------------------------------------------------------------------------*
 
 	xdef 	WIZinit,WIZmodInit,WIZplay,WIZrundma,WIZstereo,WIZfrontbuf,WIZbackbuf,WIZgetInfo,WIZjump
-	xdef	Wizzcat_Vbl
+	xdef	Wizzcat_Vbl,WIZsetScratch,Wizzcat_GetVisualizer,Wizzcat_SetRasterDebug,WIZsetActive
 
 *-------------------------------------------------------------------------*
 cpu:		set	0	* Time cpu	
@@ -41,6 +41,115 @@ Wizzcat_VblChain:
 
 *-------------------------------------------------------------------------*
 
+Wizzcat_GetVisualizer:
+        move.l a0,d0
+        beq.s .return
+        move.w sr,d1
+        ori.w #$700,sr
+        tst.b WizActive
+        beq.s .idle
+        move.l WizAge,(a0)+
+        move.l WizAge+4,(a0)
+        bra.s .done
+.idle:
+        move.l #$40004000,(a0)+
+        move.l #$40004000,(a0)
+.done:
+        move.w d1,sr
+.return:
+        rts
+Wizzcat_SetRasterDebug:
+        move.b d0,WizRaster
+        rts
+WIZsetActive:
+        move.b d0,WizActive
+        rts
+WIZsetScratch:
+        move.l a0,WizScratchEnd
+        move.l a1,WizSilence
+        rts
+WizScratchEnd: dc.l 0
+WizSilence: dc.l 0
+WizAge: dc.w $4000,$4000,$4000,$4000
+WizRaster: dc.b 0
+WizActive: dc.b 0
+WizSavedColour: dc.w 0
+
+
+        xdef Wizzcat_GetOscilloscope
+        xref ModScope_Sample
+
+; A0 -> 4*64 S8 samples; main-loop supervisor API, no retained pointers.
+Wizzcat_GetOscilloscope:
+        move.l a0,d0
+        beq .return
+        movem.l d2-d7/a2-a6,-(sp)
+        move.l a0,a6
+        suba.w #96,sp
+        move.l sp,a0
+        move.w sr,d7
+        ori.w #$700,sr
+        lea wiz1lc(pc),a1
+        lea aud1lc(pc),a2
+        moveq #3,d6
+.voice:
+        move.l (a1),d0
+        move.l d0,d1
+        moveq #0,d2
+        move.w 10(a1),d2
+        add.l d2,d0
+        move.l d0,(a0)+
+        add.l 4(a1),d1
+        move.l d1,(a0)+
+        moveq #0,d2
+        move.w 8(a1),d2
+        sub.l d2,d1
+        move.l d1,(a0)+
+        move.l (a1),d1
+        add.l 4(a1),d1
+        move.l d1,(a0)+
+        move.w 6(a2),(a0)+
+        move.w 8(a2),(a0)+
+        clr.w (a0)+
+        moveq #0,d0
+        tst.l 4(a1)
+        beq.s .inactive
+        move.b WizActive(pc),d0
+.inactive:
+        move.w d0,(a0)+
+        lea 14(a1),a1
+        lea 16(a2),a2
+        dbf d6,.voice
+        move.w d7,sr
+        move.l sp,a0
+        move.l a6,a1
+        move.l #37486277,d0
+        jsr ModScope_Sample
+        adda.w #96,sp
+        movem.l (sp)+,d2-d7/a2-a6
+.return:
+        rts
+
+
+        xdef Wizzcat_GetStereoOscilloscope
+        xref ModScope_CopyStereo
+Wizzcat_GetStereoOscilloscope:
+        move.l a0,d0
+        beq.s .return
+        move.w sr,-(sp)
+        ori.w #$700,sr
+        tst.b WizActive
+        beq.s .idle
+        move.l WIZbackbuf(pc),a1
+        bra.s .copy
+.idle:
+        suba.l a1,a1
+.copy:
+        jsr ModScope_CopyStereo
+        move.w (sp)+,sr
+.return:
+        rts
+
 WIZinit:	
 
 	movem.l	a0-a6/d0-d7,-(sp)
@@ -57,6 +166,8 @@ WIZmodInit:
 
 	movem.l	a2-a6/d0-d7,-(sp)
 	
+        move.l #$40004000,WizAge
+        move.l #$40004000,WizAge+4
 	move.l	a0,data
 	move.l	a1,workspc
 
@@ -203,31 +314,33 @@ recalc:
 	move.l	d4,(a0)+
 
 	exg.l	d3,a2
-	moveq.l	#0,d6			
-	moveq.l	#0,d7
-	move.w	#LEN-1,d5		* On calcule l'offset auquel on arriverait
-calc10:	
-	add.w	a2,d6	
-	addx.w	d3,d7		
-	dbra.w	d5,calc10
-	move.w	d7,(a1)+		* Offset auquel on parvient
-	move.w	d6,(a1)+		* Taux d'erreur auquel on parvient
-					* dans Stab2 (freq * 4 & .w + .w)
-	moveq.l	#0,d6			
-	move.l	a3,a4			* Stab var + freq *2 dans a4
-	move.w	#nbre_div-2,d4
-calc4:	
-	move.w	#LEN/nbre_div-1,d5	* On calcule l'offset auquel on arriverait
-	moveq.l	#0,d7
-calc3:	
-	add.w	a2,d6			*\
-	addx.w	d3,d7			* \ Calcul de l'offset theorique
-	dbra.w	d5,calc3		* /
-	move.w	d7,(a4)			* On le note	
-	lea	$03a0*2(a4),a4
-	dbra.w	d4,calc4		* nbre_div-1 fois
-	addq.w	#2,a3			* Table + 2 * freq
-		
+        move.l d4,d6
+        mulu.w #LEN,d6              ; fractional product, exact carry/remainder
+        move.l d6,d7
+        swap d7
+        move.w d3,d5
+        mulu.w #LEN,d5
+        add.w d5,d7
+        move.w d7,(a1)+
+        move.w d6,(a1)+
+
+        move.w a2,d6
+        mulu.w #LEN/nbre_div,d6
+        move.w d3,d5
+        mulu.w #LEN/nbre_div,d5
+        moveq #0,d7
+        move.l a3,a4
+        rept nbre_div-1
+        move.l d6,d4
+        add.l d7,d4
+        move.w d4,d7
+        swap d4
+        add.w d5,d4
+        move.w d4,(a4)
+        lea $03a0*2(a4),a4
+        endr
+        addq.w #2,a3
+
 	ifne	cpu
 	bchg.b	#1,$ffff8240+1.w
 	endc
@@ -270,6 +383,11 @@ WIZstereo:
 	endc
 
 	movem.l	d0-d7/a0-a6,-(sp)
+        tst.b WizRaster
+        beq.s .noStripe
+        move.w $ffff8240.w,WizSavedColour
+        move.w #$700,$ffff8240.w
+.noStripe:
 
 	; Flip sample buffer
 	; -----------------------------------------------------
@@ -552,6 +670,10 @@ computesampleloop:
 	
 	; end ------------------------
 
+        tst.b WizRaster
+        beq.s .stripeDone
+        move.w WizSavedColour,$ffff8240.w
+.stripeDone:
 	movem.l	(sp)+,d0-d7/a0-a6	* Restore les registres
 
 	ifne cpu
@@ -660,14 +782,25 @@ sample2:	DS.W	LEN*2
 sample2_end:
 *--------------------------------------------------- INIT MODULE
 prepare:
-	move.l	workspc(pc),a6
+	move.l	WizScratchEnd(pc),a6
 	movea.l	samplestarts(pc),a0
 	movea.l	end_of_samples(pc),a1
 
+        cmpa.l a0,a1
+        ble.s WizPrepareCopied
 tostack:move.w	-(a1),-(a6)
 	cmpa.l	a0,a1			; Move all samples to stack
 	bgt.s	tostack
 
+WizPrepareCopied:
+        move.l WizSilence(pc),a3
+        move.l a3,d0
+        beq.s .noSilence
+        move.w #799,d0
+.silence:
+        clr.l (a3)+
+        dbf d0,.silence
+.noSilence:
 	lea	samplestarts(pc),a2
 	move.l	data(pc),a1		; Module
 	movea.l	(a2),a0			; Start of samples
@@ -678,7 +811,16 @@ tostack:move.w	-(a1),-(a6)
 roop:	move.l	a0,(a2)+		; Sampleposition
 
 	tst.w	$2A(a1)
-	beq.s	samplok			; Len=0 -> no sample
+        bne.s .hasSample
+        move.l WizSilence(pc),-4(a2)
+        clr.w $2E(a1)
+        move.w #1600,$30(a1)
+        bra samplok
+.hasSample:
+        tst.w $30(a1)
+        bne.s .hasRepeat
+        move.w #1,$30(a1)
+.hasRepeat:
 
 	tst.w	$2E(a1)			; Test repstrt
 	bne.s	repne			; Jump if not zero
@@ -704,8 +846,10 @@ get1st:
 	move.w	(a4)+,(a0)+		;  Move all samples back from stack => keep on 8 bits as we mix by interlacing		
 	dbra	d0,get1st
 
-	adda.w	$2A(a1),a6		; Move a6 to next sample
-	adda.w	$2A(a1),a6
+        moveq #0,d0
+        move.w $2A(a1),d0
+        add.l d0,d0
+        adda.l d0,a6
 
 rep:	movea.l	a0,a5
 	moveq	#0,d1
@@ -785,6 +929,15 @@ lop3:	clr.l	(a2)
 	opt	a+,o+,p+
 
 music:
+        lea WizAge(pc),a1
+        moveq #3,d0
+.age:
+        cmpi.w #$4000,(a1)
+        bhs.s .next
+        addq.w #1,(a1)
+.next:
+        addq.w #2,a1
+        dbf d0,.age
 	move.l	data(pc),a0
 	lea		counter(pc),a6
 	addq.w	#$01,(a6)
@@ -943,6 +1096,7 @@ setdma	move.w	dmacon(pc),d0
 
 	btst	#0,d0			;-------------------
 	beq.s	wz_nch1			;
+        clr.w WizAge+0-counter(a6)
 	move.l	aud1lc(pc),wiz1lc-counter(a6)	;
 	moveq	#0,d1			;
 	moveq	#0,d2			;
@@ -955,6 +1109,7 @@ setdma	move.w	dmacon(pc),d0
 
 wz_nch1	btst	#1,d0			;
 	beq.s	wz_nch2			;
+        clr.w WizAge+2-counter(a6)
 	move.l	aud2lc(pc),wiz2lc-counter(a6)	;
 	moveq	#0,d1			;
 	moveq	#0,d2			;
@@ -967,6 +1122,7 @@ wz_nch1	btst	#1,d0			;
 
 wz_nch2	btst	#2,d0			;
 	beq.s	wz_nch3			;
+        clr.w WizAge+4-counter(a6)
 	move.l	aud3lc(pc),wiz3lc-counter(a6)	;
 	moveq	#0,d1			;
 	moveq	#0,d2			;
@@ -979,6 +1135,7 @@ wz_nch2	btst	#2,d0			;
 
 wz_nch3	btst	#3,d0			;
 	beq.s	wz_nch4			;
+        clr.w WizAge+6-counter(a6)
 	move.l	aud4lc(pc),wiz4lc-counter(a6)	;
 	moveq	#0,d1			;
 	moveq	#0,d2			;

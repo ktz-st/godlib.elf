@@ -26,10 +26,16 @@ MODVOLUME	macro
 ;	mt_music	Protracker 3.0 handler
 mt_music:
 	movem.l	d0-d1/a0,-(sp)
-	addq.w	#1,mt_Visualizer+0
-	addq.w	#1,mt_Visualizer+2
-	addq.w	#1,mt_Visualizer+4
-	addq.w	#1,mt_Visualizer+6
+; Saturation prevents silent channels wrapping into a false visual attack.
+	lea	mt_Visualizer,a0
+	moveq	#3,d1
+.age:
+	cmpi.w	#$4000,(a0)
+	bcc.s	.age_next
+	addq.w	#1,(a0)
+.age_next:
+	addq.l	#2,a0
+	dbf	d1,.age
 	move.w	mt_DMACONtemp(PC),D0
 	tst.b	mt_UpdateVis
 	beq	.skipvis
@@ -109,7 +115,7 @@ n_funkoffset	equ 43 ; B
 
 ;	mt_init		MOD preparation procedure
 ;			A0 should point to MOD and loop space should
-;			have be added at the end (31 * 664 bytes)
+;			have been added at the end (664 bytes per nonempty sample, plus 2)
 mt_init
 *	lea	mt_data,a0
 	move.l	a0,mt_SongDataPtr
@@ -139,6 +145,7 @@ mtloop2
 	add.l	#1084,d2		;+ $43C offset
 	add.l	a0,d2			;+ module start pointer
 	move.l	d2,a2			;A2 points to first sample
+	move.l	a2,mt_SampleDataPtr
 	moveq	#31-1,d0
 	moveq	#0,d2
 	lea	42(a0),a0
@@ -150,7 +157,15 @@ mtloop3
 	move.w	(a0),d1
 	asl.l	#1,d1
 	add.l	d1,a2
-	add.w	#SMPMINREP,d2
+    tst.l d1
+    beq.s .empty_sample
+    add.w #SMPMINREP,d2
+    bra.s .sample_guard_done
+.empty_sample:
+    move.l #paula_dummy_spl,-4(a1)
+    clr.w 4(a0)
+    clr.w 6(a0)
+.sample_guard_done:
 
 	cmp.w	#1,6(a0)		;looplen = 1 ?
 	bne.s	.mt_no_test		;yes / no
@@ -160,17 +175,17 @@ mtloop3
 	add.l	#30,a0
 	dbra	d0,mtloop3
 	add.w	d2,a2
-	lea	mt_ModuleEndPtr,a1
-	move.l	a2,(a1)
-;modify mod for lance paula
-	lea	-31*SMPMINREP(a2),a1
+    move.l a2,mt_ModuleEndPtr
+; Source samples end before the guards; move backwards to expand in place.
+    move.l a2,a1
+    suba.w d2,a1
 	moveq	#30,d7
 mt_init_loops
 	sub.w	#30,a0
-	lea	-SMPMINREP(a2),a2
-	move.l	a2,a3
-	move.w	(a0),d0
-	beq.s	.mt_just_loop
+    move.w (a0),d0
+    beq.s .mt_next_sample
+    lea -SMPMINREP(a2),a2
+    move.l a2,a3
 	subq.w	#1,d0
 .mt_copy_spl
 	move.w	-(a1),-(a2)
@@ -182,11 +197,14 @@ mt_init_loops
 	andi.w	#$4,d1
 	move.l	mt_loop_point(pc,d1.w),a4
 	jsr	(a4)
+.mt_next_sample:
 	dbra	d7,mt_init_loops
 	move.l	#$fefefefe,d2
 	move.l	#$80808080,d3
-	move.l	mt_SampleStarts,a0
-	move.l	mt_ModuleEndPtr,a1
+    move.l mt_SampleDataPtr,a0
+    move.l mt_ModuleEndPtr,a1
+    cmp.l a1,a0
+    bhs.s .mt_shift_done
 .mt_shift_down
 	move.l	(a0),d0		;12
 	move.l	d0,d1		;4
@@ -197,6 +215,7 @@ mt_init_loops
 	move.l	d0,(a0)+	;12=64/4=16
 	cmp.l	a1,a0
 	blo.s	.mt_shift_down
+.mt_shift_done:
 
 	move.b	#6,mt_Speed
 	move.w	#125,mt_Tempo
@@ -1853,6 +1872,7 @@ mt_PattDelayTime2	dc.b	0
 mt_Enable		dc.b	0
 	even
 mt_ModuleEndPtr		dc.l	0
+mt_SampleDataPtr		dc.l	0
 mt_Tempo		dc.w	0
 mt_BPMcnt		dc.w	0
 mt_MasterVolTab		ds.l	1

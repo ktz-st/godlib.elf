@@ -1,0 +1,19 @@
+{
+  "source_directory": "atari-ste-protracker-23f/leonard",
+  "original_sha256": {
+    "leonardpaula.asm": "98056cc83132b084a2497d572b7ee2fcc7cfa2e803c940d0182319d40dab1e3c",
+    "leonardtracker.asm": "e1c3bec9a2d10752b64be69a9825e431ad862582e0f8457090d0b21d6b70c73a"
+  },
+  "changes": [
+    "four workspace bases supplied by caller; no large static BSS arrays",
+    "mt_Visualizer saturation and reset for activity meters",
+    "empty sample slots map to shared nullSample",
+    "C fastcall bridge and supervisor/USP preservation in leonardmod_s.s",
+    "rate-dependent 12.5K/25K public LeonardMod API in GodLib",
+    "full 12.5K source steps with loop overshoot fallback",
+    "bounded period-table lookup",
+    "clear per-song tracker channel/effect state on every init"
+  ],
+  "format": "STE/MegaSTE 12.5 or 25 kHz, 8-bit stereo",
+  "location": "godlib/music/leonardmod*; leonardpaula.s and leonardtracker.s"
+}

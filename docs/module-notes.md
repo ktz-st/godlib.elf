@@ -3660,32 +3660,96 @@ Files:
 
 LanceMod:
 
-- `LanceMod_Load()` loads a MOD file into memory and appends
-  `dLANCEMOD_EXTRA_BUFFER_SIZE` bytes of replay workspace.
-- `LanceMod_InitPaula(freq)` allocates/reuses a Paula replay buffer sized by
-  frequency:
-  - 12 kHz -> 500 samples
-  - 25 kHz -> 1000 samples
-  - 50 kHz -> 2000 samples
+- `LanceMod_Load()` validates the four-channel MOD header, allocates its actual
+  pattern/sample layout and appends 664 bytes per nonempty sample plus 2 bytes.
+  Empty sample slots share silence. `LanceMod_GetModuleInfo()` reports byte counts.
+- `LanceMod_InitPaula(freq)` allocates/reuses frequency-dependent tables, generated
+  mixer code and two DMA pages: 142146 / 176320 / 218440 resident heap bytes at
+  12.5 / 25 / 50 kHz. The 500/1000/2000-byte init frequency list is freed after
+  generation. DMA pages themselves are 500/1000/2000 bytes each.
+- `LanceMod_GetPaulaWorkspaceSize(freq)` reports the resident requirement;
+  `LanceMod_GetPaulaAllocatedSize()` reports the current allocation.
+- Static ASM BSS falls from 177060 to 708 bytes. The old 110994-byte code region
+  was insufficient at 50 kHz (151114 bytes generated); its overflow is fixed.
+  See [LanceMod memory ownership](../music/lancemod.md) for accounting and tests.
 - `LanceMod_Start(mod, freq)` initialises Paula/replay state, sets master volume
   to 64, and installs `LanceMod_Play()` in the VBL queue.
 - `LanceMod_StopVbl()` removes the VBL callback and calls `LanceMod_Stop()`.
-- `LanceMod_ShutdownPaula()` frees the Paula replay buffer.
+- `LanceMod_ShutdownPaula()` stops replay and frees the entire Paula workspace.
+- `LanceMod_GetVisualizer(ages)` takes a read-only, interrupt-protected snapshot
+  of the four `mt_Visualizer` retrigger-age counters into four `U16` slots.
+  These indicate activity, not amplitude or channel volume. Counters advance
+  once per replay call and saturate at `dLANCEMOD_VISUALIZER_IDLE` (`0x4000`);
+  initialization resets them to idle, and stopped playback reports idle.
+  Call in supervisor mode; NULL is a no-op. Original retrigger filtering remains
+  unchanged. `godlib.spl/lancemod` maps ages to four STF_DEMO graphical bars in LRRL stereo order,
+  with independent state for each screen page and minimal ASM row updates.
 - The assembly wrapper preserves registers around `paula_calc`, `mt_music`,
   `mt_init`, `mt_end`, and volume/debug helpers.
 
+LeonardMod:
+
+- `music/leonardmod.h` is the public Leonard Paula + ProTracker module in
+  `libgod.a`. It replaces the former private adapter in `godlib.spl/leonard`.
+- `LeonardMod_Load/UnLoad` load only actual pattern/sample data, with header and
+  loop validation; no duplicate loop buffers. `GetModuleInfo` reports sizes.
+- `LeonardMod_Start(mod, eLEONARDMOD_FREQ_12K/25K)` allocates 61134/91134 bytes
+  of ST RAM for the selected rate instead of the original 194384-byte arrays.
+  `GetPaulaWorkspaceSize` and `GetPaulaAllocatedSize` expose accounting.
+- Call `LeonardMod_Tick()` from the synchronized main loop after Screen_Update,
+  not VBL. Stop restores trap #0 and halts DMA; ShutdownPaula also frees memory.
+  Start prepares writable samples in place: reload raw MOD before another Start.
+- 12.5K has full source steps for high notes and handles short-loop overshoot.
+  The four activity bars use `LeonardMod_GetVisualizer`, CH1/CH4 left and
+  CH2/CH3 right. F1 shows replay time via palette zero; V toggles bars.
+- See [LeonardMod memory and lifecycle](../music/leonardmod.md) for accounting,
+  API, tests and limitations. UGH uses Leonard + TFMX and needs a separate
+  activity source; it does not have ProTracker's `mt_Visualizer`.
+
+Optional MOD oscilloscopes (LanceMod, LeonardMod, Wizzcat):
+
+- `*_GetOscilloscope(S8 samples[256])` snapshots four native voices and previews
+  64 pitched/volume-scaled source points per channel. Common ASM handles loops,
+  one-shots and Lance's seven-bit encoding; no replay phase or PCM is modified.
+- Getters run only when requested from the supervisor main loop. No extra
+  per-sample hooks or channel PCM buffers are added. Sampling follows a short
+  interrupt-protected metadata copy, with caller SR restored during sampling.
+- Examples share the ASM XOR renderer in `lancemod/scope_s.s`, with independent
+  history for each screen page. O cycles bars/four traces/ICE XY/stereo/mono, V hides/shows, F1 retains
+  the replay stripe. CH1/CH4 are left and CH2/CH3 right.
+- The additional ICE/Techwave XY mode uses `*_GetStereoOscilloscope` to copy
+  164 actual native stereo PCM frames (328 bytes), then plots each side against
+  itself delayed by 64 frames. Two 100-point clouds use ASM OR plotting and
+  per-page U16 clear offsets. No mixer or screen hardware takeover is added.
+- Stereo time-domain modes use 128 native PCM frames: separate L/R and a
+  single mono trace `(L+R)/2`. ASM draws stereo left in plane 2 (green), right
+  in plane 3 (cyan), or mono in plane 0 (white). Averaging uses signed 16-bit
+  addition to avoid overflow. Audio stays stereo; PCM/history buffers are reused.
+- The four-channel display is a source preview; stereo modes use actual PCM. See
+  [MOD oscilloscope API](../music/modscope.md) for precision, memory and tests.
+
 Wizzcat:
 
-- `Wizzcat_Load()` loads a MOD file into an `sWizzcatModule` and appends
-  the default `128 KiB` workspace margin.
-- `Wizzcat_LoadEx(filename, workspaceSize)` allows callers to choose a smaller
-  or larger sample-preparation workspace for memory-constrained programs.
-- `Wizzcat_Init()` calls `WIZinit()` and `WIZmodInit(moduleData, workspaceEnd)`.
-- `Wizzcat_Start()` initialises, primes replay with `Wizzcat_Play()`, and adds
-  `Wizzcat_Vbl()` to the VBL queue.
-- `Wizzcat_Stop()` directly stops STE DMA sound by clearing `$FFFF8901`.
-- `Wizzcat_GetInfo()` returns song and pattern position.
-- `Wizzcat_Jump()` jumps to a 1-based song position.
+- `Wizzcat_Load()` / `LoadEx(name,0)` compute workspace from actual sample/loop
+  lengths instead of reserving a fixed 128 KiB. Explicit margins remain allowed;
+  insufficient ones fail before assembly initialization. `GetModuleInfo` exposes
+  module/workspace/transient sizes and validates native size/loop constraints.
+- A temporary raw sample copy is freed after preparation. Empty instruments
+  share silent loop/lookahead data. QUICKIE's resident heap drops from 154409 to
+  42478 bytes; this excludes the statically linked replay tables/DMA pages/code.
+- Increment tables use exact products instead of simulated steps and are cached.
+  Tables and 10 MB of PCM match the previous core across five real MODs.
+- `Wizzcat_Start()` prepares fresh raw data, primes DMA and registers one VBL
+  callback. Preparation mutates samples: reload before another Init/Start.
+- `Wizzcat_Stop()` and `StopVbl()` remove the callback and stop DMA; UnLoad does
+  this too for the current module. Failed VBL registration stops playback.
+- `Wizzcat_GetVisualizer(ages)` returns four coherent retrigger ages, not
+  amplitudes, saturating at 0x4000. `SetRasterDebug` saves/restores palette zero.
+  The example uses four shared ASM STF_DEMO bars, V/F1 controls and clean exit.
+- `GetInfo` returns song/pattern position; `Jump` validates 1-based song positions.
+- Native source mixing is 25 kHz with interleaved 50 kHz stereo DMA. This is
+  distinct from the separate `stlibs4gcc/wizzcat` binary replay.
+- See [Wizzcat memory and verification](../music/wizzcat.md).
 
 PinkNote:
 
@@ -3722,8 +3786,9 @@ Important limitations and risks:
 - LanceMod and Wizzcat both use VBL callbacks; callers must stop/remove them
   before unloading module memory.
 - Wizzcat is STE DMA oriented and directly touches `$FFFF8901` in `Wizzcat_Stop()`.
-- LanceMod owns a persistent Paula replay buffer that is not freed by
-  `LanceMod_StopVbl()`; call `LanceMod_ShutdownPaula()` when done for good.
+- LanceMod owns a persistent Paula workspace (DMA, tables and generated code)
+  that is not freed by `LanceMod_StopVbl()`; call `LanceMod_ShutdownPaula()` when
+  done for good. Changing rate or reinitializing stops the old callback first.
 - Wizzcat's default loader allocates a large 128 KiB workspace margin after
   every module. Use `Wizzcat_LoadEx()` to tune this per program/module, but too
   small a workspace can still make the replay `illegal` during sample prepare.

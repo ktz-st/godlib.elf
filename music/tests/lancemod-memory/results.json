@@ -1,0 +1,374 @@
+{
+  "new": {
+    "errors": 0,
+    "frames": 21000,
+    "records": [
+      {
+        "pcm_hash": 1305266408,
+        "heap_bytes": 201092,
+        "code_bytes": 77638,
+        "module_bytes": 58946,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "6e8cd364906b4fb826133ad35de6533be51e793f659722aaba376845d8bf1e1e"
+      },
+      {
+        "pcm_hash": 3968354858,
+        "heap_bytes": 235266,
+        "code_bytes": 110994,
+        "module_bytes": 58946,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "0c9755b46997b6f52b11464fe05f8401dcdb7c84ccba5f928fbc0cd67a028c47"
+      },
+      {
+        "pcm_hash": 3456444804,
+        "heap_bytes": 277386,
+        "code_bytes": 151114,
+        "module_bytes": 58946,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "77651c601d0112d139448a94e45126644fb154d46d1a4bfd81fdf62a94f60871"
+      },
+      {
+        "pcm_hash": 1385113115,
+        "heap_bytes": 168796,
+        "code_bytes": 77638,
+        "module_bytes": 26650,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "a267e4f3f9ee6784abeb13f09a637b41b8a27d05b11fa1022774a1b5cb13eae2"
+      },
+      {
+        "pcm_hash": 477683394,
+        "heap_bytes": 202970,
+        "code_bytes": 110994,
+        "module_bytes": 26650,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "0c9017d89f4385ac7cdc28563b770d9d0cf3a08d3b182f69d9a3685c33bda6f2"
+      },
+      {
+        "pcm_hash": 719190237,
+        "heap_bytes": 245090,
+        "code_bytes": 151114,
+        "module_bytes": 26650,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "79969e10ecdde070d3fbd7f2bf7492996d0c718b8fd316954c76687f5ed4e1f1"
+      },
+      {
+        "pcm_hash": 2272630935,
+        "heap_bytes": 195024,
+        "code_bytes": 77638,
+        "module_bytes": 52878,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "d7f8dc6dcc37d5b5ed9f001a23a4eab25b9f02d66287f4d64d5e9ba36ee72c17"
+      },
+      {
+        "pcm_hash": 3444913688,
+        "heap_bytes": 229198,
+        "code_bytes": 110994,
+        "module_bytes": 52878,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "e25826e5cefcee57e8f3372d5df8d2161282ea9f47132a116ac8d046be7de277"
+      },
+      {
+        "pcm_hash": 1609276991,
+        "heap_bytes": 271318,
+        "code_bytes": 151114,
+        "module_bytes": 52878,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "0c8c30fbc27e2ea3cd444f16ace4f9b0546a2376351f6550f58bc760e343587c"
+      },
+      {
+        "pcm_hash": 1265861710,
+        "heap_bytes": 234082,
+        "code_bytes": 77638,
+        "module_bytes": 91936,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "c44f4fa6742c9a44b5a601b8bc630f1bfae6b97dcf865901d9969ffbcce5c165"
+      },
+      {
+        "pcm_hash": 1196155073,
+        "heap_bytes": 268256,
+        "code_bytes": 110994,
+        "module_bytes": 91936,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "b581fae65f6c9ce1375a974b55c7cd16616c191f77eb055866c57b36f9935615"
+      },
+      {
+        "pcm_hash": 1688359596,
+        "heap_bytes": 310376,
+        "code_bytes": 151114,
+        "module_bytes": 91936,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "9112a2dc80766d34260867d20c8185d7ac2bc668b5af2258bc64a59b6373faec"
+      },
+      {
+        "pcm_hash": 3747861338,
+        "heap_bytes": 399960,
+        "code_bytes": 77638,
+        "module_bytes": 257814,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "657fb0620afab3875bfe48eb21599dc37694710cec6934d473e584966909262a"
+      },
+      {
+        "pcm_hash": 3908413290,
+        "heap_bytes": 434134,
+        "code_bytes": 110994,
+        "module_bytes": 257814,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "2ba94fa2b57fb299192079192691ca07afac155080382fbf608f44379bbaf8dc"
+      },
+      {
+        "pcm_hash": 3319313244,
+        "heap_bytes": 476254,
+        "code_bytes": 151114,
+        "module_bytes": 257814,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "89e2eaceea991417cca2ccc8361ee1b02a379dd37dbd5ff25a218a053af8cc0b"
+      },
+      {
+        "pcm_hash": 3314600791,
+        "heap_bytes": 146264,
+        "code_bytes": 77638,
+        "module_bytes": 4118,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "e3e40bd98c3cbc34d06be648e271de9dd3c885231f453d31babe752d5ea76a83"
+      },
+      {
+        "pcm_hash": 1981344407,
+        "heap_bytes": 180438,
+        "code_bytes": 110994,
+        "module_bytes": 4118,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "c94c15a71ab371ddb1258425d4d49e28e17412982031c83c427a6d4ec5d3dcbc"
+      },
+      {
+        "pcm_hash": 1545057070,
+        "heap_bytes": 222558,
+        "code_bytes": 151114,
+        "module_bytes": 4118,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "c0a70c35d5bd3ce35f185a18e3e7d9b1b12a63603451b6b223a32b7f004f9047"
+      },
+      {
+        "pcm_hash": 3061445173,
+        "heap_bytes": 144256,
+        "code_bytes": 77638,
+        "module_bytes": 2110,
+        "workspace_bytes": 142146,
+        "pcm_sha256": "a06a98f6cef55b0cf560da2c8a6a7e2c58b3cfd2e62ffa6fa5229b699078c69d"
+      },
+      {
+        "pcm_hash": 305419896,
+        "heap_bytes": 178430,
+        "code_bytes": 110994,
+        "module_bytes": 2110,
+        "workspace_bytes": 176320,
+        "pcm_sha256": "13aea96040f2133033d103008d5d96cfe98b3361f7202d77bea97b2424a7a6cd"
+      },
+      {
+        "pcm_hash": 305419896,
+        "heap_bytes": 220550,
+        "code_bytes": 151114,
+        "module_bytes": 2110,
+        "workspace_bytes": 218440,
+        "pcm_sha256": "8dbe5f139fd946d4cd84e8cc612cd9f68cbc87e394457884acc0c5dad56dd8dd"
+      }
+    ],
+    "faults": [],
+    "pcm_bytes": 49000000,
+    "pcm_sha256": "acecd226d068473518ce37ccfaca5f37d8a25fbf3dcd1a5869ff86bddc1811d5",
+    "module_sources": [
+      "godlib.spl/lancemod/LOSTPARO.MOD",
+      "godlib.spl/wizzcat/QUICKIE.MOD",
+      "atari-ste-protracker-23f/lance/4matwave.mod",
+      "godlib.spl/lancemod/BOOTUP.MOD",
+      "godlib.spl/lancemod/CANNONFO.MOD",
+      "synthetic sparse samples and EF1",
+      "synthetic empty samples"
+    ]
+  },
+  "baseline": {
+    "errors": 0,
+    "frames": 21000,
+    "records": [
+      {
+        "pcm_hash": 1305266408,
+        "heap_bytes": 76546,
+        "code_bytes": 77638,
+        "module_bytes": 75546,
+        "workspace_bytes": 0,
+        "pcm_sha256": "6e8cd364906b4fb826133ad35de6533be51e793f659722aaba376845d8bf1e1e"
+      },
+      {
+        "pcm_hash": 3968354858,
+        "heap_bytes": 77546,
+        "code_bytes": 110994,
+        "module_bytes": 75546,
+        "workspace_bytes": 0,
+        "pcm_sha256": "0c9755b46997b6f52b11464fe05f8401dcdb7c84ccba5f928fbc0cd67a028c47"
+      },
+      {
+        "pcm_hash": 3456444804,
+        "heap_bytes": 79546,
+        "code_bytes": 151114,
+        "module_bytes": 75546,
+        "workspace_bytes": 0,
+        "pcm_sha256": "77651c601d0112d139448a94e45126644fb154d46d1a4bfd81fdf62a94f60871"
+      },
+      {
+        "pcm_hash": 1385113115,
+        "heap_bytes": 44914,
+        "code_bytes": 77638,
+        "module_bytes": 43914,
+        "workspace_bytes": 0,
+        "pcm_sha256": "a267e4f3f9ee6784abeb13f09a637b41b8a27d05b11fa1022774a1b5cb13eae2"
+      },
+      {
+        "pcm_hash": 477683394,
+        "heap_bytes": 45914,
+        "code_bytes": 110994,
+        "module_bytes": 43914,
+        "workspace_bytes": 0,
+        "pcm_sha256": "0c9017d89f4385ac7cdc28563b770d9d0cf3a08d3b182f69d9a3685c33bda6f2"
+      },
+      {
+        "pcm_hash": 719190237,
+        "heap_bytes": 47914,
+        "code_bytes": 151114,
+        "module_bytes": 43914,
+        "workspace_bytes": 0,
+        "pcm_sha256": "79969e10ecdde070d3fbd7f2bf7492996d0c718b8fd316954c76687f5ed4e1f1"
+      },
+      {
+        "pcm_hash": 2272630935,
+        "heap_bytes": 53878,
+        "code_bytes": 77638,
+        "module_bytes": 52878,
+        "workspace_bytes": 0,
+        "pcm_sha256": "d7f8dc6dcc37d5b5ed9f001a23a4eab25b9f02d66287f4d64d5e9ba36ee72c17"
+      },
+      {
+        "pcm_hash": 3444913688,
+        "heap_bytes": 54878,
+        "code_bytes": 110994,
+        "module_bytes": 52878,
+        "workspace_bytes": 0,
+        "pcm_sha256": "e25826e5cefcee57e8f3372d5df8d2161282ea9f47132a116ac8d046be7de277"
+      },
+      {
+        "pcm_hash": 1609276991,
+        "heap_bytes": 56878,
+        "code_bytes": 151114,
+        "module_bytes": 52878,
+        "workspace_bytes": 0,
+        "pcm_sha256": "0c8c30fbc27e2ea3cd444f16ace4f9b0546a2376351f6550f58bc760e343587c"
+      },
+      {
+        "pcm_hash": 1265861710,
+        "heap_bytes": 104888,
+        "code_bytes": 77638,
+        "module_bytes": 103888,
+        "workspace_bytes": 0,
+        "pcm_sha256": "c44f4fa6742c9a44b5a601b8bc630f1bfae6b97dcf865901d9969ffbcce5c165"
+      },
+      {
+        "pcm_hash": 1196155073,
+        "heap_bytes": 105888,
+        "code_bytes": 110994,
+        "module_bytes": 103888,
+        "workspace_bytes": 0,
+        "pcm_sha256": "b581fae65f6c9ce1375a974b55c7cd16616c191f77eb055866c57b36f9935615"
+      },
+      {
+        "pcm_hash": 1688359596,
+        "heap_bytes": 107888,
+        "code_bytes": 151114,
+        "module_bytes": 103888,
+        "workspace_bytes": 0,
+        "pcm_sha256": "9112a2dc80766d34260867d20c8185d7ac2bc668b5af2258bc64a59b6373faec"
+      },
+      {
+        "pcm_hash": 3747861338,
+        "heap_bytes": 270766,
+        "code_bytes": 77638,
+        "module_bytes": 269766,
+        "workspace_bytes": 0,
+        "pcm_sha256": "657fb0620afab3875bfe48eb21599dc37694710cec6934d473e584966909262a"
+      },
+      {
+        "pcm_hash": 3908413290,
+        "heap_bytes": 271766,
+        "code_bytes": 110994,
+        "module_bytes": 269766,
+        "workspace_bytes": 0,
+        "pcm_sha256": "2ba94fa2b57fb299192079192691ca07afac155080382fbf608f44379bbaf8dc"
+      },
+      {
+        "pcm_hash": 3319313244,
+        "heap_bytes": 273766,
+        "code_bytes": 151114,
+        "module_bytes": 269766,
+        "workspace_bytes": 0,
+        "pcm_sha256": "89e2eaceea991417cca2ccc8361ee1b02a379dd37dbd5ff25a218a053af8cc0b"
+      },
+      {
+        "pcm_hash": 3314600791,
+        "heap_bytes": 23710,
+        "code_bytes": 77638,
+        "module_bytes": 22710,
+        "workspace_bytes": 0,
+        "pcm_sha256": "e3e40bd98c3cbc34d06be648e271de9dd3c885231f453d31babe752d5ea76a83"
+      },
+      {
+        "pcm_hash": 1981344407,
+        "heap_bytes": 24710,
+        "code_bytes": 110994,
+        "module_bytes": 22710,
+        "workspace_bytes": 0,
+        "pcm_sha256": "c94c15a71ab371ddb1258425d4d49e28e17412982031c83c427a6d4ec5d3dcbc"
+      },
+      {
+        "pcm_hash": 1545057070,
+        "heap_bytes": 26710,
+        "code_bytes": 151114,
+        "module_bytes": 22710,
+        "workspace_bytes": 0,
+        "pcm_sha256": "c0a70c35d5bd3ce35f185a18e3e7d9b1b12a63603451b6b223a32b7f004f9047"
+      },
+      {
+        "pcm_hash": 3061445173,
+        "heap_bytes": 23694,
+        "code_bytes": 77638,
+        "module_bytes": 22694,
+        "workspace_bytes": 0,
+        "pcm_sha256": "a06a98f6cef55b0cf560da2c8a6a7e2c58b3cfd2e62ffa6fa5229b699078c69d"
+      },
+      {
+        "pcm_hash": 305419896,
+        "heap_bytes": 24694,
+        "code_bytes": 110994,
+        "module_bytes": 22694,
+        "workspace_bytes": 0,
+        "pcm_sha256": "13aea96040f2133033d103008d5d96cfe98b3361f7202d77bea97b2424a7a6cd"
+      },
+      {
+        "pcm_hash": 305419896,
+        "heap_bytes": 26694,
+        "code_bytes": 151114,
+        "module_bytes": 22694,
+        "workspace_bytes": 0,
+        "pcm_sha256": "8dbe5f139fd946d4cd84e8cc612cd9f68cbc87e394457884acc0c5dad56dd8dd"
+      }
+    ],
+    "faults": [],
+    "pcm_bytes": 49000000,
+    "pcm_sha256": "acecd226d068473518ce37ccfaca5f37d8a25fbf3dcd1a5869ff86bddc1811d5",
+    "module_sources": [
+      "godlib.spl/lancemod/LOSTPARO.MOD",
+      "godlib.spl/wizzcat/QUICKIE.MOD",
+      "atari-ste-protracker-23f/lance/4matwave.mod",
+      "godlib.spl/lancemod/BOOTUP.MOD",
+      "godlib.spl/lancemod/CANNONFO.MOD",
+      "synthetic sparse samples and EF1",
+      "synthetic empty samples"
+    ]
+  }
+}

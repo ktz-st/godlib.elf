@@ -8,6 +8,12 @@
 - [8x8 ASM text scrollers](../../godlib.spl/scroll8/README.md): MCoder versus
   optimized Griff, cache layouts, CPU measurements and integration constraints.
 - [Library overview and build](../readme.md).
+- [MOD oscilloscopes](../music/modscope.md): optional four-channel source
+  previews, ICE XY and stereo/mono modes, ASM drawing and verification.
+- [Wizzcat](../music/wizzcat.md): automatic MOD workspace sizing, faster
+  initialization, four-channel activity and regression evidence.
+- [LeonardMod](../music/leonardmod.md): ProTracker replay, 12.5/25 kHz, dynamic
+  ST-RAM buffers, memory accounting and verification.
 - [PCM mixer guide](../audio/pcm-mixers.md): backend selection, rates, loops,
   arithmetic, migration and links to individual mixer manuals.
 

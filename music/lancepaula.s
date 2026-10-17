@@ -157,16 +157,6 @@ paula_init:
 	move.l	d0,(a0)+		;init with middle value: 00
 	dbf	d2,.paula_init_digibuf
 	dbf	d1,.paula_init_trash0
-	moveq	#-1,d1
-	lea	paula_buffer_status,a0
-	move.l	d1,(a0)+		;all buffers ready-for-read FF
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
-	move.l	d1,(a0)+
 	lea	paula_buffer_rd_idx,a0
 	move	#1,(a0)			;read index set to 0 (VBL -> 1)
 	lea	paula_buffer_wt_idx,a0
@@ -193,6 +183,7 @@ l_paula_init_trap0
 	move.l	$80.w,(a0)
 	lea	paula_return_svr(pc),a0
 	move.l	a0,$80.w
+	st	paula_trap_active
 	rts
 
 ;	paula_make_freq	generates table with reads required per DMA buffer
@@ -365,7 +356,7 @@ l_paula_make_it0
 
 ;	paula_make_voltab	generates the volume table
 paula_make_voltab
-	lea	buf_paula_volume_tab,a0
+	move.l	paula_volume_base,a0
 	move.l	a0,d0			;get the A0 pointer to D0
 	add.l	#254,d0			;add.l 254 to pointer value
 	clr.b	d0			;and clr the byte to have a 256 bytes
@@ -604,7 +595,7 @@ paula_make_mixcode
 	lea	l_paula_ana_code333(pc),a0
 	move.l	a0,(a1)+
 
-	lea	buf_paula_mixer_chunk,a1
+	move.l	paula_mixer_code,a1
 	move.l	paula_mixcode_p,a0
 
 	move.l	paula_freq_list,a2
@@ -1674,7 +1665,14 @@ paula_init_lmc
 	rts
 
 paula_done
-	move.l	paula_save_trap0,$80.w
+    tst.b paula_trap_active
+    beq.s .not_owned
+    sf paula_trap_active
+    clr.b $ffff8901.w	; stop DMA before its workspace can be freed
+    move.l paula_save_trap0,$80.w
+    bra.s paula_done_lmc
+.not_owned:
+    rts
 paula_done_lmc
 	move.w	#paula_LMC_mask,d1
 	move.w	#paula_LMC_left,d0
@@ -2173,17 +2171,21 @@ paula_replay_len	dc.l	2000
 paula_save_SSP		dc.l	0
 paula_save_USP		dc.l	0
 paula_save_trap0	dc.l	0
+paula_trap_active	dc.w	0
 paula_frequency		dc.w	$0003
 paula_left_volume	dc.w	0
 paula_right_volume	dc.w	0
 paula_left_volold	dc.w	0
 paula_right_volold	dc.w	0
-paula_freq_list		dc.l	buf_paula_freq_list
-paula_freq_table	dc.l	buf_paula_freq_table
-paula_frame_freq_t	dc.l	buf_paula_frame_freq_t
-paula_frame_freq_p	dc.l	buf_paula_frame_freq_p
-paula_div_table		dc.l	buf_paula_div_table
-paula_mixcode_p		dc.l	buf_paula_mixcode_p
+paula_freq_list		dc.l	0
+paula_freq_table	dc.l	0
+paula_frame_freq_t	dc.l	0
+paula_frame_freq_p	dc.l	0
+paula_div_table		dc.l	0
+paula_mixcode_p		dc.l	0
+
+paula_volume_base	dc.l	0
+paula_mixer_code	dc.l	0
 
 paula_left_temp		dc.l	0,0,0
 paula_right_temp	dc.l	0,0,0
@@ -2247,19 +2249,12 @@ paula_dummy_spl		ds.w	332
 paula_volume_tab	ds.l	1
 paula_channel_p		ds.l	4
 paula_buffer_str	ds.l	4		;2 buffers x 2 longs (digi ptr + LMC update)
-paula_buffer_status	ds.b	32		;initialised in paula_init but never read
 paula_buffer_rd_idx	ds.w	1
 paula_buffer_wt_idx	ds.w	1
 			even
 
 paula_replay_buf_p	ds.l	1		;set by Paula_SetReplayBuf - points to 2*paula_replay_len bytes
-buf_paula_freq_list	ds.b	25*40*2
-buf_paula_freq_table	ds.b	$400*4
-buf_paula_frame_freq_t	ds.b	586*25*2	;paula_make_frame_f writes 664-78=586 entries
-buf_paula_frame_freq_p	ds.b	586*4
-buf_paula_volume_tab	ds.b	16894
-buf_paula_div_table	ds.b	64*64*2
-buf_paula_mixcode_p	ds.b	625*4
-buf_paula_mixer_chunk	ds.b	55497*2		;original Hacking Lance qmalloc size for volume-controlled mode
 
-	section  .text,code
+; Frequency-dependent tables/code are owned by LanceMod_InitPaula in C.
+
+	section .text,code

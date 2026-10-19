@@ -7,19 +7,20 @@ The original TOOLBASE compiles these into .CUT binary files using CUTBUILD.
 The format of this command is:
 CUTBUILD SourceTextFile DestBinFile
 
-CURRENT LOCAL STATUS (source audit: 2026-10-16)
+CURRENT LOCAL STATUS (2026-10-19)
 
 The local Python TOOLBASE subset does not implement CUTBUILD or SPLMAKE.
-CutScene_Parse() exists in cutscene/cutparse.c, but no native CUTBUILD host
-command is supplied by the current build. The command above describes the
-original toolchain, not a working command in the local Python subset.
+CutScene_Parse() compiles text directly into native runtime structures on Atari;
+godlib.spl/cutscene demonstrates this path with embedded assets and narration.
+Do not relocate a native parsed scene again. The CUTBUILD command above refers
+to the original toolchain.
 
-The text format below was checked against cutparse.c and cutscene.c. Runtime
-support is incomplete: SAMPLE_ENABLE/DISABLE/WAIT have no effect, and
-TEXT_ANIM_SET/WAIT do not animate or wait. Sample volume, position and loop
-fields are parsed data, not working cutscene audio controls. There is no built-in
-connection to PcmVoiceMixer or the other PCM mixers. See the complete command
-reference at the end for accepted commands and runtime limitations.
+SAMPLE_ENABLE/DISABLE/WAIT are connected to AMIXER. The application initializes
+AMIXER explicitly and reserves both voices for cutscene audio. Volume, stereo
+position and the sample loop flag are applied. Output may be 12.517 or 25.033 kHz;
+source samples are signed 8-bit mono at 6258/12517/25033 Hz. Plain ST runs silently
+and unsupported/failed samples do not block waits. TEXT_ANIM_SET/WAIT remain
+unimplemented (no typewriter effect).
 
 The cutscene text files have two distinct sets of components: code and data.
 The data is comprised of Animations, Assets, Samples, Sprites, Pages, Texts & Vars.
@@ -166,8 +167,10 @@ Sound samples should be recorded as 8-bit signed mono.
 You can make SPL files using TOOLBASE's SPLMAKE command.
 
 In this structure you can reference an asset which contains a .SPL file.
-The structure stores volume and stereo position, but the current runtime does
-not play cutscene samples. STEROPOS is the exact legacy parser spelling
+The runtime applies volume, stereo position and loop flag through AMIXER.
+ASSET data must point to a native/relocated sAudioDmaSound. The application must
+initialize/enable AMIXER before playback and reserve its two voices for cutscenes.
+STEROPOS is the exact legacy parser spelling
 (without the second E); use it even though the English word is "stereo".
 
 +-----------+--------+-------------------------+
@@ -577,10 +580,25 @@ Additional runtime notes:
 - RETURN takes an INT according to the parser table (for example RETURN 0).
   The runtime ignores that value and returns to the caller, or finishes the
   thread if there is no caller.
-- SAMPLE_ENABLE, SAMPLE_DISABLE and SAMPLE_WAIT are no-ops. SAMPLE_WAIT does
-  not suspend the script. Original SPLMAKE requires the original TOOLBASE.
+- SAMPLE_ENABLE starts/restarts the named sound with VOLUME/STEROPOS/FLAG_LOOP.
+  Two voices are available; a third simultaneous sample steals round-robin.
+  SAMPLE_DISABLE stops the named source; about 41 ms of mixed audio may remain.
+  SAMPLE_WAIT waits for the source and three VBLs of queued output; looping
+  samples wait until disabled/stolen/stopped. Failed playback completes at once.
+  Original SPLMAKE requires the original TOOLBASE; native descriptors work too.
+- CutScene_System_Stop stops script and cutscene audio, clearing queued PCM.
+  ScriptInit/AppInit/AppDeInit and natural root return also stop its samples.
+  The application owns AMIXER initialization and teardown. Stop before freeing
+  sample assets or handing DMA to another player.
+- BG_GFX_SET/CLEAR update Back and both display pages, waiting until both pages
+  have rendered before subsequent commands (such as a fade) execute.
+- TEXT_PAGE_SET/FONT_SET invalidate both pages. Text WIDTH is a size, not a
+  right-edge coordinate; wrapping uses X+WIDTH. CR/LF/CRLF/tabs are consumed,
+  tokens are bounded and glyph output is clipped to the text rectangle.
+- ScriptInit resets the full transient sprite/text/thread state. Empty, missing
+  or recursive scripts terminate safely rather than hanging or corrupting stacks.
 - TEXT_ANIM_SET accepts a text reference and integer but does not set animation;
   TEXT_ANIM_WAIT does not suspend the script.
 
 Parser acceptance is not a guarantee of runtime implementation. Script authors
-must not rely on the above no-op commands for audio or synchronization.
+must not rely on TEXT_ANIM_* for animation or synchronization.

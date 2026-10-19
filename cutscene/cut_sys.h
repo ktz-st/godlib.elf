@@ -26,6 +26,10 @@
 
 void		CutScene_System_AppInit( void );
 void		CutScene_System_AppDeInit( void );
+/* Stop script and its audio before skip/restart/free. AMIXER must be initialized
+ * by the application and reserved exclusively for cutscene samples. */
+void CutScene_System_Stop(void);
+U8 CutScene_System_IsSamplePlaying(const sCutSample * apSample);
 
 U8			CutScene_System_Update( void );
 void		CutScene_System_Render( void );

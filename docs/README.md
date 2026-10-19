@@ -4,7 +4,9 @@
 - [Module notes](module-notes.md): source survey, integration details and known
   limitations across the library.
 - [Cutscene format](cutscene.txt): legacy text DSL, corrected field names,
-  complete parser command signatures and current runtime limitations.
+  complete parser signatures, AMIXER samples and current runtime limitations.
+- [Narrated cutscene example](../../godlib.spl/cutscene/README.md): two scenes,
+  spoken PCM, caption/background fixes and native ST/STE regression tests.
 - [8x8 ASM text scrollers](../../godlib.spl/scroll8/README.md): MCoder versus
   optimized Griff, cache layouts, CPU measurements and integration constraints.
 - [Library overview and build](../readme.md).
@@ -26,6 +28,6 @@ test artifacts and their stated configurations. Source review and Hatari tests
 do not establish behavior on physical Atari hardware.
 
 Important constraints called out in the notes include matching source/destination layouts for `Graphic_ChunkList` background restore,
-and parsed cutscene sample/text-animation commands that remain unimplemented.
+and parsed cutscene TEXT_ANIM_* commands that remain unimplemented.
 The original TOOLBASE CUTBUILD/SPLMAKE commands are not implemented by the local
 Python tool subset.

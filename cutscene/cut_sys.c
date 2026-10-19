@@ -3,6 +3,8 @@
 ################################################################################### */
 
 #include	"cut_sys.h"
+#include <godlib/audio/amixer.h>
+#include <godlib/vbl/vbl.h>
 
 #include	<godlib/cli/cli.h>
 #include	<godlib/fade/fade.h>
@@ -29,6 +31,8 @@ enum
 	eCUTTHREAD_WAIT_MOVE,
 	eCUTTHREAD_WAIT_FADE,
 	eCUTTHREAD_WAIT_VBL,
+	eCUTTHREAD_WAIT_SAMPLE,
+ eCUTTHREAD_WAIT_BG,
 
 	eCUTTHREAD_WAIT_LIMIT
 };
@@ -69,6 +73,7 @@ typedef	struct	sCutSceneSysClass
 	sCutSceneThread	mThread;
 	U16				mBGRedrawFlag;
 	U16				mBGEnableFlag;
+ U16 mBGBackDirty,mFinished;
 } sCutSceneSysClass;
 
 
@@ -95,6 +100,52 @@ U16		CutSceneThread_IsWaiting( sCutSceneThread * apThread );
 #  CODE
 ################################################################################### */
 
+/* No audio allocation or DMA ownership changes unless SAMPLE commands succeed.
+ * A named sample has at most one voice. A third sample steals round-robin. */
+static const sCutSample *sCutSamples[2];
+static U16 sCutNextVoice,sCutAudioOwned;
+static U32 sCutTail[2];
+static void CutScene_StopSamples(void)
+{
+ if(sCutAudioOwned)AudioMixer_StopAll();
+ sCutAudioOwned=0;
+ sCutSamples[0]=sCutSamples[1]=0;sCutNextVoice=0;sCutTail[0]=sCutTail[1]=0;
+}
+U8 CutScene_System_IsSamplePlaying(const sCutSample *sample)
+{
+ U16 i;if(!sample)return 0;
+ for(i=0;i<2;++i)if(sCutSamples[i]==sample) {
+  if(AudioMixer_IsVoicePlaying(i)){sCutTail[i]=0;return 1;}
+  /* AMIXER queues about 41 ms. Do not cut off its final spoken syllable. */
+  if(!sCutTail[i])sCutTail[i]=Vbl_GetCounter()+3;
+  if((S32)(sCutTail[i]-Vbl_GetCounter())>0)return 1;
+ }
+ return 0;
+}
+static void CutScene_SampleDisable(const sCutSample *sample)
+{
+ U16 i;for(i=0;i<2;++i)if(sCutSamples[i]==sample){AudioMixer_StopVoice(i);sCutSamples[i]=0;}
+}
+static void CutScene_SampleEnable(const sCutSample *sample)
+{
+ U16 i,voice=sCutNextVoice; sAudioDmaSound sound;
+ if(!sample || !sample->mpAsset || !sample->mpAsset->mpData)return;
+ CutScene_SampleDisable(sample);
+ for(i=0;i<2;++i)if(!AudioMixer_IsVoicePlaying(i)){voice=i;break;}
+ sound=*(const sAudioDmaSound*)sample->mpAsset->mpData;
+ sound.mLoopingFlag=sample->mFlagLoop;
+ if(AudioMixer_PlayVoice(voice,&sound,sample->mVolume,sample->mStereoPos)) {
+  sCutAudioOwned=1;sCutSamples[voice]=sample;sCutTail[voice]=0;sCutNextVoice=voice^1;
+ }
+}
+void CutScene_System_Stop(void)
+{
+ CutScene_StopSamples();
+ gCutSceneSysClass.mpScene=0;
+ Memory_Clear(sizeof(gCutSceneSysClass.mThread),&gCutSceneSysClass.mThread);
+ gCutSceneSysClass.mFinished=1;
+}
+
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : CutScene_System_AppInit( void )
 * ACTION   : CutScene_System_AppInit
@@ -103,7 +154,9 @@ U16		CutSceneThread_IsWaiting( sCutSceneThread * apThread );
 
 void	CutScene_System_AppInit( void )
 {
-	Memory_Clear( sizeof(sCutSceneSysClass), &gCutSceneSysClass );
+	CutScene_System_Stop();
+ Memory_Clear( sizeof(sCutSceneSysClass), &gCutSceneSysClass );
+ gCutSceneSysClass.mFinished=1;
 }
 
 
@@ -115,7 +168,7 @@ void	CutScene_System_AppInit( void )
 
 void	CutScene_System_AppDeInit( void )
 {
-
+ CutScene_System_Stop();
 }
 
 
@@ -146,7 +199,12 @@ U16	CutSceneThread_IsWaiting( sCutSceneThread * apThread )
 
 	switch( apThread->mWaitMode )
 	{
-	case	eCUTTHREAD_WAIT_ANIM:
+	case eCUTTHREAD_WAIT_BG:
+  lRes=gCutSceneSysClass.mBGRedrawFlag!=0;break;
+ case eCUTTHREAD_WAIT_SAMPLE:
+  lRes=CutScene_System_IsSamplePlaying((const sCutSample*)apThread->mWaitData);
+  break;
+ case	eCUTTHREAD_WAIT_ANIM:
 		lpSprite = (sCutSprite*)apThread->mWaitData;
 		if( lpSprite->mAnimFrame.w.w1 != lpSprite->mCurrentDef.mpAnimation->mFrame1 )
 		{
@@ -196,10 +254,7 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 	sCutSprite *	lpSprite;
 	sCutVar *		lpVar;
 
-	if( 0 == gCutSceneSysClass.mpScene )
-	{
-		return( 0 );
-	}
+	if(!gCutSceneSysClass.mpScene || gCutSceneSysClass.mFinished || !apThread->mPC.mpScript)return 1;
 
 	lRes  = 0;
 	lDone = 0;
@@ -211,9 +266,11 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 	}
 
 
-	while( !lDone )
+	i=0;
+ while( !lDone )
 	{
-		if( CutSceneThread_IsWaiting( apThread ) )
+		if(++i>1024){gCutSceneSysClass.mFinished=1;CutScene_StopSamples();return 1;}
+  if( CutSceneThread_IsWaiting( apThread ) )
 		{
 			lDone = 1;
 		}
@@ -227,7 +284,10 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 				{
 				case	eCUT_CMD_CALL:
 
-					apThread->mStack[ apThread->mStackIndex ] = apThread->mPC;
+					if(!lpCmd->mArg0 || apThread->mStackIndex>=dCUTSCENE_STACK_LIMIT) {
+      gCutSceneSysClass.mFinished=1;CutScene_StopSamples();return 1;
+     }
+     apThread->mStack[ apThread->mStackIndex ] = apThread->mPC;
 					apThread->mStackIndex++;
 
 					apThread->mPC.mpScript = (sCutScript*)lpCmd->mArg0;
@@ -241,12 +301,14 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 
 				case	eCUT_CMD_BG_GFX_CLEAR:
 					gCutSceneSysClass.mpBGAsset = 0;
-					gCutSceneSysClass.mBGRedrawFlag = 2;
+					gCutSceneSysClass.mBGRedrawFlag = 3;gCutSceneSysClass.mBGBackDirty=1;
+     apThread->mWaitMode=eCUTTHREAD_WAIT_BG;apThread->mWaitData=0;
 					break;
 
 				case	eCUT_CMD_BG_GFX_SET:
 					gCutSceneSysClass.mpBGAsset = (sCutAsset*)lpCmd->mArg0;
-					gCutSceneSysClass.mBGRedrawFlag = 2;
+					gCutSceneSysClass.mBGRedrawFlag = 3;gCutSceneSysClass.mBGBackDirty=1;
+     apThread->mWaitMode=eCUTTHREAD_WAIT_BG;apThread->mWaitData=0;
 					break;
 
 				case	eCUT_CMD_BG_GFX_ENABLE:
@@ -300,13 +362,16 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 					{
 						lDone = 1;
 						lRes  = 1;
+      gCutSceneSysClass.mFinished=1;CutScene_StopSamples();
 					}
 					break;
 
-				case	eCUT_CMD_SAMPLE_ENABLE:
-				case	eCUT_CMD_SAMPLE_DISABLE:
-				case	eCUT_CMD_SAMPLE_WAIT:
-					break;
+				case eCUT_CMD_SAMPLE_ENABLE:
+     CutScene_SampleEnable((const sCutSample*)lpCmd->mArg0);break;
+    case eCUT_CMD_SAMPLE_DISABLE:
+     CutScene_SampleDisable((const sCutSample*)lpCmd->mArg0);break;
+    case eCUT_CMD_SAMPLE_WAIT:
+     apThread->mWaitMode=eCUTTHREAD_WAIT_SAMPLE;apThread->mWaitData=lpCmd->mArg0;break;
 
 				case	eCUT_CMD_SPRITE_ANIM_SET:
 					lpSprite                          = (sCutSprite*)lpCmd->mArg0;
@@ -371,25 +436,27 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 					lpText                     = (sCutText*)lpCmd->mArg0;
 					lpText->mEnabledFlag       = 0;
 					lpText->mRedrawFlag        = 0;
-					lpText->mUndrawFlag        = 2;
+					lpText->mUndrawFlag        = 3;
 					break;
 
 				case	eCUT_CMD_TEXT_ENABLE:
 					lpText                     = (sCutText*)lpCmd->mArg0;
 					lpText->mEnabledFlag       = 1;
-					lpText->mRedrawFlag        = 2;
-					lpText->mUndrawFlag        = 2;
+					lpText->mRedrawFlag        = 3;
+					lpText->mUndrawFlag        = 3;
 					break;
 
 				case	eCUT_CMD_TEXT_FONT_SET:
 					lpText                      = (sCutText*)lpCmd->mArg0;
 					lpText->mCurrentDef.mpAsset = (sCutAsset*)lpCmd->mArg1;
+     lpText->mRedrawFlag=lpText->mUndrawFlag=3;
 					break;
 
 				case	eCUT_CMD_TEXT_PAGE_SET:
 					lpText                     = (sCutText*)lpCmd->mArg0;
 					lpText->mCurrentDef.mpPage = (sCutPage*)lpCmd->mArg1;
 					lpText->mOffset            = 0;
+     lpText->mRedrawFlag=lpText->mUndrawFlag=3;
 					break;
 
 				case	eCUT_CMD_VAR_SET:
@@ -407,7 +474,10 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 				{
 					apThread->mPC.mLine++;
 				}
-			}
+			} else {
+    if(apThread->mStackIndex){apThread->mPC=apThread->mStack[--apThread->mStackIndex];apThread->mPC.mLine++;}
+    else {gCutSceneSysClass.mFinished=1;CutScene_StopSamples();return 1;}
+   }
 		}
 	}
 	return( lRes );
@@ -425,9 +495,13 @@ void	CutScene_System_ScriptInit( sCutScene * apCut,char * apScriptName )
 	
 	U16	i;
 
-	if( apCut )
-	{
-		gCutSceneSysClass.mpScene = apCut;
+	CutScene_System_Stop();
+ if( apCut && apScriptName )
+ {
+  gCutSceneSysClass.mpScene = apCut;
+  gCutSceneSysClass.mpBGAsset=0;
+  gCutSceneSysClass.mBGRedrawFlag=3;gCutSceneSysClass.mBGBackDirty=1;
+  gCutSceneSysClass.mBGEnableFlag=1;
 		gCutSceneSysClass.mThread.mWaitMode = eCUTTHREAD_WAIT_NONE;
 
 		for( i=0; i<apCut->mSpriteCount; i++ )
@@ -443,11 +517,17 @@ void	CutScene_System_ScriptInit( sCutScene * apCut,char * apScriptName )
 			lpSprite->mDist  = 0;
 			lpSprite->mAnimFrame.l = 0;
 			lpSprite->mAnimDir     = 1;
+   lpSprite->mEnabledFlag=0;
+   Memory_Clear(sizeof(lpSprite->mDirtyRects),lpSprite->mDirtyRects);
+   if(lpSprite->mCurrentDef.mpAnimation)lpSprite->mAnimFrame.w.w1=lpSprite->mCurrentDef.mpAnimation->mFrame0;
 		}
 
 		for( i=0; i<apCut->mTextCount; i++ )
 		{
 			apCut->mpTexts[ i ].mCurrentDef = apCut->mpTexts[ i ].mInitialDef;
+   apCut->mpTexts[i].mEnabledFlag=apCut->mpTexts[i].mRedrawFlag=apCut->mpTexts[i].mUndrawFlag=0;
+   apCut->mpTexts[i].mOffset=0;
+   Memory_Clear(sizeof(apCut->mpTexts[i].mDirtyRects),apCut->mpTexts[i].mDirtyRects);
 		}
 
 		i = 0;
@@ -460,6 +540,7 @@ void	CutScene_System_ScriptInit( sCutScene * apCut,char * apScriptName )
 			gCutSceneSysClass.mThread.mPC.mLine    = 0;
 			gCutSceneSysClass.mThread.mPC.mpScript = &apCut->mpScripts[ i ];
 			gCutSceneSysClass.mThread.mStackIndex  = 0;
+   gCutSceneSysClass.mFinished=0;
 		}
 	}
 }
@@ -630,6 +711,48 @@ S32 CutSceneSys_Sqrt(S32 aR)
 }
 
 
+static void CutScene_TextDamage(sCutScene *scene,const sGraphicRect *damage,U16 page)
+{
+ U16 i;for(i=0;i<scene->mTextCount;++i) {
+  sCutText *t=&scene->mpTexts[i];sCutRect *r=&t->mCurrentDef.mRect;
+  if(t->mEnabledFlag && damage->mWidth>0 && damage->mHeight>0 &&
+   damage->mX<r->mX+r->mWidth && damage->mX+damage->mWidth>r->mX &&
+   damage->mY<r->mY+r->mHeight && damage->mY+damage->mHeight>r->mY)t->mRedrawFlag|=1U<<page;
+ }
+}
+
+/* Layout only; all glyph rasterization uses GodLib's clipped ASM font API. */
+static void CutScene_TextDraw(sGraphicCanvas *canvas,sCutText *text,sFont *font)
+{
+ const char *src;char word[128];U16 n;S16 width,advance;
+ sGraphicPos pos; sGraphicBox saved=canvas->mClipBox;
+ sCutRect *r=&text->mCurrentDef.mRect;
+ if(!text->mCurrentDef.mpPage || !text->mCurrentDef.mpPage->mpText || r->mWidth<=0 || r->mHeight<=0)return;
+ src=text->mCurrentDef.mpPage->mpText;pos.mX=r->mX;pos.mY=r->mY;
+ if(canvas->mClipBox.mX0<r->mX)canvas->mClipBox.mX0=r->mX;
+ if(canvas->mClipBox.mY0<r->mY)canvas->mClipBox.mY0=r->mY;
+ if(canvas->mClipBox.mX1>r->mX+r->mWidth)canvas->mClipBox.mX1=r->mX+r->mWidth;
+ if(canvas->mClipBox.mY1>r->mY+r->mHeight)canvas->mClipBox.mY1=r->mY+r->mHeight;
+ if(canvas->mClipBox.mX1<=canvas->mClipBox.mX0 || canvas->mClipBox.mY1<=canvas->mClipBox.mY0){canvas->mClipBox=saved;return;}
+ advance=font->mHeightMax+2;
+ while(*src && pos.mY<r->mY+r->mHeight) {
+  if(*src=='\r' || *src=='\n') {
+   char c=*src++;if(c=='\r' && *src=='\n')src++;
+   pos.mX=r->mX;pos.mY+=advance;continue;
+  }
+  if((U8)*src<=' ') {
+   if(pos.mX!=r->mX)pos.mX+=(font->mSpaceWidth+font->mKerning)*(*src=='\t'?4:1);
+   src++;continue;
+  }
+  n=0;while((U8)*src>' ' && n<sizeof(word)-1)word[n++]=*src++;
+  word[n]=0;width=Font_GetStringWidth(font,word);
+  if(pos.mX!=r->mX && pos.mX+width>r->mX+r->mWidth){pos.mX=r->mX;pos.mY+=advance;}
+  if(pos.mY<r->mY+r->mHeight)canvas->mpClipFuncs->FontPrint(canvas,&pos,font,word);
+  pos.mX+=width+font->mKerning;
+ }
+ canvas->mClipBox=saved;
+}
+
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : CutScene_System_Render( void )
 * ACTION   : CutScene_System_Render
@@ -658,33 +781,16 @@ void	CutScene_System_Render( void )
 		lpLogic = Screen_GetpLogicGraphic();
 		lLogicIndex = Screen_GetLogicIndex();
 
-		if( gCutSceneSysClass.mBGRedrawFlag )
-		{
-			if( gCutSceneSysClass.mpBGAsset )
-			{
-				sDegas *	lpDegas;
-
-				lpDegas = (sDegas*)gCutSceneSysClass.mpBGAsset->mpData;
-				if( 2 == gCutSceneSysClass.mBGRedrawFlag )
-				{
-/*					Memory_Copy( 32000, lpDegas->mPixels, lpBack->mpVRAM );*/
-/*					lpBack->mpFuncs->CopyScreen( lpBack, lpDegas->mPixels );*/
-					Screen_Back_CopyScreen( lpDegas->mPixels );
-				}
-/*				Memory_Copy( 32000, lpDegas->mPixels, lpLogic->mpVRAM );*/
-/*				lpLogic->mpFuncs->CopyScreen( lpLogic, lpDegas->mPixels );*/
-				Screen_Back_CopyScreen( lpDegas->mPixels );
-			}
-			else
-			{
-				if( 2 == gCutSceneSysClass.mBGRedrawFlag )
-				{
-					Memory_Clear( 32000, lpBack->mpVRAM );
-				}
-				Memory_Clear( 32000, lpLogic->mpVRAM );
-			}
-			gCutSceneSysClass.mBGRedrawFlag--;
-		}
+  if(gCutSceneSysClass.mBGBackDirty) {
+   sDegas *picture=gCutSceneSysClass.mpBGAsset?(sDegas*)gCutSceneSysClass.mpBGAsset->mpData:0;
+   if(picture)Screen_Back_CopyScreen(picture->mPixels);else Screen_Back_ClearScreen();
+   gCutSceneSysClass.mBGBackDirty=0;
+  }
+  if(gCutSceneSysClass.mBGRedrawFlag & (1U<<lLogicIndex)) {
+   Screen_Logic_CopyScreen(lpBack->mpVRAM);
+   gCutSceneSysClass.mBGRedrawFlag &= ~(1U<<lLogicIndex);
+   for(i=0;i<lpCut->mTextCount;++i)lpCut->mpTexts[i].mRedrawFlag|=1U<<lLogicIndex;
+  }
 
 		for( i=0; i<lpCut->mSpriteCount; i++ )
 		{
@@ -700,6 +806,7 @@ void	CutScene_System_Render( void )
 			{
 				lpLogic->mpClipFuncs->Blit( lpLogic, &lPos, &lRect, lpBack );
 				lpSprite->mDirtyRects[ lLogicIndex ].mWidth = 0;
+    CutScene_TextDamage(lpCut,&lRect,lLogicIndex);
 			}
 		}
 
@@ -707,7 +814,7 @@ void	CutScene_System_Render( void )
 		{
 			lpText    = &lpCut->mpTexts[ i ];
 
-			if( lpText->mUndrawFlag )
+			if( lpText->mUndrawFlag & (1U<<lLogicIndex) )
 			{
 				lPos.mX       = lpText->mDirtyRects[ lLogicIndex ].mX;
 				lPos.mY       = lpText->mDirtyRects[ lLogicIndex ].mY;
@@ -720,7 +827,7 @@ void	CutScene_System_Render( void )
 					lpLogic->mpClipFuncs->Blit( lpLogic, &lPos, &lRect, lpBack );
 					lpText->mDirtyRects[ lLogicIndex ].mWidth = 0;
 				}
-				lpText->mUndrawFlag--;
+				lpText->mUndrawFlag &= ~(1U<<lLogicIndex);
 			}
 		}
 
@@ -751,6 +858,8 @@ void	CutScene_System_Render( void )
 						lpSprite->mDirtyRects[ lLogicIndex ].mY = lPos.mY;
 						lpSprite->mDirtyRects[ lLogicIndex ].mWidth = lpSprBlock->mpSprite[ lSprIndex ]->mWidth;
 						lpSprite->mDirtyRects[ lLogicIndex ].mHeight = lpSprBlock->mpSprite[ lSprIndex ]->mHeight;
+      lRect.mX=lPos.mX;lRect.mY=lPos.mY;lRect.mWidth=lpSprBlock->mpSprite[lSprIndex]->mWidth;lRect.mHeight=lpSprBlock->mpSprite[lSprIndex]->mHeight;
+      CutScene_TextDamage(lpCut,&lRect,lLogicIndex);
 					}
 				}
 			}
@@ -766,62 +875,11 @@ void	CutScene_System_Render( void )
 					lpFont = (sFont*)lpText->mCurrentDef.mpAsset->mpData;
 					if( lpFont )
 					{
-						if( lpText->mRedrawFlag )
-						{
-							U16		lWordOffset;
-							char	lWordString[ 128 ];
-							char *	lpTextSrc = lpText->mCurrentDef.mpPage->mpText;
-
-							lPos.mX = lpText->mCurrentDef.mRect.mX;
-							lPos.mY = lpText->mCurrentDef.mRect.mY;
-
-							while( *lpTextSrc )
-							{
-								lWordOffset = 0;
-								while( *lpTextSrc > ' ' )
-								{
-									lWordString[ lWordOffset ] = *lpTextSrc;
-									lWordOffset++;
-									lpTextSrc++;
-								}
-								if( lWordOffset )
-								{
-									S16	lWordWidth;
-									lWordString[ lWordOffset ] = 0;
-									lWordWidth = Font_GetStringWidth( lpFont, lWordString );
-
-									if( (lPos.mX + lWordWidth) > lpText->mCurrentDef.mRect.mWidth )
-									{
-										lPos.mY += lpFont->mHeightMax + 2;
-										lPos.mX  = lpText->mCurrentDef.mRect.mX;
-									}
-									lpLogic->mpClipFuncs->FontPrint( lpLogic, &lPos, lpFont, lWordString );
-
-									lPos.mX += lWordWidth + lpFont->mWidthMax;
-								}
-								while( *lpTextSrc == ' ' )
-								{
-									lpTextSrc++;
-								}
-								if( (*lpTextSrc==10) || (*lpTextSrc==13) )
-								{
-									lPos.mY += lpFont->mHeightMax + lpFont->mKerning;
-									lPos.mX  = lpText->mCurrentDef.mRect.mX;
-
-									while( (*lpTextSrc) && ((*lpTextSrc!=10) && (*lpTextSrc!=13)) )
-									{
-										lpTextSrc++;
-									}
-								}
-							}
-
-							lpText->mDirtyRects[ lLogicIndex ].mX      = lpText->mCurrentDef.mRect.mX;
-							lpText->mDirtyRects[ lLogicIndex ].mY      = lpText->mCurrentDef.mRect.mY;
-							lpText->mDirtyRects[ lLogicIndex ].mWidth  = lpText->mCurrentDef.mRect.mWidth;
-							lpText->mDirtyRects[ lLogicIndex ].mHeight = lpText->mCurrentDef.mRect.mHeight;
-
-							lpText->mRedrawFlag--;
-						}
+      if(lpText->mRedrawFlag & (1U<<lLogicIndex)) {
+       CutScene_TextDraw(lpLogic,lpText,lpFont);
+       lpText->mDirtyRects[lLogicIndex]=lpText->mCurrentDef.mRect;
+       lpText->mRedrawFlag &= ~(1U<<lLogicIndex);
+      }
 					}
 				}
 			}
@@ -862,20 +920,7 @@ sHashTree *	CutScene_System_GetpHashTree( void )
 
 U8	CutScene_System_IsScriptFinished( void )
 {
-	U8	lRes;
-
-	lRes = 0;
-
-	if( !gCutSceneSysClass.mThread.mStackIndex )
-	{
-		if( gCutSceneSysClass.mThread.mPC.mLine >= gCutSceneSysClass.mThread.mPC.mpScript->mCommandCount )
-		{
-			lRes = 1;
-		}
-	}
-
-	return( lRes );
+ return !gCutSceneSysClass.mpScene || gCutSceneSysClass.mFinished;
 }
-
 
 /* ################################################################################ */

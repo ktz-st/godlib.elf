@@ -74,7 +74,19 @@ change it to `pcmvoice.h`, `PcmStreamMixer_*` to `PcmVoiceMixer_*`, and
 `fPcmStreamMixerStream` to `fPcmVoiceMixerStream`. Rebuild client objects when updating libgod.a: precompiled objects
 using historical linker symbols are not binary-compatible. New example folders,
 source files, ASM symbols and the library Makefile use the canonical names.
-AudioMixer (`amixer.h`) remains a separate backend.
+AudioMixer (`amixer.h`) remains a separate backend: two voices with real
+0..255 volume/pan, three pan laws, saturated signed stereo summation and source
+loops. It uses 4 KiB of double-buffered stereo lookup tables, a dedicated single-voice
+path and carry-corrected two-voice mixing with a saturation fallback. Output is selectable
+12517/25033 Hz stereo using `AudioMixer_SetFrequency(eAUDIO_FREQ_12/25)`.
+Mono input at 6258/12517/25033 Hz is expanded by repetition or decimated 2:1
+without filtering, preserving source tempo/pitch. Rate changes stop voices and
+clear queued output; callers restart samples afterwards. Odd-length source
+loops carry the decimation phase across wraps.
+The lightweight Frame/Block/Layer/Voice mixers are unchanged. See
+[`godlib.spl/mixer`](../../godlib.spl/mixer/README.md) for API and native tests.
+Earlier AudioMixer CPU measurements concern the removed OR/interleave core;
+they do not describe this implementation.
 
 ## Examples and verification
 

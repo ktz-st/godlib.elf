@@ -154,6 +154,7 @@ sTokeniserMember	gCutSceneVarMembers[] =
 {
 	{	eTOKENISER_TYPE_STRING,		0,	"NAME",		mOFFSET( sCutVar, mpName )					},
 	{	eTOKENISER_TYPE_STRING,		0,	"VARNAME",	mOFFSET( sCutVar, mpVarName )				},
+ {0,0,0,0},
 };
 
 sTagValue	gCutSceneStructDefs[] =

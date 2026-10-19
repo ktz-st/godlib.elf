@@ -128,7 +128,8 @@ CUTBUILD SourceTextFile DestBinFile
 The local Python TOOLBASE subset does not implement `CUTBUILD` or `SPLMAKE`.
 The library includes `CutScene_Parse()` in `cutparse.c`, but the current host
 build does not supply a native CUTBUILD command. An original tool or a host
-integration of the parser is needed to compile text assets.
+integration of the parser is needed for host-side compilation; target-side
+parsing is exercised by the cutscene example.
 
 Cutscene data chunks include:
 
@@ -142,11 +143,25 @@ Cutscene data chunks include:
 - `SCRIPT`
 
 Parsed commands cover backgrounds, fades, samples, sprite animation/movement,
-text, variables, callbacks and waits. Parsing support does not mean runtime
-support: `SAMPLE_ENABLE`, `SAMPLE_DISABLE` and `SAMPLE_WAIT` are no-ops;
-`TEXT_ANIM_SET` and `TEXT_ANIM_WAIT` do not implement animation or waiting.
-Cutscene samples are not connected to the PCM mixers. See `cutscene.txt` for
-the complete command table and these limitations.
+text, variables, callbacks and waits. SAMPLE_ENABLE/DISABLE/WAIT now use AMIXER:
+volume, pan, loop, two voices and round-robin stealing. The application initializes
+and reserves AMIXER explicitly; missing DMA/failed Play never hangs SAMPLE_WAIT.
+Wait includes three VBLs for queued PCM after source completion. Stop, restart,
+AppInit/AppDeInit and natural root return flush cutscene audio before assets can
+be freed. `CutScene_System_Stop()` is the public skip/unload entry point;
+`CutScene_System_IsSamplePlaying()` includes that queued tail.
+
+BG_GFX_SET/CLEAR update clean Back once and both actual display pages by mask,
+waiting for both pages before subsequent script commands. Text handles
+CR/LF/CRLF/tabs, bounds word buffers, uses X+WIDTH and clips to the text rectangle.
+Page/font changes redraw enabled text; sprite damage refreshes overlapping text.
+ScriptInit resets dirty/enable/thread state, safe completion covers empty/missing
+scripts, bounded calls prevent stack corruption, and the VAR parser member table
+is terminated. `TEXT_ANIM_*` still has no typewriter implementation.
+
+`godlib.spl/cutscene` demonstrates two scenes with four generated Daniel narration
+samples at 12517 Hz (119009 bytes), using the native parser. Its native frame and
+runtime regression harnesses verify rendering, script/audio lifecycle and waits.
 
 Integration notes:
 
@@ -3599,20 +3614,58 @@ SPL relocator:
 - On Falcon, `Relocator_SPL_DoInit()` halves each signed sample byte, probably
   to reduce output level for Falcon playback.
 
-Audio mixer:
+Audio mixer (AMIXER, volume/pan implementation):
 
-- `AudioMixer_Init()` supports STE/MegaSTE/TT/Falcon DMA machines.
-- It allocates a 4 KiB silence buffer and an 8 KiB mixing buffer plus extra
-  padding with `mMEMSCREENCALLOC()`.
-- The active mixer supports two software channels (`dAMIXER_CHANNEL_LIMIT = 2`).
-- `AudioMixer_Enable()` installs `AudioMixer_Vbl()` in the VBL queue and starts
-  looping DMA playback of the mixer buffer at 25 kHz stereo 8-bit.
-- `AudioMixer_Vbl()` reads the current DMA frame pointer and mixes the next
-  chunk of audio into the circular mixer buffer.
-- `AudioMixer_PlaySample()` plays a sample on the first inactive mixer channel.
-- `AudioMixer_PlaySampleDirect()` steals the channel closest to finishing if no
-  channel is free.
-- Panning can be linear, constant-power-ish, or pan-law table based.
+- Two signed 8-bit mono source voices; output is selectable 12517/25033 Hz
+  stereo 8-bit DMA (default 25033). `AudioMixer_SetFrequency(eAUDIO_FREQ_12/25)`
+  and `AudioMixer_GetFrequency()` use the existing audio frequency enums.
+- A real frequency change stops both sources and clears the DMA queue, preserving
+  enabled/disabled state. Same-rate calls do nothing; invalid enums return 0.
+  Clients replay their sources after switching. Call the setter after Init.
+- Sources at 6258/12517/25033 Hz are expanded by byte repetition when slower than
+  output. 25033 -> 12517 Hz selects every second byte, without a low-pass filter
+  (possible aliasing). Odd-length loops carry decimation phase across wraps.
+  Stereo/16-bit sources and 50066 Hz input are rejected; no general resampling.
+- `AudioMixer_PlayVoice(voice, sound, volume, pan)` explicitly replaces voice
+  0 or 1. Volume and pan span 0..255. It returns 1 on success.
+- `AudioMixer_SetVoiceParams(voice, volume, pan)`, `StopVoice` and
+  `IsVoicePlaying` provide per-voice control. Sample memory stays caller-owned.
+- `AudioMixer_StopAll()` stops both voices and discards queued output, preserving
+  output rate and enabled/disabled state. Cutscene lifecycle uses it when the
+  cutscene has successfully started samples; the application reserves both voices.
+- `PlaySample` and `PlaySampleDirect` retain their signatures, with volume 255;
+  the former selects a free voice, the latter steals the nearest-to-end voice.
+- The descriptor's `mLoopingFlag` repeats the complete source. Odd lengths and
+  odd source addresses are supported; refill spans stop exactly at source ends.
+- Real signed L/R summation with saturation replaces the old mask/OR/interleave
+  paths. Linear, constant-power and legacy pan-law gains are actually applied.
+- Four KiB of double-buffered tables store native stereo words and a
+  right-biased view. One voice uses lookup/copy. Two voices with summed L/R gains
+  <=256 use an explicitly carry-corrected packed word sum; higher gains use
+  per-byte overflow saturation. Native loops are unrolled, preserving odd spans
+  and all source-rate phases. There is no separate clip table (512 bytes saved).
+- No gain or 32-bit span multiplication runs in the steady mixer. Unchanged gain
+  tables are reused. Controls remain non-reentrant main-thread/supervisor APIs.
+- Idle refill skips stores once a full silent ring revolution is zero; Play
+  invalidates this state. Allocations remain 8 KiB DMA ring + 4 KiB silence;
+  gain table BSS is 4 KiB. Larger ASM trades a few hundred bytes of net RAM for CPU.
+  STE/MegaSTE/TT/Falcon DMA detection is retained. Plain ST has no DMA playback.
+- VBL refills 1024 bytes ahead at 12517 Hz, 2048 at 25033 Hz (~41 ms in either
+  mode). Parameter changes/stops do not erase already queued audio. No missed-lap recovery is
+  promised after prolonged interrupt blocking.
+- Enable clears queued output and source state. Disable removes the callback
+  before teardown. SetConfig preserves disabled state; changing configuration
+  while enabled restarts playback and clears sources. Only 8-bit stereo output
+  configuration and valid pan-law values are accepted.
+- `godlib.spl/mixer` demonstrates volume, pan, two voices and F4 rate switching.
+  Its native Hatari regression checks exact PCM bytes and actual DMA ring wraps.
+  Its cycle profiles compare the summing AMIXER before/after optimization:
+  one voice 24.14 -> 7.72% at 12.5 kHz and 46.73 -> 13.88% at 25 kHz; two voices
+  without clipping 24.54 -> 17.05% and 47.16 -> 32.15%. Idle is 0.56/0.57%;
+  clipping stress stays about 24.6/46.7%. Conditions: Hatari-HRDB STE 8 MHz,
+  PAL, 1 MiB, German TOS 1.62, steady parameters. Includes mixer controller/core,
+  excludes setup/gain changes and common IRQ dispatch. Historical OR/interleave
+  figures do not describe this implementation.
 
 SSD:
 
@@ -3629,8 +3682,8 @@ Important limitations and risks:
 - `Audio_ScaleVolumeUnSigned()` is not implemented.
 - `Audio_DmaPlaySound()` now rejects null/empty sample descriptors, but still
   does not validate enum values or ST-RAM placement.
-- `AudioMixer_SetConfig()` disables and immediately re-enables the mixer; callers
-  should avoid calling it while relying on uninterrupted playback.
+- `AudioMixer_SetConfig()` restarts an enabled mixer; callers should avoid
+  calling it while relying on uninterrupted playback.
 - `AudioMixer_Init()` now detects mixer buffer allocation failure and disables
   mixer DMA availability for that instance.
 - Backup/previous mixer files in the directory should not be treated as active

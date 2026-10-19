@@ -1,6 +1,8 @@
 # GodLib documentation
 
 - [Missing Link REFLECT](reflection.md): native ASM water reflection and original-code verification.
+- [Example coverage and module audit](module-audit.md): 2026-10-19 review,
+  suggested examples, unused versus unexercised APIs and confirmed incomplete paths.
 - [Module notes](module-notes.md): source survey, integration details and known
   limitations across the library.
 - [Cutscene format](cutscene.txt): legacy text DSL, corrected field names,
@@ -27,7 +29,11 @@ was freshly tested. Test counts and CPU/timing figures belong to the linked
 test artifacts and their stated configurations. Source review and Hatari tests
 do not establish behavior on physical Atari hardware.
 
-Important constraints called out in the notes include matching source/destination layouts for `Graphic_ChunkList` background restore,
-and parsed cutscene TEXT_ANIM_* commands that remain unimplemented.
-The original TOOLBASE CUTBUILD/SPLMAKE commands are not implemented by the local
-Python tool subset.
+Important constraints include matching source/destination layouts for
+`Graphic_ChunkList` background restore. Cutscene background visibility and
+TEXT_ANIM_* now work, including final rendering waits for both display pages.
+The local [CUTBUILD](../tools/cutbuild/README.md) compiler now supports host-side
+cutscene builds and TOOLBASE batches. SPLMAKE remains unavailable locally.
+
+The optional [HEAP allocator](../memory/HEAP.md) provides independent arenas,
+immediate free-block coalescing, statistics and native/host correctness tests.

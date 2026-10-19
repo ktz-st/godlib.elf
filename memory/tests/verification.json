@@ -1,0 +1,24 @@
+{
+  "result": "PASS",
+  "checks": 91967,
+  "failures": 0,
+  "machine": "STE 68000 / 8 MHz / 1 MiB / German TOS 1.62",
+  "executable_sha256": "dc0817a52ea356ea5a224b1df1ef417ef4f8a8abb739af9329856fd7ba73afa2",
+  "stress_operations": 3000,
+  "stress_slots": 48,
+  "host_validation": "Same test driver under AddressSanitizer and UndefinedBehaviorSanitizer, plus forced backing-allocation failure and exact ownership call counts.",
+  "covers": [
+    "owned and caller-supplied arenas",
+    "4-byte alignment and unaligned input-buffer canaries",
+    "minimum block, exact fit and unsplittable tail",
+    "first-fit reuse and immediate coalescing in both directions",
+    "fragmentation versus total free memory",
+    "exact requested/capacity/header accounting and largest free block",
+    "peak/live/cumulative statistics and Reset",
+    "zero-size, overflow and exhaustion without changing live data",
+    "foreign/interior/double/stale-after-Reset pointer rejection",
+    "corrupt metadata detection and Reset recovery",
+    "200000-byte arena, allocations/offsets above 65535",
+    "deterministic randomized payload preservation and final full coalescence"
+  ]
+}

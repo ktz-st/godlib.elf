@@ -46,7 +46,7 @@ SOURCES = \
 	linea/linea.c \
 	linkfile/linkfile.c \
 	main/god_main.c \
-	memory/memory.c \
+	memory/memory.c memory/heap.c \
 	mfp/mfp.c \
 	music/lancemod.c music/leonardmod.c music/pinknote.c music/snd.c music/wizzcat.c \
 	packer/ari_dec.c packer/ari_enc.c packer/brun1.c packer/bwt_dec.c packer/bwt_enc.c packer/godpack.c packer/godpackp.c packer/lz77_dec.c packer/lz77_enc.c packer/lz77bdec.c packer/lz77benc.c packer/mtf_dec.c packer/mtf_enc.c packer/packer.c packer/rle.c packer/rnc.c \
@@ -149,3 +149,5 @@ music/leonardmod_s.o: music/leonardmod_s.s music/leonardpaula.s music/leonardtra
 music/wizzcat.o: music/wizzcat.h
 
 music/lancemod.o music/leonardmod.o music/wizzcat.o: music/modscope.h
+
+memory/heap.o: memory/heap.h memory/memory.h

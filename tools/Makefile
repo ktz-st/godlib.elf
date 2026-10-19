@@ -1,4 +1,4 @@
-all: rnc godpack apultra pack-ice
+all: rnc godpack apultra pack-ice cutbuild
 
 rnc:
 	$(MAKE) -C rnc
@@ -12,10 +12,14 @@ apultra:
 pack-ice:
 	$(MAKE) -C pack-ice
 
+cutbuild:
+	$(MAKE) -C cutbuild
+
 clean:
+	$(MAKE) -C cutbuild clean
 	$(MAKE) -C rnc clean
 	$(MAKE) -C godpack clean
 	$(MAKE) -C apultra clean
 	$(MAKE) -C pack-ice clean
 
-.PHONY: all rnc godpack apultra pack-ice clean
+.PHONY: all rnc godpack apultra pack-ice cutbuild clean

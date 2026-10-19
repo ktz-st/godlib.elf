@@ -33,6 +33,7 @@ enum
 	eCUTTHREAD_WAIT_VBL,
 	eCUTTHREAD_WAIT_SAMPLE,
  eCUTTHREAD_WAIT_BG,
+ eCUTTHREAD_WAIT_TEXT,
 
 	eCUTTHREAD_WAIT_LIMIT
 };
@@ -99,6 +100,35 @@ U16		CutSceneThread_IsWaiting( sCutSceneThread * apThread );
 /* ###################################################################################
 #  CODE
 ################################################################################### */
+
+/* Runtime text state uses the existing CUT fields: source-byte offset and
+ * update countdown. Keep the serialized structure and file version unchanged. */
+static U16 CutScene_TextIsWaiting(const sCutText *text)
+{
+ const char *source;
+ if(!text || !text->mEnabledFlag || !text->mCurrentDef.mpPage)return 0;
+ source=text->mCurrentDef.mpPage->mpText;
+ if(!source || !*source)return 0;
+ return (text->mWordPauseConstant && source[text->mOffset]) || (text->mRedrawFlag & 3);
+}
+static void CutScene_TextAnimUpdate(sCutText *text)
+{
+ const char *source;
+ if(!text->mEnabledFlag || !text->mWordPauseConstant || !text->mCurrentDef.mpPage)return;
+ source=text->mCurrentDef.mpPage->mpText;
+ if(!source || !source[text->mOffset])return;
+ if(text->mWordPauseCounter) --text->mWordPauseCounter;
+ if(!text->mWordPauseCounter) {
+  ++text->mOffset;text->mWordPauseCounter=text->mWordPauseConstant;
+  text->mRedrawFlag=text->mUndrawFlag=3;
+ }
+}
+static void CutScene_BackgroundChanged(sCutSceneThread *thread)
+{
+ gCutSceneSysClass.mBGRedrawFlag=3;
+ gCutSceneSysClass.mBGBackDirty=1;
+ thread->mWaitMode=eCUTTHREAD_WAIT_BG;thread->mWaitData=0;
+}
 
 /* No audio allocation or DMA ownership changes unless SAMPLE commands succeed.
  * A named sample has at most one voice. A third sample steals round-robin. */
@@ -201,6 +231,8 @@ U16	CutSceneThread_IsWaiting( sCutSceneThread * apThread )
 	{
 	case eCUTTHREAD_WAIT_BG:
   lRes=gCutSceneSysClass.mBGRedrawFlag!=0;break;
+ case eCUTTHREAD_WAIT_TEXT:
+  lRes=CutScene_TextIsWaiting((const sCutText*)apThread->mWaitData);break;
  case eCUTTHREAD_WAIT_SAMPLE:
   lRes=CutScene_System_IsSamplePlaying((const sCutSample*)apThread->mWaitData);
   break;
@@ -265,6 +297,8 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 		CutScene_System_SpriteAnimUpdate( &gCutSceneSysClass.mpScene->mpSprites[ i ] );
 	}
 
+ for(i=0;i<gCutSceneSysClass.mpScene->mTextCount;++i)
+  CutScene_TextAnimUpdate(&gCutSceneSysClass.mpScene->mpTexts[i]);
 
 	i=0;
  while( !lDone )
@@ -301,21 +335,23 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 
 				case	eCUT_CMD_BG_GFX_CLEAR:
 					gCutSceneSysClass.mpBGAsset = 0;
-					gCutSceneSysClass.mBGRedrawFlag = 3;gCutSceneSysClass.mBGBackDirty=1;
-     apThread->mWaitMode=eCUTTHREAD_WAIT_BG;apThread->mWaitData=0;
+					CutScene_BackgroundChanged(apThread);
 					break;
 
 				case	eCUT_CMD_BG_GFX_SET:
 					gCutSceneSysClass.mpBGAsset = (sCutAsset*)lpCmd->mArg0;
-					gCutSceneSysClass.mBGRedrawFlag = 3;gCutSceneSysClass.mBGBackDirty=1;
-     apThread->mWaitMode=eCUTTHREAD_WAIT_BG;apThread->mWaitData=0;
+					CutScene_BackgroundChanged(apThread);
 					break;
 
 				case	eCUT_CMD_BG_GFX_ENABLE:
-					gCutSceneSysClass.mBGEnableFlag = 1;
+					if(!gCutSceneSysClass.mBGEnableFlag) {
+      gCutSceneSysClass.mBGEnableFlag=1;CutScene_BackgroundChanged(apThread);
+     }
 					break;
 				case	eCUT_CMD_BG_GFX_DISABLE:
-					gCutSceneSysClass.mBGEnableFlag = 0;
+					if(gCutSceneSysClass.mBGEnableFlag) {
+      gCutSceneSysClass.mBGEnableFlag=0;CutScene_BackgroundChanged(apThread);
+     }
 					break;
 
 				case	eCUT_CMD_FADE_SET:
@@ -425,23 +461,34 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 					lpSprite->mDist  = 0;
 					break;
 
-				case	eCUT_CMD_TEXT_ANIM_SET:
-					lpText                     = (sCutText*)lpCmd->mArg0;
-					break;
-
-				case	eCUT_CMD_TEXT_ANIM_WAIT:
-					break;
+    case eCUT_CMD_TEXT_ANIM_SET:
+     lpText=(sCutText*)lpCmd->mArg0;
+     if(lpText) {
+      S32 delay=(S32)lpCmd->mArg1;
+      lpText->mWordPauseConstant=delay<=0?0:(delay>65535L?65535:(U16)delay);
+      lpText->mWordPauseCounter=lpText->mWordPauseConstant;
+      lpText->mOffset=0;
+      lpText->mRedrawFlag=lpText->mUndrawFlag=3;
+     }
+     break;
+    case eCUT_CMD_TEXT_ANIM_WAIT:
+     apThread->mWaitMode=eCUTTHREAD_WAIT_TEXT;apThread->mWaitData=lpCmd->mArg0;
+     break;
 
 				case	eCUT_CMD_TEXT_DISABLE:
 					lpText                     = (sCutText*)lpCmd->mArg0;
 					lpText->mEnabledFlag       = 0;
+     lpText->mOffset=0;lpText->mWordPauseCounter=lpText->mWordPauseConstant;
 					lpText->mRedrawFlag        = 0;
 					lpText->mUndrawFlag        = 3;
 					break;
 
 				case	eCUT_CMD_TEXT_ENABLE:
 					lpText                     = (sCutText*)lpCmd->mArg0;
-					lpText->mEnabledFlag       = 1;
+					if(!lpText->mEnabledFlag) {
+      lpText->mOffset=0;lpText->mWordPauseCounter=lpText->mWordPauseConstant;
+     }
+     lpText->mEnabledFlag       = 1;
 					lpText->mRedrawFlag        = 3;
 					lpText->mUndrawFlag        = 3;
 					break;
@@ -456,6 +503,7 @@ U32	CutSceneThread_Update( sCutSceneThread * apThread )
 					lpText                     = (sCutText*)lpCmd->mArg0;
 					lpText->mCurrentDef.mpPage = (sCutPage*)lpCmd->mArg1;
 					lpText->mOffset            = 0;
+     lpText->mWordPauseCounter=lpText->mWordPauseConstant;
      lpText->mRedrawFlag=lpText->mUndrawFlag=3;
 					break;
 
@@ -527,6 +575,7 @@ void	CutScene_System_ScriptInit( sCutScene * apCut,char * apScriptName )
 			apCut->mpTexts[ i ].mCurrentDef = apCut->mpTexts[ i ].mInitialDef;
    apCut->mpTexts[i].mEnabledFlag=apCut->mpTexts[i].mRedrawFlag=apCut->mpTexts[i].mUndrawFlag=0;
    apCut->mpTexts[i].mOffset=0;
+   apCut->mpTexts[i].mWordPauseConstant=apCut->mpTexts[i].mWordPauseCounter=0;
    Memory_Clear(sizeof(apCut->mpTexts[i].mDirtyRects),apCut->mpTexts[i].mDirtyRects);
 		}
 
@@ -724,18 +773,19 @@ static void CutScene_TextDamage(sCutScene *scene,const sGraphicRect *damage,U16 
 /* Layout only; all glyph rasterization uses GodLib's clipped ASM font API. */
 static void CutScene_TextDraw(sGraphicCanvas *canvas,sCutText *text,sFont *font)
 {
- const char *src;char word[128];U16 n;S16 width,advance;
+ const char *src,*begin,*wordStart;char word[128];U16 n,shown;S16 width,advance;
+ U32 visible=text->mWordPauseConstant?text->mOffset:0xffffffffUL;
  sGraphicPos pos; sGraphicBox saved=canvas->mClipBox;
  sCutRect *r=&text->mCurrentDef.mRect;
  if(!text->mCurrentDef.mpPage || !text->mCurrentDef.mpPage->mpText || r->mWidth<=0 || r->mHeight<=0)return;
- src=text->mCurrentDef.mpPage->mpText;pos.mX=r->mX;pos.mY=r->mY;
+ src=begin=text->mCurrentDef.mpPage->mpText;pos.mX=r->mX;pos.mY=r->mY;
  if(canvas->mClipBox.mX0<r->mX)canvas->mClipBox.mX0=r->mX;
  if(canvas->mClipBox.mY0<r->mY)canvas->mClipBox.mY0=r->mY;
  if(canvas->mClipBox.mX1>r->mX+r->mWidth)canvas->mClipBox.mX1=r->mX+r->mWidth;
  if(canvas->mClipBox.mY1>r->mY+r->mHeight)canvas->mClipBox.mY1=r->mY+r->mHeight;
  if(canvas->mClipBox.mX1<=canvas->mClipBox.mX0 || canvas->mClipBox.mY1<=canvas->mClipBox.mY0){canvas->mClipBox=saved;return;}
  advance=font->mHeightMax+2;
- while(*src && pos.mY<r->mY+r->mHeight) {
+ while(*src && pos.mY<r->mY+r->mHeight && (U32)(src-begin)<visible) {
   if(*src=='\r' || *src=='\n') {
    char c=*src++;if(c=='\r' && *src=='\n')src++;
    pos.mX=r->mX;pos.mY+=advance;continue;
@@ -744,10 +794,16 @@ static void CutScene_TextDraw(sGraphicCanvas *canvas,sCutText *text,sFont *font)
    if(pos.mX!=r->mX)pos.mX+=(font->mSpaceWidth+font->mKerning)*(*src=='\t'?4:1);
    src++;continue;
   }
-  n=0;while((U8)*src>' ' && n<sizeof(word)-1)word[n++]=*src++;
+  wordStart=src;n=0;while((U8)*src>' ' && n<sizeof(word)-1)word[n++]=*src++;
   word[n]=0;width=Font_GetStringWidth(font,word);
   if(pos.mX!=r->mX && pos.mX+width>r->mX+r->mWidth){pos.mX=r->mX;pos.mY+=advance;}
-  if(pos.mY<r->mY+r->mHeight)canvas->mpClipFuncs->FontPrint(canvas,&pos,font,word);
+  /* Lay out the complete word before clipping its visible prefix. Otherwise
+   * partially revealed words jump to the next line when they grow. */
+  shown=n;
+  if(visible-(U32)(wordStart-begin)<shown)shown=(U16)(visible-(U32)(wordStart-begin));
+  word[shown]=0;
+  if(shown && pos.mY<r->mY+r->mHeight)canvas->mpClipFuncs->FontPrint(canvas,&pos,font,word);
+  if(shown<n)break;
   pos.mX+=width+font->mKerning;
  }
  canvas->mClipBox=saved;
@@ -782,7 +838,7 @@ void	CutScene_System_Render( void )
 		lLogicIndex = Screen_GetLogicIndex();
 
   if(gCutSceneSysClass.mBGBackDirty) {
-   sDegas *picture=gCutSceneSysClass.mpBGAsset?(sDegas*)gCutSceneSysClass.mpBGAsset->mpData:0;
+   sDegas *picture=(gCutSceneSysClass.mBGEnableFlag && gCutSceneSysClass.mpBGAsset)?(sDegas*)gCutSceneSysClass.mpBGAsset->mpData:0;
    if(picture)Screen_Back_CopyScreen(picture->mPixels);else Screen_Back_ClearScreen();
    gCutSceneSysClass.mBGBackDirty=0;
   }

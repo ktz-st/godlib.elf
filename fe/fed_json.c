@@ -162,8 +162,8 @@ sReflectType		gFedJSON_Layout_Type =
 {
 	"sFedJSON_Layout",
 	sizeof( sFedJSON_Layout ),
-	mARRAY_COUNT( gFedJSON_Layout_Elements ),
 	0,
+	mARRAY_COUNT( gFedJSON_Layout_Elements ),
 	gFedJSON_Layout_Elements,
 	0
 };

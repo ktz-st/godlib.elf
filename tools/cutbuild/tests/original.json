@@ -1,0 +1,11 @@
+{
+  "tool": "GOD/TOOLS.RG/BIN/ATARI/TOOLBASE/TOOLBASE.TTP",
+  "repository": "https://github.com/ReservoirGods/TOOLS.RG",
+  "repository_commit": "6e1830ae927741043240bedd46f8034092d8f396",
+  "tool_sha256": "a2cc8df1e5fe287cbeb5ef53c563da09e155aaebfca620ca0d2a54f0613949b8",
+  "command": "TOOLBASE.TTP BUILD.TBS; batch contents: CUTBUILD FIXTURE.TXT OLD.CUT",
+  "machine": "Hatari STE, German TOS 1.62, 4 MiB",
+  "source_sha256": "05fc6fb0bbd4fda4c48a391bde4af2cb862f41cf4e59744c8b9024cfcc16e313",
+  "output_sha256": "0d582e5c476842c3de1ad366dc25f102b96495a873098c68cc99e44898b7ac96",
+  "output_bytes": 929
+}

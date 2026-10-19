@@ -34,6 +34,21 @@
 * CREATION : 06.10.18 PNK
 *-----------------------------------------------------------------------------------*/
 
+/* The generic lexer also separates arithmetic operators. JSON numbers must
+ * retain their signs, decimal points and exponent signs in one token. */
+static void JSON_LexerInit(sLexerContext * apLexer, const sString * apSource)
+{
+    const char * separators = "{}[]:,";
+    U16 i;
+    Lexer_Init(apLexer, apSource);
+    for (i = 0; i < 4; ++i) apLexer->mSeperators[i] = 0;
+    for (; *separators; ++separators)
+    {
+        U8 c = (U8)*separators;
+        apLexer->mSeperators[c >> 5] |= 1UL << (c & 31);
+    }
+}
+
 void	JSON_Parse( sString * apSrc, sElementCollectionJSON  * apCollection )
 {
 	U32				elementCount = 0;
@@ -42,7 +57,7 @@ void	JSON_Parse( sString * apSrc, sElementCollectionJSON  * apCollection )
 	sElementJSON *	pElements = 0;
 	sLexerContext	lexer;
 
-	Lexer_Init( &lexer, apSrc );
+	JSON_LexerInit( &lexer, apSrc );
 	while( Lexer_GetNextToken( &lexer ) )
 		elementCount++;
 /*	Lexer_DeInit( &lexer );*/
@@ -51,7 +66,7 @@ void	JSON_Parse( sString * apSrc, sElementCollectionJSON  * apCollection )
 	{
 		pElements = mMEMCALLOC( sizeof( sElementJSON ) * elementCount );
 
-		Lexer_Init( &lexer, apSrc );
+		JSON_LexerInit( &lexer, apSrc );
 		while( Lexer_GetNextToken( &lexer ) )
 			pElements[ index++ ].mToken = lexer.mToken;
 /*		Lexer_DeInit( &lexer );*/

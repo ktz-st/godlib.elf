@@ -53,6 +53,11 @@ typedef struct sReflectDictionary
 
 sReflectType *	Reflect_GetpType( const sReflectDictionary * apDictionary, const char * apType );
 U8 *			Reflect_GetpData( const sReflectType * apType, U8 * apData,  const char * apElement );
+/* Returns 1 after writing a supported field, 0 without changing it on failure.
+ * Numeric tokens are bounded decimal strings (F32 also accepts exponent notation).
+ * Integers accept true/false, reject overflow and out-of-range/nonnumeric input.
+ * String fields retain shallow descriptor-copy semantics: the source storage
+ * and its ownership remain the caller's responsibility. */
 U8				Reflect_SetData( const sReflectType * apType, const struct sString * apElementName, const struct sString * apValue, void * apStructBase );
 
 #endif

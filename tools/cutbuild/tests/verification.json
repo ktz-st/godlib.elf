@@ -1,0 +1,8 @@
+{
+  "result": "PASS",
+  "checks": 400,
+  "machine": "STE, 68000, 8 MHz, 1 MiB, German TOS 1.62",
+  "fixture_sha256": "9433ffb6a32101bdd574c0084ea31a8b38b0808aeff37b485b90f388720e2b24",
+  "program_sha256": "1b427764d23344e497934a0928852f5fde36b622c6f106f1ecde3fa542ae6bb0",
+  "coverage": "All eight chunk types, every opcode and typed reference, initial definitions, 16.16 speeds, signed integers, PAGE bytes, ABI sizes, exact delocate/relocate round trip; compared semantically with native CutScene_Parse."
+}

@@ -1,0 +1,5 @@
+__pycache__/
+tests/__pycache__/
+tests/*.o
+tests/*.PRG
+tests/fixture.cut

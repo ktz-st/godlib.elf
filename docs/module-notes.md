@@ -82,12 +82,27 @@ Known users:
 - `godlib/lexer/json.c` uses `Reflect_SetData()` in `JSON_ElementsToStruct()`;
 - `godlib/fe/fed_json.c` defines a reflected `sFedJSON_Layout`.
 
-Noted oddities:
+Fixed on 2026-10-19:
 
-- `Reflect_GetpData()` compares the requested element name with `mpTypeName`;
-  it probably should compare against `mpElementName`.
-- `Reflect_SetData()` checks `2 == mSizeBytes` twice for signed and unsigned
-  integer writes, so 32-bit `S32`/`U32` fields may not be written.
+- `Reflect_GetpData()` looks up `mpElementName`, not the field's type name.
+- `Reflect_SetData()` writes all integer widths, including the full S32/U32
+  range under `-mshort`; F32 is now a leaf and supports decimal/exponent input.
+- Integer overflow is checked independently of libcmini's strtoul. Float syntax
+  is checked before conversion via strtod, avoiding the observed strtof precision
+  and exponent-end-pointer limitations. Numeric sString views need no trailing
+  zero, and overlong/malformed tokens, unknown fields/types and invalid field
+  extents return failure without changing the destination.
+- Return value is now 1 after a successful write, 0 on failure. Integer true/false
+  support remains. Narrowing out-of-range integers is rejected rather than wrapped.
+  String assignment remains a shallow descriptor copy with caller-owned lifetime.
+- JSON uses JSON punctuation separators, preserving negative signs, decimal points
+  and exponent signs inside number tokens. FED's layout reflection descriptor now
+  puts its four-field count into mElementCount rather than mTypeFlags.
+
+Native regression: `make -C reflect/tests check` runs `REFTEST.PRG` in Hatari
+STE / 8 MHz / 1 MiB / German TOS 1.62. It checks scalar writes, adjacent-field
+canaries, malformed/overflow input, real JSON token mapping and the actual FED
+layout descriptor. Evidence is in `reflect/tests/verification.json`.
 
 ## elfhash
 
@@ -125,11 +140,20 @@ The original TOOLBASE pipeline is:
 CUTBUILD SourceTextFile DestBinFile
 ```
 
-The local Python TOOLBASE subset does not implement `CUTBUILD` or `SPLMAKE`.
-The library includes `CutScene_Parse()` in `cutparse.c`, but the current host
-build does not supply a native CUTBUILD command. An original tool or a host
-integration of the parser is needed for host-side compilation; target-side
-parsing is exercised by the cutscene example.
+The local host compiler is [`tools/cutbuild`](../tools/cutbuild/README.md), using
+Python 3.9+ on macOS/Linux without external dependencies. It writes CUT v3 with
+explicit Atari widths/alignment and big-endian relative pointers. TOOLBASE supports
+both `CUTBUILD source.txt output.cut` in .TBS batches and direct invocation.
+The compiler validates fields/opcodes/references/ranges and adds the same implicit
+RETURN as the native parser. Generated CUT data must be writable and relocated
+once; assets still require binding/loading. Native `CutScene_Parse()` remains
+available, but `godlib.spl/cutscene` now embeds a build-time SCENE.CUT instead.
+
+Tests cover every chunk and opcode, compare with the actual 68000 parser and
+relocator, and with a reference generated using the original Atari TOOLBASE.TTP.
+The original binaries survive under GOD/TOOLS.RG/BIN; standalone CUTBUILD source
+was not found locally or in public GitHub searches. SPLMAKE is still unavailable
+in the local Python subset.
 
 Cutscene data chunks include:
 
@@ -157,10 +181,17 @@ CR/LF/CRLF/tabs, bounds word buffers, uses X+WIDTH and clips to the text rectang
 Page/font changes redraw enabled text; sprite damage refreshes overlapping text.
 ScriptInit resets dirty/enable/thread state, safe completion covers empty/missing
 scripts, bounded calls prevent stack corruption, and the VAR parser member table
-is terminated. `TEXT_ANIM_*` still has no typewriter implementation.
+is terminated. BG_GFX_DISABLE hides/clears the background but retains its asset;
+BG_GFX_ENABLE restores it, waiting for both display pages. Setting another asset
+while disabled keeps it hidden. Repeating the current enable state is a no-op.
+`TEXT_ANIM_SET TEXT,N` reveals one source byte every N updates (<=0: immediate,
+>65535: clamped), using existing runtime fields without changing .CUT layout.
+`TEXT_ANIM_WAIT` waits for the final prefix on both pages; empty/missing/disabled
+text completes safely. Page changes and disable/re-enable restart the reveal;
+ScriptInit restores immediate mode. Full-word measurement preserves wrapping.
 
 `godlib.spl/cutscene` demonstrates two scenes with four generated Daniel narration
-samples at 12517 Hz (119009 bytes), using the native parser. Its native frame and
+samples at 12517 Hz (119009 bytes), using a precompiled CUT. Its native frame and
 runtime regression harnesses verify rendering, script/audio lifecycle and waits.
 
 Integration notes:
@@ -2911,7 +2942,7 @@ Files:
 - `memory.c` - platform allocation, optional tracking/guard logic, clear/copy
   helpers and debug wrappers.
 - `memory_s.s` - Atari assembly implementation of `Memory_Clear()`.
-- `heap.h` / `heap.c` - unfinished custom heap allocator.
+- `heap.h` / `heap.c` - optional fixed-size arena allocator; see [HEAP.md](../memory/HEAP.md).
 
 Main allocation API:
 
@@ -2989,18 +3020,25 @@ Atari assembly clear:
 - There is old trailing code after `Memory_ClearSimple_16` that is unreachable
   from the exported clear paths. It looks like abandoned clear-loop experiments.
 
-`heap`:
+`heap` (completed 2026-10-19):
 
-- `heap.c` appears to be an unfinished dlmalloc-inspired custom heap.
-- It defines chunk headers, bins, fastbins and merge logic.
-- `Heap_Init()` allocates a backing block but does not initialise top chunk /
-  unsorted chunk state enough for general allocation.
-- `Heap_Alloc()` only checks existing bins and otherwise returns `0`.
-- `Heap_Free()` computes the chunk and size but does not link/free anything.
-- `Heap_Reset()` is a no-op.
-- No active GodLib module appears to include or call `Heap_*()`.
-- Removed from the GCC port build: `memory/heap.c` is no longer linked into
-  `libgod.a`; the source/header remain in the tree as unfinished historical code.
+- Explicit optional allocator, included in the static archive but pulled into a
+  program only when referenced. Ordinary Memory_Alloc/mMEM* remain unchanged.
+- Heap_Init owns one system block; Heap_InitWithBuffer uses caller-owned storage.
+  Zero-initialize sHeap; re-init of a live arena fails. DeInit frees only owned
+  storage, once. Reset keeps storage, invalidates pointers and clears counters.
+- Four-byte alignment, first-fit free list, splitting, immediate coalescing of
+  both adjacent free blocks, 16-byte headers and a 24-byte minimum block.
+- Heap_GetStats reports exact live requests, payload capacity, free bytes/largest
+  block, header overhead, block counts, peak usage and success/failure counters.
+- Heap_Validate checks boundary tags, cookies, free-list links/count and accounting.
+  Heap_FreeChecked rejects ordinary foreign/interior/double frees and stale
+  interior headers after Reset; reused addresses cannot identify a stale owner.
+- Not interrupt/thread safe and not a substitute for screen/DMA allocation.
+- Native and ASan/UBSan host regressions: memory/tests, including 3000 random
+  operations with live-payload checks, a 200000-byte arena, merging, ownership,
+  canaries, fragmentation, failure handling, Reset and full final coalescence.
+  Usage and precise accounting semantics: [memory/HEAP.md](../memory/HEAP.md).
 
 Important limitations and risks:
 
@@ -3018,8 +3056,6 @@ Important limitations and risks:
 - Host `Memory_GetFree()` is unsupported and returns `0`.
 - Host `Memory_GetSize()` is a hard-coded placeholder.
 - `Memory_IsEqual()` assumes non-null buffers when `aSizeBytes > 0`.
-- `Heap_*()` should be considered incomplete and unused until it gets tests and
-  real allocation/free behavior.
 
 ## profiler
 

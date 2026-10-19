@@ -201,9 +201,9 @@ typedef struct	sCutText
 	U16			mEnabledFlag;
 	U16			mRedrawFlag;
 	U16			mUndrawFlag;
-	U16			mWordPauseConstant;
-	U16			mWordPauseCounter;
-	U32			mOffset;
+	U16			mWordPauseConstant; /* updates per source byte; 0 = immediate */
+	U16			mWordPauseCounter;  /* updates until next byte */
+	U32			mOffset;            /* revealed source bytes */
 } sCutText;
 
 typedef	struct	sCutVar

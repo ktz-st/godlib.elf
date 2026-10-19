@@ -2,6 +2,7 @@
 """Small native TOOLBASE replacement for simple GodLib asset scripts.
 
 Implemented commands:
+  CUTBUILD <source.txt> <destination.cut>
   MASKMAKE <src.pi1> <dst.pi1>
   BSBMAKE  <script.scr>
   PALMAKE  <src.pi1> <dst.pal>
@@ -21,6 +22,7 @@ import argparse
 import os
 import platform
 import shutil
+import shlex
 import struct
 import subprocess
 import sys
@@ -590,6 +592,12 @@ def bsbmake(script: Path) -> None:
         print(f" {kind} : {spr.dst}")
 
 
+def cutbuild(src: Path, dst: Path) -> None:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cutbuild"))
+    from cutbuild import cutbuild as compile_cut
+    compile_cut(src, dst)
+
+
 def run_tbs(path: Path) -> None:
     base = path.parent
     for line in clean_lines(path):
@@ -598,7 +606,13 @@ def run_tbs(path: Path) -> None:
             continue
         cmd = parts[0].upper()
         args = parts[1:]
-        if cmd == "MASKMAKE":
+        if cmd == "CUTBUILD":
+            args = shlex.split(line, posix=False)[1:]
+            if len(args) != 2:
+                raise ValueError(f"{path}: CUTBUILD needs 2 args")
+            print(f"<CUTBUILD> {args[0]} {args[1]}")
+            cutbuild(resolve(base, args[0]), resolve(base, args[1]))
+        elif cmd == "MASKMAKE":
             if len(args) != 2:
                 raise ValueError(f"{path}: MASKMAKE needs 2 args")
             print(f"<MASKMAKE> {args[0]} {args[1]}")
@@ -632,6 +646,10 @@ def run_tbs(path: Path) -> None:
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0].upper() == "CUTBUILD":
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cutbuild"))
+        from cutbuild import main as cutbuild_main
+        return cutbuild_main(argv[1:])
     parser = argparse.ArgumentParser(description="Native Python subset of RG TOOLBASE")
     parser.add_argument("script", type=Path, help=".tbs script to run")
     ns = parser.parse_args(argv)

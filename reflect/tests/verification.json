@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "checks": 159,
+  "failures": 0,
+  "machine": "STE 68000 / 8 MHz / 1 MiB / German TOS 1.62",
+  "executable_sha256": "80881f07d86a02d1bd792c09e17fafb939e0e275de9f6508197ed2da860435d6",
+  "covers": [
+    "field-name lookup",
+    "all integer widths and full S32/U32 range",
+    "case-insensitive integer booleans",
+    "F32 decimals and exponents",
+    "bounded non-terminated token",
+    "shallow string view",
+    "overflow and malformed input preserve destination",
+    "adjacent fields and guards unchanged",
+    "real JSON_Parse/ElementsToStruct",
+    "actual FED layout reflection descriptor"
+  ]
+}

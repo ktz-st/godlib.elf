@@ -77,9 +77,10 @@ void	Achieve_GodLib_Specs_Set( void )
 
 	lTemp = System_GetTosVersion();
 	lSpecs.mTosVersionLo |= (1 << (lTemp&0xF) );
-	lTemp >>= 16L;
+	lTemp >>= 8L;
 	lSpecs.mTosVersionHi |= (1 << (lTemp&0xF) );
 
 	lSpecs.mRamST |= (U16)(System_GetRamST() >> 19L);
 	lSpecs.mRamTT |= (U16)(System_GetRamTT() >> 19L);
+	Achieve_Specs_Update(&lSpecs);
 }

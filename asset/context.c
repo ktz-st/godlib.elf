@@ -129,7 +129,7 @@ void	Context_AssetClient_Remove( struct sAssetClient * apClient )
 	}
 	else if( client )
 	{
-		GOD_LL_REMOVE( sAssetClient, client->mpNext, mpContextNext, apClient );
+		GOD_LL_REMOVE( sAssetClient, client->mpNext, mpNext, apClient );
 	}
 	apClient->mpNext = 0;
 	apClient->mpContext = 0;

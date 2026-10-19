@@ -10,7 +10,8 @@ python3 godlib/tools/toolbase/toolbase.py path/to/assets.tbs
 ```
 
 The direct command accepts one BSBMAKER `.SCR`. TOOLBASE batches support
-`BSBMAKE`, `MASKMAKE`, `PALMAKE`, `MAKELINK`, `GODPACK`, and `CUTBUILD`.
+`BSBMAKE`, `MASKMAKE`, `PALMAKE`, `MAKELINK`, `GODPACK`, `CUTBUILD` and
+`FEBUILD` (the [FE menu compiler](../febuild/README.md)).
 The existing `[ HEADER ]`, `[ SPRITE ]`, and `[ FONT ]` syntax is retained.
 Inputs are uncompressed low-resolution PI1, with a separate PI1 mask for masked
 sprites. A mask bit of 1 preserves the destination; 0 draws the sprite, including

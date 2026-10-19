@@ -47,6 +47,7 @@ U32		PackageLnk_FolderLoad( sPackage * apPackage, sLinkFileFolder * apFolder, ch
 	{
 		sLinkFileFile * pFile = &apFolder->mpFiles[ i ];
 		pFile->mAsset.mpData = (void*)pFile->mOffset;
+		pFile->mAsset.mStatusBits |= eASSET_STATUS_BIT_LOADED;
 		RelocaterManager_DoRelocate( &pFile->mAsset );
 		RelocaterManager_DoInit( &pFile->mAsset );
 	}
@@ -100,6 +101,7 @@ U32		PackageLnk_LoadFromLinkFile( sPackage * apPackage, sLinkFile * apLinkFile )
 	if( !apLinkFile )
 		return 0;
 
+	apPackage->mFileCount=apLinkFile->mTotalFileCount;
 	ret &= PackageLnk_FolderLoad( apPackage, apPackage->mpLinkFile->mpRoot, 0 );
 
 	return ret;
@@ -153,6 +155,7 @@ U32	PackageLnk_FolderUnLoad( sPackage * apPackage,sLinkFileFolder * apFolder, ch
 		RelocaterManager_DoDeInit( &pFile->mAsset );
 		RelocaterManager_DoDelocate( &pFile->mAsset );
 		pFile->mAsset.mpData = 0;
+		pFile->mAsset.mStatusBits &= ~eASSET_STATUS_BIT_LOADED;
 	}
 
 

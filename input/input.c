@@ -100,7 +100,7 @@ void	Input_UpdateStatus( sInput * apInput, const U16 aIndex, const U8 aState )
 
 	if( aState )
 	{
-		if( *lpKey ==eINPUTKEYSTATUS_NONE )
+		if( !(*lpKey & eINPUTKEYSTATUS_HELD) )
 		{
 			*lpKey = eINPUTKEYSTATUS_HIT | eINPUTKEYSTATUS_HELD;
 			apInput->mMovedFlag = 1;
@@ -137,7 +137,7 @@ void	Input_UpdateStatus( sInput * apInput, const U16 aIndex, const U8 aState )
 																		\
 		if( aState )													\
 		{																\
-			if( *lpKey ==eINPUTKEYSTATUS_NONE )							\
+			if( !(*lpKey & eINPUTKEYSTATUS_HELD) )							\
 			{															\
 			*lpKey = eINPUTKEYSTATUS_HIT | eINPUTKEYSTATUS_HELD;		\
 																		\
@@ -400,66 +400,18 @@ void	Input_CombinedInit( sInput * apDst,sInput * apSrc,const U16 aCount )
 * CREATION : 03.04.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	Input_CombinedUpdate( sInput * apDst,sInput * apSrc,const U16 aCount )
+void Input_CombinedUpdate(sInput *dst,sInput *sources,const U16 count)
 {
-	U16		i,j;
-	U8 *	lpSrc;
-	U8 *	lpDst;
-	U8		lStat;
-	sInput *	lpInputs;
-
-	lpInputs = apSrc;
-	i = aCount;
-	while( i )
-	{
-		Input_Update( lpInputs );
-		lpInputs++;
-		i--;
-	}
-
-/*
-	for( i=0; i<aCount; i++ )
-	{
-		Input_Update( &apSrc[ i ] );
-	}
-*/
-
-	lpDst = &apDst->mKeyStatus[ 0 ];
-	i = eINPUTKEY_LIMIT;
-	while( i )
-	{
-		*lpDst++ = 0;
-		i--;
-	}
-/*
-	for( i=0; i<eINPUTKEY_LIMIT; i++ )
-	{
-		*lpDst++ = 0;
-	}
-*/
-
-	apDst->mMovedFlag = 0;
-	lpInputs = apSrc;
-	i = aCount;
-	while( i )
-	{
-		lpDst = &apDst->mKeyStatus[ 0 ];
-		lpSrc = &lpInputs->mKeyStatus[ 0 ];
-		j = eINPUTKEY_LIMIT;
-		while( j )
-		{
-			lStat = *lpSrc++;
-			if( lStat )
-			{
-				*lpDst = lStat;
-			}
-			lpDst++;
-			j--;
-		}
-		apDst->mMovedFlag |= lpInputs->mMovedFlag;
-		lpInputs++;
-		i--;
-	}
+ U16 i,j;U8 held,previous;
+ for(i=0;i<count;++i)Input_Update(&sources[i]);
+ dst->mMovedFlag=0;
+ for(j=0;j<eINPUTKEY_LIMIT;++j){
+  previous=(U8)(dst->mKeyStatus[j]&eINPUTKEYSTATUS_HELD);held=0;
+  for(i=0;i<count;++i)held|=(U8)(sources[i].mKeyStatus[j]&eINPUTKEYSTATUS_HELD);
+  dst->mKeyStatus[j]=held?(U8)(eINPUTKEYSTATUS_HELD|(previous?0:eINPUTKEYSTATUS_HIT)):(previous?eINPUTKEYSTATUS_UNHIT:0);
+  if(held||previous)dst->mMovedFlag=1;
+ }
+ for(i=0;i<count;++i)dst->mMovedFlag|=sources[i].mMovedFlag;
 }
 
 

@@ -5,7 +5,7 @@ exports, runtime C/ASM/headers and godlib.spl source/examples. Existing module
 notes were used as a starting index, then the findings below were checked in
 code. This is not a Hatari/physical-hardware certification of these modules and
 does not establish that an API is unused by every game outside these repositories.
-No runtime fixes were made during this review.
+Later GUI, FE, Achieve, Input/Kernel and Asset/Linkfile integrations and their focused fixes are identified below.
 
 ## Examples worth adding
 
@@ -15,10 +15,10 @@ All new example executables should use `.PRG`.
 | Priority | Example | Existing modules | What it would demonstrate / prerequisites |
 | --- | --- | --- | --- |
 | 1 | Native GUI and file selector — implemented | `gui`, `guifs`, `hashtree` | `godlib.spl/gui` now demonstrates windows, buttons, native text editing/sliders, mouse and GuiFS filtering/folders/scrolling. See its README and verification evidence; the GEM/AES example remains `fileselect`. |
-| 2 | Scripted game menu | `fe`, `input`, `asset`, `hashtree` | MAIN/OPTIONS pages, difficulty selector, volume slider, locks and fade/wipe transitions. Start with the established text parser or native structures; the JSON builder/reflection path needs repairs first. |
-| 3 | Scores, profiles and achievements | `achieve` | Enter a name, insert a score, unlock an award, save and reload. The data model and UI exist, including assets under `achieve/gfx`; first check buffer sizing, persistence/relocation and lifecycle. `Achieve_GodLib_Specs_Set` currently builds a local structure without applying it. |
-| 4 | Packed asset loading | `asset`, `linkfile`, `packer` | Load the same picture/font/sprite from loose files and a linkfile, relocate it and unload safely; show packed/unpacked sizes. Use the available linkfile tool path: the local Python TOOLBASE subset does not implement every historical SPLMAKE command. |
-| 5 | Unified input and replay | `input`, then optionally `kernel` | One moving object controlled by keyboard/mouse/joystick, HELD/HIT/UNHIT display, then record/replay. The current examples use IKBD directly; kernel already has input-buffer recording/playback. Replaying inputs alone does not reproduce unrecorded RNG or timing state. |
+| 2 | Scripted game menu — implemented | `fe`, `input`, `asset`, `hashtree` | `godlib.spl/fe` compiles MAIN/OPTIONS from text with host FEBUILD, demonstrates difficulty/volume, CALL actions, palette fades and a chime. Locks/wipes and the experimental JSON path are not exercised by this example. |
+| 3 | Scores, profiles and achievements — implemented | `achieve` | `godlib.spl/achieve` demonstrates player names, shared scores, per-player stats/awards and explicit disk save/load into another arena. Core allocation/relocation/persistence/specs repairs have native regression coverage; old asset-driven UI and Clone/Combine are not exercised. |
+| 4 | Packed asset loading — implemented | `asset`, `linkfile`, `packer` | `godlib.spl/asset` loads PI1/BFB/BSB through package clients from loose files, raw LNK and whole-GodPack LNK; demonstrates automatic relocation, shared clients, unload/reload, byte/hash comparisons and disk sizes. Uses host MAKELINK/GODPACK, not historical SPLMAKE. |
+| 5 | Unified input and replay — implemented | `input`, `kernel` | `godlib.spl/input` runs a Kernel task with combined keyboard/joystick directions/fire, HELD/HIT/UNHIT, bounded RAM recording, KIP save/load and replay hash comparison. Mouse/pads and package transitions are outside this focused example; input replay alone does not reproduce unrecorded RNG or timing state. |
 | 6 | Save settings with callbacks | `registry` | Change a setting, notify registered clients, save/reload a subtree. There is a unit test in `registry/test`, but no user-facing sample. |
 
 A small clock/countdown/pause example is another inexpensive coverage improvement
@@ -32,9 +32,9 @@ example would add that renderer/logic rather than merely expose a hidden API.
 
 ## Missing coverage versus genuinely unused code
 
-No direct public-API calls from current sample source were found for the major
-runtime systems `fe`, `achieve`, `registry`, `kernel`, `input`,
-`asset/linkfile`, `clock`, `scrngrab`, `profiler` or `cli`. Some are used internally
+The original review found no direct public-API calls for the following major
+runtime systems `registry`,
+`clock`, `scrngrab`, `profiler` or `cli`. Some are used internally
 or enabled only by build flags. In particular:
 
 - `asset`, `hashtree`, `tokenise`, `lexer` and `reflect` support other GodLib
@@ -103,9 +103,8 @@ Ordinary Memory_Alloc/Free behavior is unchanged.
   event-name formatting has fixed local buffers, and rebuilding file lists
   changes dynamically owned controls. Focus/de-focus slider hooks are empty;
   that alone does not mean held-slider updates are absent.
-- `achieve/ach_god.c`: Achieve_GodLib_Specs_Set fills lSpecs and returns without
-  passing it to Achieve_Specs_Update. Verify machine metadata separately from
-  score persistence and achievements.
+- Achieve machine metadata and persistence now have focused native checks in
+  `godlib.spl/achieve/analysis`; this does not certify its old asset-driven UI.
 
 ## Verification performed for this review
 

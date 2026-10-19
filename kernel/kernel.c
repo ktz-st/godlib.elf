@@ -33,6 +33,7 @@
 typedef	struct sKernelClass
 {
 	sGemDosDTA			mDTA;
+ sGemDosDTA *mpOldDTA;
 	U32					mPackageCurrentFlags;
 	U32					mPackageGlobalFlags;
 	U32					mMonitoredUpdateCount;
@@ -58,6 +59,7 @@ typedef	struct sKernelClass
 	U32					mInputBufferSize;
 	U32					mInputBufferOffset;
 	sInput				mInputBufferCurrent;
+ U32 mInputBytes,mInputFrames,mInputFrame;
 	eKERNEL_INPUT		mInputType;
 } sKernelClass;
 
@@ -114,6 +116,7 @@ void	Kernel_Init( sKernelTask * apTasks,const U16 aTaskCount,sPackage * apPackag
 
 	Memory_Clear( sizeof(sKernelClass), &gKernelClass );
 
+	gKernelClass.mpOldDTA=File_GetDTA();
 	File_SetDTA( &gKernelClass.mDTA );
 
 	for( i=0; i<eKERNEL_CLOCK_LIMIT; i++ )
@@ -156,6 +159,7 @@ void	Kernel_Init( sKernelTask * apTasks,const U16 aTaskCount,sPackage * apPackag
 	Kernel_CLI_build( 0 );
 
 	gKernelClass.mpTaskCurrent = apTasks;
+ gKernelClass.mTaskIndex=(U16)apTasks[0].mIndex;
 
 	Kernel_InputsEnumerate();
 	Vbl_AddCall( Kernel_MonitorInputsUpdate );
@@ -173,9 +177,7 @@ void	Kernel_Init( sKernelTask * apTasks,const U16 aTaskCount,sPackage * apPackag
 #ifdef dGODLIB_PLATFORM_WIN
 	else
 	{
-		gKernelClass.mInputType = eKERNEL_INPUT_SAVING;
-		gKernelClass.mInputBufferSize = 1024L * 64L;
-		gKernelClass.mpInputBuffer = (U8*)mMEMCALLOC( gKernelClass.mInputBufferSize );
+		Kernel_InputRecordBegin(1024L*64L);
 	}
 #endif
 }
@@ -207,12 +209,15 @@ void	Kernel_DeInit( void )
 	Cli_CmdDeInit( "vid" );
 
 	Cli_DeInit();
+ Vbl_RemoveCall(Kernel_MonitorInputsUpdate);
+ File_SetDTA(gKernelClass.mpOldDTA);
 
 	if( gKernelClass.mpInputBuffer )
 	{
 		mMEMFREE( gKernelClass.mpInputBuffer );
 	}
 	gKernelClass.mInputBufferOffset = 0;
+ gKernelClass.mpInputBuffer=0;gKernelClass.mInputType=eKERNEL_INPUT_NORMAL;
 }
 
 
@@ -314,7 +319,8 @@ void	Kernel_Main( void )
 			lpTask->mfInit();
 		}
 	}
-	Kernel_InputBufferSave();
+	if(gKernelClass.mInputType==eKERNEL_INPUT_SAVING)Kernel_InputBufferSave();
+ gKernelClass.mpTaskCurrent->mfDeInit();
 
 	lIndex = 0;
 	lMask  = 1L;
@@ -501,16 +507,15 @@ void	Kernel_InputsEnumerate( void )
 		gKernelClass.mFireInputs[ 0 ].mInputType = eINPUTTYPE_MOUSE;
 		gKernelClass.mFireInputCount = 1;
 	}
-	else if( IKBD_IsJoystickEnabled() )
-	{
-		gKernelClass.mFireInputs[ 0 ].mInputType = eINPUTTYPE_JOY0;
-		gKernelClass.mFireInputs[ 1 ].mInputType = eINPUTTYPE_JOY1;
-		gKernelClass.mFireInputCount = 2;
-	}
 
 	Input_Init( &gKernelClass.mDirInputs[ 0 ] );
 	gKernelClass.mDirInputs[ 0 ].mInputType = eINPUTTYPE_IKBD;
 	gKernelClass.mDirInputCount = 1;
+ if(IKBD_IsJoystickEnabled()){
+  gKernelClass.mDirInputs[gKernelClass.mDirInputCount++].mInputType=eINPUTTYPE_JOY0;
+  gKernelClass.mDirInputs[gKernelClass.mDirInputCount++].mInputType=eINPUTTYPE_JOY1;
+ }
+
 
 	if( IKBD_IsPad0Enabled() )
 	{
@@ -750,120 +755,98 @@ void Kernel_ClockStartCountDown(const U16 aIndex,const U8 aMinutes,const U8 aSec
 */
 
 
-void	Kernel_InputBufferSet( const sInput * apInput )
+/* Frames are committed atomically. mInputBytes is the recorded extent;
+ * mInputBufferSize is allocation capacity, never a playback EOF marker. */
+void Kernel_InputBufferSet(const sInput *input)
 {
-	if( gKernelClass.mpInputBuffer )
-	{
-		if( 0 == gKernelClass.mInputBufferOffset )
-		{
-			if( gKernelClass.mInputBufferSize >= sizeof(sInput) )
-			{
-				Memory_Copy( sizeof(sInput), apInput, gKernelClass.mpInputBuffer );
-				gKernelClass.mInputBufferOffset = sizeof(sInput);
-				gKernelClass.mInputBufferCurrent = *apInput;
-			}
-		}
-		else
-		{
-			U16 i;
-			U8 * lpOld;
-			U8 * lpNew;
-			U8 * lpLast;
-
-			lpOld = (U8*)&gKernelClass.mInputBufferCurrent;
-			lpNew = (U8*)apInput;
-			lpLast = 0;
-
-			for( i=0; i<sizeof(sInput); i++ )
-			{
-				if( lpOld[ i ] != lpNew[ i ] )
-				{
-					if( gKernelClass.mInputBufferOffset + 2 < gKernelClass.mInputBufferSize )
-					{
-						lpLast = &gKernelClass.mpInputBuffer[ gKernelClass.mInputBufferOffset ];
-						gKernelClass.mpInputBuffer[ gKernelClass.mInputBufferOffset ] = (U8)i;
-						gKernelClass.mInputBufferOffset++;
-						gKernelClass.mpInputBuffer[ gKernelClass.mInputBufferOffset ] = lpNew[ i ];
-						gKernelClass.mInputBufferOffset++;
-					}
-				}
-			}
-
-			if( lpLast )
-			{
-				*lpLast |= 0x80;
-			}
-			else if( gKernelClass.mInputBufferOffset + 1 < gKernelClass.mInputBufferSize )
-			{
-				gKernelClass.mpInputBuffer[ gKernelClass.mInputBufferOffset ] = 0xFF;
-				gKernelClass.mInputBufferOffset++;
-			}
-		}
-	}
+ U16 i,changes=0;U32 need;U8 *old=(U8*)&gKernelClass.mInputBufferCurrent;const U8 *src=(const U8*)input;
+ if(!gKernelClass.mpInputBuffer)return;
+ if(!gKernelClass.mInputFrames)need=sizeof(sInput);
+ else {for(i=0;i<sizeof(sInput);++i)if(old[i]!=src[i])++changes;need=changes?2UL*changes:1;}
+ if(need>gKernelClass.mInputBufferSize-gKernelClass.mInputBytes){Kernel_InputStop();return;}
+ if(!gKernelClass.mInputFrames)Memory_Copy(sizeof(sInput),input,gKernelClass.mpInputBuffer);
+ else if(!changes)gKernelClass.mpInputBuffer[gKernelClass.mInputBytes]=0xff;
+ else {
+  U32 pos=gKernelClass.mInputBytes;U16 left=changes;
+  for(i=0;i<sizeof(sInput);++i)if(old[i]!=src[i]){
+   gKernelClass.mpInputBuffer[pos++]=(U8)(i|(--left?0:0x80));gKernelClass.mpInputBuffer[pos++]=src[i];
+  }
+ }
+ gKernelClass.mInputBytes+=need;gKernelClass.mInputBufferOffset=gKernelClass.mInputBytes;
+ gKernelClass.mInputBufferCurrent=*input;++gKernelClass.mInputFrames;gKernelClass.mInputFrame=gKernelClass.mInputFrames;
 }
 
-
-void	Kernel_InputBufferGet( sInput * apInput )
+void Kernel_InputBufferGet(sInput *input)
 {
-	if( gKernelClass.mpInputBuffer )
-	{
-		if( 0 == gKernelClass.mInputBufferOffset )
-		{
-			if( gKernelClass.mInputBufferSize >= sizeof(sInput) )
-			{
-				Memory_Copy( sizeof(sInput), gKernelClass.mpInputBuffer, &gKernelClass.mInputBufferCurrent );
-				gKernelClass.mInputBufferOffset = sizeof(sInput);
-			}
-		}
-		else
-		{
-			U8 *	lpSrc;
-			U8 *	lpDst;
-			U8	lByte0;
-
-			lpSrc = &gKernelClass.mpInputBuffer[ gKernelClass.mInputBufferOffset ];
-			lpDst = (U8*)&gKernelClass.mInputBufferCurrent;
-			lByte0 = 0;
-			while( (0 == (0x80 &lByte0)) && (gKernelClass.mInputBufferOffset < gKernelClass.mInputBufferSize) )
-			{
-
-				lByte0 = *lpSrc++;
-				gKernelClass.mInputBufferOffset++;
-
-				if( 0xFF != lByte0 )
-				{
-					Assert( (lByte0 & 0x7F) < sizeof(sInput) );
-
-					lpDst[ lByte0 & 0x7F] = *lpSrc++;
-					gKernelClass.mInputBufferOffset++;
-				}
-			}
-		}
-	}
-	*apInput = gKernelClass.mInputBufferCurrent;
+ U8 op;U8 *dst=(U8*)&gKernelClass.mInputBufferCurrent;
+ Memory_Clear(sizeof(*input),input);
+ if(!gKernelClass.mpInputBuffer || gKernelClass.mInputFrame>=gKernelClass.mInputFrames){Kernel_InputStop();return;}
+ if(!gKernelClass.mInputFrame){Memory_Copy(sizeof(sInput),gKernelClass.mpInputBuffer,dst);gKernelClass.mInputBufferOffset=sizeof(sInput);}
+ else do {
+  if(gKernelClass.mInputBufferOffset>=gKernelClass.mInputBytes){Kernel_InputStop();return;}
+  op=gKernelClass.mpInputBuffer[gKernelClass.mInputBufferOffset++];
+  if(op!=0xff){
+   if((op&0x7f)>=sizeof(sInput) || gKernelClass.mInputBufferOffset>=gKernelClass.mInputBytes){Kernel_InputStop();return;}
+   dst[op&0x7f]=gKernelClass.mpInputBuffer[gKernelClass.mInputBufferOffset++];
+  }
+ }while(!(op&0x80));
+ *input=gKernelClass.mInputBufferCurrent;++gKernelClass.mInputFrame;
 }
 
-void	Kernel_InputBufferSave( void )
+U8 Kernel_InputRecordBegin(U32 capacity)
 {
-	if( (eKERNEL_INPUT_SAVING==gKernelClass.mInputType) && (gKernelClass.mpInputBuffer) && (gKernelClass.mInputBufferOffset) )
-	{
-		File_Save( "INPUTS.KIP", gKernelClass.mpInputBuffer, gKernelClass.mInputBufferOffset );
-	}
+ U8 *buffer;if(capacity<sizeof(sInput))return 0;
+ buffer=(U8*)mMEMALLOC(capacity);if(!buffer)return 0;
+ if(gKernelClass.mpInputBuffer)mMEMFREE(gKernelClass.mpInputBuffer);
+ gKernelClass.mpInputBuffer=buffer;gKernelClass.mInputBufferSize=capacity;
+ gKernelClass.mInputBytes=0;gKernelClass.mInputFrames=0;gKernelClass.mInputFrame=0;gKernelClass.mInputBufferOffset=0;
+ Memory_Clear(sizeof(sInput),&gKernelClass.mInputBufferCurrent);
+ gKernelClass.mInputType=eKERNEL_INPUT_SAVING;return 1;
 }
+void Kernel_InputStop(void){gKernelClass.mInputType=eKERNEL_INPUT_NORMAL;}
+U8 Kernel_InputReplayBegin(void)
+{
+ if(!gKernelClass.mpInputBuffer || !gKernelClass.mInputFrames)return 0;
+ gKernelClass.mInputBufferOffset=0;gKernelClass.mInputFrame=0;
+ Memory_Clear(sizeof(sInput),&gKernelClass.mInputBufferCurrent);
+ gKernelClass.mInputType=eKERNEL_INPUT_LOADING;return 1;
+}
+eKERNEL_INPUT Kernel_GetInputMode(void){return gKernelClass.mInputType;}
+U32 Kernel_GetInputFrameCount(void){return gKernelClass.mInputFrames;}
+U32 Kernel_GetInputFrame(void){return gKernelClass.mInputFrame;}
+U32 Kernel_GetInputBytes(void){return gKernelClass.mInputBytes;}
 
-void	Kernel_InputBufferLoad( const char * apFileName )
+U8 Kernel_InputBufferWrite(const char *name)
 {
-	if( apFileName )
-	{
-		gKernelClass.mInputBufferSize = File_GetSize( apFileName );
-		if( gKernelClass.mInputBufferSize )
-		{
-			gKernelClass.mpInputBuffer = (U8*)mMEMCALLOC( gKernelClass.mInputBufferSize );
-			File_LoadAt( apFileName, gKernelClass.mpInputBuffer );
-			gKernelClass.mInputType = eKERNEL_INPUT_LOADING;
-		}
-	}
+ sFileHandle file;S32 written,closed;
+ if(!name || !gKernelClass.mpInputBuffer || !gKernelClass.mInputFrames)return 0;
+ file=File_Create(name);if(file<0)return 0;
+ written=File_Write(file,gKernelClass.mInputBytes,gKernelClass.mpInputBuffer);closed=File_Close(file);
+ return (U8)(written==(S32)gKernelClass.mInputBytes && closed==0);
 }
+void Kernel_InputBufferSave(void){Kernel_InputBufferWrite("INPUTS.KIP");}
+
+/* Validate every delta/frame boundary before replacing the current recording. */
+U8 Kernel_InputBufferRead(const char *name)
+{
+ S32 size,got;sFileHandle file;U8 *buffer,op=0;U32 pos,frames=1;
+ if(!name)return 0;
+ size=File_GetSize(name);if(size<(S32)sizeof(sInput))return 0;
+ buffer=(U8*)mMEMALLOC((U32)size);if(!buffer)return 0;
+ file=File_Open(name);if(file<0){mMEMFREE(buffer);return 0;}
+ got=File_Read(file,(U32)size,buffer);File_Close(file);if(got!=size){mMEMFREE(buffer);return 0;}
+ pos=sizeof(sInput);
+ while(pos<(U32)size){
+  op=buffer[pos++];
+  if(op!=0xff){if((op&0x7f)>=sizeof(sInput) || pos>=(U32)size){mMEMFREE(buffer);return 0;}++pos;}
+  if(op&0x80)++frames;
+ }
+ if(size>(S32)sizeof(sInput) && !(op&0x80)){mMEMFREE(buffer);return 0;}
+ if(gKernelClass.mpInputBuffer)mMEMFREE(gKernelClass.mpInputBuffer);
+ gKernelClass.mpInputBuffer=buffer;gKernelClass.mInputBufferSize=(U32)size;gKernelClass.mInputBytes=(U32)size;
+ gKernelClass.mInputFrames=frames;Kernel_InputReplayBegin();return 1;
+}
+void Kernel_InputBufferLoad(const char *name){Kernel_InputBufferRead(name);}
 
 void	Kernel_RequestInputLoad( const char * apFileName )
 {

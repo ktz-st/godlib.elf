@@ -274,7 +274,7 @@ void	RenderFed_PageDraw( sFedPage * apPage,sGraphicCanvas * apCanvas,U16 aRedraw
 
 	if( apPage->mpCursor )
 	{
-		gRenderFed.mpCursor = 0;
+		gRenderFed.mpCursor = apPage->mpCursor;
 	}
 
 	RenderFed_TextDraw( apPage->mpTitle, apCanvas, &lBox, lRedrawFlag, lpControlFonts, 0, 0 );
@@ -941,7 +941,7 @@ void	RenderFed_CursorSave( sFedSprite * apCursor,const sFedBox * apBox )
 	sFedBox *		lpBox;
 	sSpriteBlock *	lpBlock;
 
-	if( apCursor->mpAsset )
+	if( apCursor && apCursor->mpAsset )
 	{
 		lpBlock = (sSpriteBlock*)apCursor->mpAsset->mpData;
 
@@ -1042,6 +1042,7 @@ U8	RenderFed_IsTransitionComplete( void )
 
 	if( gRenderFed.mTransMode )
 	{
+		if( !gRenderFed.mTransStartedFlag ) return 0;
 		if( !Fade_IsVblFadeFinished() )
 		{
 			lComp = 0;

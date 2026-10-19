@@ -13,6 +13,7 @@
 #include	<godlib/encrypt/encrypt.h>
 #include	<godlib/file/file.h>
 #include	<godlib/random/random.h>
+#include <godlib/memory/memory.h>
 
 
 /* ###################################################################################
@@ -186,6 +187,8 @@ void	Achieve_Destroy( void )
 	gAchieveMainClass.mpHeader = 0;
 	gAchieveMainClass.mBufferSize = 0;
 	gAchieveMainClass.mpBufferBase = 0;
+	gAchieveMainClass.mpUser = 0;
+	gAchieveMainClass.mBufferOffset = 0;
 }
 
 
@@ -505,14 +508,14 @@ U8	Achieve_ScoreTable_IsOnTable( const U16 aTableIndex, const S32 aValue )
 	lpTable = &lpH->mGameInfo.mpScoreTableDefs[ aTableIndex ];
 	if( lpTable->mSortDirection == eACH_SORT_HI )
 	{
-		if( aValue > lpTable->mpValues[ lpTable->mEntryCount - 1 ] )
+		if( aValue >= lpTable->mpValues[ lpTable->mEntryCount - 1 ] )
 		{
 			lRes = 1;
 		}
 	}
 	else
 	{
-		if( aValue < lpTable->mpValues[ lpTable->mEntryCount - 1 ] )
+		if( aValue <= lpTable->mpValues[ lpTable->mEntryCount - 1 ] )
 		{
 			lRes = 1;
 		}
@@ -727,68 +730,78 @@ void	Achieve_Specs_Update( const sAchieveSpecs * apSpecs )
 * CREATION : 15.1.2008 PNK
 *-----------------------------------------------------------------------------------*/
 
-U8	Achieve_Load( const char * apFileName, void * apBuffer, const U32 aBufferSize )
+/* Validate serialized offsets before any pointer relocation. */
+static U16 Achieve_BE16(const void *p)
+{const U8 *b=(const U8*)p;return (U16)(((U16)b[0]<<8)|b[1]);}
+static U32 Achieve_BE32(const void *p)
+{const U8 *b=(const U8*)p;return ((U32)b[0]<<24)|((U32)b[1]<<16)|((U32)b[2]<<8)|b[3];}
+static U8 Achieve_FileSpan(U32 off,U32 count,U32 width,U32 size)
+{return (U8)(!(off&1) && off>=sizeof(sAchieveHeader) && off<=size && count<=(size-off)/width);}
+static U8 Achieve_FileString(const U8 *b,U32 off,U32 size)
+{if(!off)return 1;if(off>=size)return 0;while(off<size){if(!b[off++])return 1;}return 0;}
+static U8 Achieve_FileValidate(const U8 *b,U32 size)
 {
-	U8	lRes;
-	S32	lSize;
-
-	lRes = 0;
-	lSize = File_GetSize( apFileName );
-
-	gAchieveMainClass.mBufferSize = aBufferSize;
-	gAchieveMainClass.mpBufferBase = (U8*)apBuffer;
-
-	if( lSize > 0 )
-	{
-		Assert( lSize < (S32)gAchieveMainClass.mBufferSize );
-		gAchieveMainClass.mBufferOffset = lSize;
-		if( File_LoadAt( apFileName, gAchieveMainClass.mpBufferBase ) )
-		{
-			gAchieveMainClass.mpHeader = (sAchieveHeader*)gAchieveMainClass.mpBufferBase;
-			Endian_FromBigU32( &gAchieveMainClass.mpHeader->mKey );
-			Encrypt_DeScramble( gAchieveMainClass.mpBufferBase, lSize, gAchieveMainClass.mpHeader->mKey );
-			if( Achieve_Relocate( gAchieveMainClass.mpHeader ) )
-			{
-				gAchieveMainClass.mpUser = &gAchieveMainClass.mpHeader->mUserInfo;
-				lRes = 1;
-			}
-		}
-	}
-	return( lRes );
+ const sAchieveHeader *h=(const sAchieveHeader*)b;U32 stats,tasks,tables,users,sd,td,st,u,sv,tv,scores,next,off;U16 i,j;
+ if(size<sizeof(*h) || Achieve_BE32(&h->mID)!=dACHIEVE_ID || Achieve_BE32(&h->mVersion)!=dACHIEVE_VERSION)return 0;
+ stats=Achieve_BE16(&h->mGameInfo.mStatCount);tasks=Achieve_BE16(&h->mGameInfo.mTaskCount);tables=Achieve_BE16(&h->mGameInfo.mScoreTableCount);users=Achieve_BE16(&h->mUserCount);
+ if(users>dACH_USER_LIMIT)return 0;
+ sd=Achieve_BE32(&h->mGameInfo.mpStatDefs);td=Achieve_BE32(&h->mGameInfo.mpTaskDefs);st=Achieve_BE32(&h->mGameInfo.mpScoreTableDefs);
+ if((stats&&!Achieve_FileSpan(sd,stats,sizeof(sAchieveStatDef),size)) || (tasks&&!Achieve_FileSpan(td,tasks,sizeof(sAchieveTaskDef),size)) || (tables&&!Achieve_FileSpan(st,tables,sizeof(sAchieveScoreTableDef),size)))return 0;
+ if(!Achieve_FileString(b,Achieve_BE32(&h->mGameInfo.mpName),size))return 0;
+ for(i=0;i<stats;++i){const sAchieveStatDef *d=(const sAchieveStatDef*)(b+sd)+i;if(!Achieve_FileString(b,Achieve_BE32(&d->mpName),size))return 0;}
+ for(i=0;i<tasks;++i){const sAchieveTaskDef *d=(const sAchieveTaskDef*)(b+td)+i;if(!Achieve_FileString(b,Achieve_BE32(&d->mpName),size))return 0;}
+ for(i=0;i<tables;++i){const sAchieveScoreTableDef *d=(const sAchieveScoreTableDef*)(b+st)+i;U32 n=Achieve_BE16(&d->mEntryCount),names=Achieve_BE32(&d->mpNames);
+  if(!n || !Achieve_FileSpan(Achieve_BE32(&d->mpValues),n,4,size) || !Achieve_FileSpan(names,n,sizeof(sAchieveUserName),size) || !Achieve_FileString(b,Achieve_BE32(&d->mpTableName),size))return 0;
+  for(j=0;j<n;++j)if(!memchr(b+names+(U32)j*16,0,16))return 0;
+ }
+ u=mOFFSET(sAchieveHeader,mUserInfo);
+ for(i=0;i<users;++i){const sAchieveUser *user=(const sAchieveUser*)(b+u);
+  if(!memchr(user->mUserName.mName,0,16))return 0;
+  sv=Achieve_BE32(&user->mpStatValues);tv=Achieve_BE32(&user->mpTaskValues);scores=Achieve_BE32(&user->mpScoreTableValues);
+  if((stats&&!Achieve_FileSpan(sv,stats,4,size)) || (tasks&&!Achieve_FileSpan(tv,(tasks+7)>>3,1,size)) || (tables&&!Achieve_FileSpan(scores,tables,sizeof(sAchieveScoreTableValues),size)))return 0;
+  for(j=0;j<tables;++j){const sAchieveScoreTableValues *values=(const sAchieveScoreTableValues*)(b+scores)+j;const sAchieveScoreTableDef *d=(const sAchieveScoreTableDef*)(b+st)+j;U32 n=Achieve_BE16(&d->mEntryCount);
+   if(Achieve_BE16(&values->mEntryCount)!=n || !Achieve_FileSpan(Achieve_BE32(&values->mpValues),n,4,size))return 0;
+  }
+  next=Achieve_BE32(&user->mpUserNext);
+  if(i+1<users){if(!Achieve_FileSpan(next,1,sizeof(sAchieveUser),size))return 0;for(j=0,off=mOFFSET(sAchieveHeader,mUserInfo);j<=i;++j){if(next==off)return 0;off=Achieve_BE32(&((const sAchieveUser*)(b+off))->mpUserNext);}u=next;}
+  else if(next)return 0;
+ }
+ return 1;
 }
 
-
-/*-----------------------------------------------------------------------------------*
-* FUNCTION : Achieve_Save( const char * apFileName )
-* ACTION   : Achieve_Save
-* CREATION : 15.1.2008 PNK
-*-----------------------------------------------------------------------------------*/
-
-U8	Achieve_Save( const char * apFileName )
+U8 Achieve_Load(const char *name,void *buffer,const U32 capacity)
 {
-	U32				lSize;
-	U8				lRes;
-	sAchieveHeader *	lpH;
-	U32				lKey;
+ S32 size=File_GetSize(name),got;sFileHandle file;U8 *temp;U32 key;
+ if(!buffer || size<(S32)sizeof(sAchieveHeader) || (U32)size>capacity)return 0;
+ temp=(U8*)mMEMALLOC((U32)size);if(!temp)return 0;
+ file=File_Open(name);if(file<0){mMEMFREE(temp);return 0;}
+ got=File_Read(file,(U32)size,temp);File_Close(file);
+ if(got!=size){mMEMFREE(temp);return 0;}
+ key=Achieve_BE32(&((sAchieveHeader*)temp)->mKey);Encrypt_DeScramble(temp,(U32)size,key);((sAchieveHeader*)temp)->mKey=0;
+ if(!Achieve_FileValidate(temp,(U32)size)){mMEMFREE(temp);return 0;}
+ if(gAchieveMainClass.mpHeader){
+  const sAchieveHeader *candidate=(const sAchieveHeader*)temp,*current=gAchieveMainClass.mpHeader;
+  if(Achieve_BE32(&candidate->mGameInfo.mGameID)!=current->mGameInfo.mGameID || Achieve_BE16(&candidate->mGameInfo.mScoreTableCount)!=current->mGameInfo.mScoreTableCount || Achieve_BE16(&candidate->mGameInfo.mStatCount)!=current->mGameInfo.mStatCount || Achieve_BE16(&candidate->mGameInfo.mTaskCount)!=current->mGameInfo.mTaskCount){mMEMFREE(temp);return 0;}
+ }
+ Memory_Copy((U32)size,temp,buffer);mMEMFREE(temp);
+ gAchieveMainClass.mpBufferBase=(U8*)buffer;gAchieveMainClass.mBufferSize=capacity;gAchieveMainClass.mBufferOffset=(U32)size;
+ gAchieveMainClass.mDataSizeCurrent=(U32)size;gAchieveMainClass.mStringSizeCurrent=0;
+ gAchieveMainClass.mpHeader=(sAchieveHeader*)buffer;Achieve_Relocate(gAchieveMainClass.mpHeader);
+ gAchieveMainClass.mCurrentUserIndex=0;gAchieveMainClass.mpUser=gAchieveMainClass.mpHeader->mUserCount?&gAchieveMainClass.mpHeader->mUserInfo:0;
+ return 1;
+}
 
-	lpH    = gAchieveMainClass.mpHeader;
-	lSize  = gAchieveMainClass.mBufferOffset;
-
-	lpH->mSaveCounter++;
-
-	Achieve_Delocate( lpH );
-	lKey = Random_Get();
-	Encrypt_Scramble( lpH, lSize, lKey );
-	lpH->mKey = lKey;
-	Endian_FromBigU32( &lpH->mKey );
-	File_Save( apFileName, lpH, lSize );
-
-	Encrypt_DeScramble( lpH, lSize, lKey );
-	Achieve_Relocate( lpH );
-
-	lRes = 1;
-
-	return( lRes );
+U8 Achieve_Save(const char *name)
+{
+ sAchieveHeader *h=gAchieveMainClass.mpHeader;U32 size=gAchieveMainClass.mBufferOffset,key,oldKey;U8 ok=0;sFileHandle file;S32 written,closed;
+ if(!h || !name)return 0;
+ oldKey=h->mKey;++h->mSaveCounter;h->mCheckSum=Achieve_CheckSumBuild(h);
+ Achieve_Delocate(h);key=Random_Get();Encrypt_Scramble(h,size,key);h->mKey=key;Endian_FromBigU32(&h->mKey);
+ file=File_Create(name);
+ if(file>=0){written=File_Write(file,size,h);closed=File_Close(file);ok=(U8)(written==(S32)size && closed==0);}
+ Encrypt_DeScramble(h,size,key);h->mKey=oldKey;Achieve_Relocate(h);
+ if(!ok)--h->mSaveCounter;
+ return ok;
 }
 
 
@@ -951,11 +964,11 @@ const char *	Achieve_Tasks_GetNewUnLockedTitle( const U16 aIndex )
 		if( (!( lpH->mGameInfo.mpTaskDefs[ i ].mFlags & eACH_TASK_FLAG_DISPLAYED )) &&
 			( dACH_GetTaskUnlockFlag(i) ) )
 		{
-			lCount++;
 			if( aIndex == lCount )
 			{
 				return( lpH->mGameInfo.mpTaskDefs[ i ].mpName );
 			}
+			lCount++;
 		}
 	}
 	return( 0 );
@@ -1259,6 +1272,10 @@ void				Achieve_Delocate( sAchieveHeader * apHeader )
 			mACH_DELOC( mGameInfo.mpTaskDefs[ i ].mpName );
 		}
 
+		mACH_DELOC( mGameInfo.mpName );
+		Endian_FromBigU32(&apHeader->mGameInfo.mGameID);
+		Endian_FromBigU32(&apHeader->mGameInfo.mBuildID);
+		Endian_FromBigU32(&apHeader->mSpecs.mExpansion);
 		mACH_DELOC( mGameInfo.mpScoreTableDefs );
 		mACH_DELOC( mGameInfo.mpStatDefs );
 		mACH_DELOC( mGameInfo.mpTaskDefs );
@@ -1310,6 +1327,13 @@ U8				Achieve_Relocate( sAchieveHeader * apHeader )
 		if( (dACHIEVE_VERSION==apHeader->mVersion) && (dACHIEVE_ID==apHeader->mID) )
 		{
 			lRes = 1;
+			Endian_FromBigU32(&apHeader->mCheckSum);
+			Endian_FromBigU32(&apHeader->mSaveID);
+			Endian_FromBigU32(&apHeader->mSaveCounter);
+			Endian_FromBigU32(&apHeader->mGameChunkSize);
+			Endian_FromBigU32(&apHeader->mUserChunkSize);
+			Endian_FromBigU32(&apHeader->mSpecs.mExpansion);
+			mACH_RELOC(mGameInfo.mpName);
 			Endian_FromBigU32( &apHeader->mGameInfo.mGameID );
 			Endian_FromBigU32( &apHeader->mGameInfo.mBuildID );
 
@@ -1515,7 +1539,7 @@ U32		Achieve_CheckSumBuild( sAchieveHeader * apHeader )
 
 		for( i=0; i<apHeader->mGameInfo.mScoreTableCount; i++ )
 		{
-			sAchieveScoreTableValues *	lpTable = lpUser->mpScoreTableValues;
+			sAchieveScoreTableValues *	lpTable = &lpUser->mpScoreTableValues[i];
 
 			CheckSum_Fletcher_U16( &lFletch, lpTable->mEntryCount );
 
@@ -1530,7 +1554,7 @@ U32		Achieve_CheckSumBuild( sAchieveHeader * apHeader )
 			CheckSum_Fletcher_U32( &lFletch, lpUser->mpStatValues[ i ] );
 		}
 
-		for( i=0; i<(apHeader->mGameInfo.mTaskCount>>3); i++ )
+		for( i=0; i<((apHeader->mGameInfo.mTaskCount+7)>>3); i++ )
 		{
 			CheckSum_Fletcher_U8( &lFletch, lpUser->mpTaskValues[i] );
 		}
@@ -1566,10 +1590,12 @@ char *	Achieve_StringAdd( const char * apString )
 
 		Assert( (gAchieveMainClass.mBufferOffset + lLen) < gAchieveMainClass.mBufferSize );
 
-		for( i=0; i<lLen; i++ )
+		for( i=0; i<=lLen-1 && apString[i]; i++ )
 		{
 			lpString[ i ] = apString[ i ];
 		}
+		lpString[i]=0;
+		if(i+1<lLen)lpString[i+1]=0;
 		gAchieveMainClass.mBufferOffset += lLen;
 		gAchieveMainClass.mStringSizeCurrent += lLen;
 	}
@@ -1638,6 +1664,12 @@ void	Achieve_UserCreate( const char * apName )
 	sAchieveUser *	lpUser;
 	U16				i;
 
+ U32 needed=sizeof(sAchieveUser)+sizeof(sAchieveScoreTableValues)*(U32)gAchieveMainClass.mpHeader->mGameInfo.mScoreTableCount;
+ if(!apName || !*apName || gAchieveMainClass.mpHeader->mUserCount>=dACH_USER_LIMIT)return;
+ for(i=0;i<gAchieveMainClass.mpHeader->mGameInfo.mScoreTableCount;++i)needed+=4UL*gAchieveMainClass.mpHeader->mGameInfo.mpScoreTableDefs[i].mEntryCount;
+ needed+=4UL*gAchieveMainClass.mpHeader->mGameInfo.mStatCount+(((gAchieveMainClass.mpHeader->mGameInfo.mTaskCount+7)>>3)+1UL);
+ if(needed>gAchieveMainClass.mBufferSize-gAchieveMainClass.mBufferOffset)return;
+
 	if( gAchieveMainClass.mpHeader->mUserCount )
 	{
 		sAchieveUser *	lpUserOld;
@@ -1660,6 +1692,7 @@ void	Achieve_UserCreate( const char * apName )
 	lpUser->mpScoreTableValues = (sAchieveScoreTableValues*)Achieve_DataAdd( sizeof(sAchieveScoreTableValues) * gAchieveMainClass.mpHeader->mGameInfo.mScoreTableCount );
 	for( i=0; i<gAchieveMainClass.mpHeader->mGameInfo.mScoreTableCount; i++ )
 	{
+		lpUser->mpScoreTableValues[ i ].mEntryCount = gAchieveMainClass.mpHeader->mGameInfo.mpScoreTableDefs[ i ].mEntryCount;
 		lpUser->mpScoreTableValues[ i ].mpValues = (U32*)Achieve_DataAdd( sizeof(U32) * gAchieveMainClass.mpHeader->mGameInfo.mpScoreTableDefs[ i ].mEntryCount );
 	}
 	lpUser->mpStatValues       = (U32*)Achieve_DataAdd( sizeof(U32) * gAchieveMainClass.mpHeader->mGameInfo.mStatCount );
@@ -1690,6 +1723,7 @@ void *	Achieve_DataAdd( const U32 aSize )
 	Assert( (gAchieveMainClass.mBufferOffset + lSize) < gAchieveMainClass.mBufferSize );
 
 	lpData = &gAchieveMainClass.mpBufferBase[ gAchieveMainClass.mBufferOffset ];
+	Memory_Clear(lSize,lpData);
 	gAchieveMainClass.mBufferOffset += lSize;
 	gAchieveMainClass.mDataSizeCurrent += lSize;
 
@@ -1777,6 +1811,7 @@ U8	Achieve_StrCmp( const char * apStr0, const char * apStr1 )
 				return( 1 );
 			}
 		}
+		if(*apStr0 != *apStr1)return 1;
 	}
 	else if( apStr0 || apStr1 )
 	{

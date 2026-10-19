@@ -86,7 +86,21 @@ void		Kernel_ClockStartCountDown( const U16 aIndex, const U8 aMinutes, const U8 
 void	Kernel_InputBufferLoad( const char * apFileName );
 void	Kernel_InputBufferSave( void );
 
-void	Kernel_RequestInputLoad( const char * apFileName );
+void Kernel_RequestInputLoad( const char * apFileName );
+
+/* RAM recorder: frames are task updates, not VBLs. Begin allocates/owns capacity.
+ * Stop retains the recording; ReplayBegin rewinds it. EOF supplies neutral input
+ * and returns to NORMAL. Raw KIP files retain the legacy sInput/delta layout. */
+U8 Kernel_InputRecordBegin(U32 capacity);
+void Kernel_InputStop(void);
+U8 Kernel_InputReplayBegin(void);
+eKERNEL_INPUT Kernel_GetInputMode(void);
+U32 Kernel_GetInputFrameCount(void);
+U32 Kernel_GetInputFrame(void);
+U32 Kernel_GetInputBytes(void);
+U8 Kernel_InputBufferWrite(const char *name);
+U8 Kernel_InputBufferRead(const char *name);
+
 
 
 /* ################################################################################ */

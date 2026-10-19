@@ -194,6 +194,7 @@ U32				Achieve_Task_IsUnLocked( const U16 aTaskIndex );
 U32				Achieve_Task_GetPoints( const U16 aTaskIndex );
 U16				Achieve_Tasks_GetNewUnLockedCount( void );
 U16				Achieve_Tasks_GetNewUnLockedIndex( const U16 aIndex );
+const char * Achieve_Tasks_GetNewUnLockedTitle( const U16 aIndex );
 void			Achieve_Task_UnLock( const U16 aTaskIndex );
 void			Achieve_Tasks_ClearNewUnLocked( void );
 U32				Achieve_Tasks_GetPointsTotal( void );

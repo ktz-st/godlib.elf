@@ -1,4 +1,7 @@
-all: rnc godpack apultra pack-ice cutbuild toolbase assetview
+all: rnc godpack apultra pack-ice cutbuild febuild toolbase assetview
+
+febuild:
+	$(MAKE) -C febuild
 
 toolbase:
 	$(MAKE) -C toolbase
@@ -22,6 +25,7 @@ cutbuild:
 	$(MAKE) -C cutbuild
 
 clean:
+	$(MAKE) -C febuild clean
 	$(MAKE) -C assetview clean
 	$(MAKE) -C toolbase clean
 	$(MAKE) -C cutbuild clean
@@ -30,4 +34,4 @@ clean:
 	$(MAKE) -C apultra clean
 	$(MAKE) -C pack-ice clean
 
-.PHONY: all rnc godpack apultra pack-ice cutbuild toolbase assetview clean
+.PHONY: all rnc godpack apultra pack-ice cutbuild febuild toolbase assetview clean

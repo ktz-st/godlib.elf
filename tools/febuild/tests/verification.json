@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "machine": "STE / 68000 / 8 MHz / 1 MiB / German TOS 1.62",
+  "fixture_sha256": "ba338e3c085c5c33df9baaecdd2dcdc263740d1d2f52a75b92ff02ce7d1aa363",
+  "checks": [
+    "four byte-exact relocate/delocate cycles using all 18 FED v2 object types",
+    "nested offsets, pointer arrays, signed coordinates and nonzero BG colour index",
+    "no CPU exceptions"
+  ]
+}

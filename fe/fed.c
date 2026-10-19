@@ -215,7 +215,7 @@ void	Fed_Delocate( sFedHeader * apHeader )
 
 	for( i=0; i<apHeader->mSliderCount; i++ )
 	{
-		Endian_FromBigU32( &apHeader->mpSliders[ i ].mpVar     );
+		mFED_DELOC( mpSliders[ i ].mpVar );
 		Endian_FromBigU32( &apHeader->mpSliders[ i ].mValueMax );
 		Endian_FromBigU32( &apHeader->mpSliders[ i ].mValueMin );
 		Endian_FromBigU32( &apHeader->mpSliders[ i ].mValueAdd );
@@ -247,7 +247,6 @@ void	Fed_Delocate( sFedHeader * apHeader )
 
 		Endian_FromBigU16( &apHeader->mpSpriteLists[ i ].mSpriteCount );
 
-		mFED_DELOC( mpSpriteLists[ i ].mppSprites );
 	}
 
 	for( i=0; i<apHeader->mSpriteGroupCount; i++ )
@@ -273,10 +272,7 @@ void	Fed_Delocate( sFedHeader * apHeader )
 
 	for( i=0; i<apHeader->mTransitionCount; i++ )
 	{
-		if( eFED_FADE_RGB != apHeader->mpTransitions[ i ].mFadeType )
-		{
-			mFED_DELOC( mpTransitions[ i ].mFadeColour );
-		}
+		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeFrameCount );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeType );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeIndex );
@@ -516,10 +512,7 @@ void	Fed_DelocateOld( sFedHeader * apHeader )
 
 	for( i = 0; i<apHeader->mTransitionCount; i++ )
 	{
-		if( eFED_FADE_RGB != apHeader->mpTransitions[ i ].mFadeType )
-		{
-			Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
-		}
+		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeFrameCount );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeType );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeIndex );
@@ -818,10 +811,7 @@ void	Fed_Relocate( sFedHeader * apHeader )
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeType );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeIndex );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeType );
-		if( eFED_FADE_RGB != apHeader->mpTransitions[ i ].mFadeType )
-		{
-			Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
-		}
+		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
 	}
 
 	for( i=0; i<apHeader->mVarCount; i++ )
@@ -1061,10 +1051,7 @@ void	Fed_RelocateOld( sFedHeader * apHeader )
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeType );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeIndex );
 		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mWipeType );
-		if( eFED_FADE_RGB != apHeader->mpTransitions[ i ].mFadeType )
-		{
-			Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
-		}
+		Endian_FromBigU16( &apHeader->mpTransitions[ i ].mFadeColour );
 	}
 
 	for( i = 0; i<apHeader->mVarCount; i++ )
@@ -1165,7 +1152,7 @@ U8	Fed_Update( const sInput * apInput )
 			lpControlList = gpFedPage->mpControlList;
 			if( lpControlList )
 			{
-				if( lpControlList->mControlIndex > lpControlList->mControlCount )
+				if( lpControlList->mControlIndex >= lpControlList->mControlCount )
 				{
 					lpControlList->mControlIndex = 0;
 				}
@@ -1725,7 +1712,7 @@ void	Fed_SampleMovePlay( void )
 
 	lpSpl = 0;
 
-	if( Fed_GetpActivePage()->mpPageStyle->mpSampleMove )
+	if( Fed_GetpActivePage()->mpPageStyle && Fed_GetpActivePage()->mpPageStyle->mpSampleMove )
 	{
 		if( Fed_GetpActivePage()->mpPageStyle->mpSampleMove->mpAsset )
 		{
@@ -1760,7 +1747,7 @@ void	Fed_SampleSelectPlay( void )
 
 	lpSpl = 0;
 
-	if( Fed_GetpActivePage()->mpPageStyle->mpSampleSelect )
+	if( Fed_GetpActivePage()->mpPageStyle && Fed_GetpActivePage()->mpPageStyle->mpSampleSelect )
 	{
 		if( Fed_GetpActivePage()->mpPageStyle->mpSampleSelect->mpAsset )
 		{

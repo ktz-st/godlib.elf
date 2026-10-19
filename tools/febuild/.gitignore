@@ -1,0 +1,5 @@
+tests/fixture.fed
+tests/fixture.o
+tests/FEDTEST.PRG
+tests/*.bin
+tests/shots/

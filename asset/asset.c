@@ -62,11 +62,11 @@ U32			AssetClients_OnLoad( sAssetClient * apClient, struct sAssetItem * apAsset 
 		{
 			if( client->mppData )
 			{
-				*client->mppData = apClient->mpAsset->mpData;
+				*client->mppData = client->mpAsset->mpData;
 			}
 			if( client->OnLoad )
 			{
-				ret    &= client->OnLoad( apClient->mpAsset->mpData, apClient->mpAsset->mSize, client->mUserData );
+				ret    &= client->OnLoad( client->mpAsset->mpData, client->mpAsset->mSize, client->mUserData );
 			}
 		}
 	}
@@ -92,7 +92,7 @@ U32			AssetClients_OnUnLoad( sAssetClient * apClient )
 		{
 			if( client->OnUnLoad )
 			{
-				ret    &= client->OnUnLoad( apClient->mpAsset->mpData, apClient->mpAsset->mSize, client->mUserData );
+				ret    &= client->OnUnLoad( client->mpAsset->mpData, client->mpAsset->mSize, client->mUserData );
 			}
 		}
 		if( client->mppData )
@@ -158,7 +158,9 @@ void	AssetClient_Init( sAssetClient * apClient, const char * apFileName, const c
 
 void			AssetClient_DeInit( sAssetClient * apClient )
 {
+	sContext * context = (sContext*)apClient->mpContext;
 	Context_AssetClient_Remove( apClient );
+	ContextManager_ContextUnRegister( context );
 }
 
 

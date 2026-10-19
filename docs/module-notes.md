@@ -28,8 +28,28 @@ Main parts:
 
 The module is linked by `godlib/Makefile`, so it is part of `libgod.a`.
 
-Noted oddity: `ach_god.c` builds a local `sAchieveSpecs`, but appears not to call
-`Achieve_Specs_Update(&lSpecs)` after filling it.
+The [Achieve example](../../godlib.spl/achieve/README.md) exercises player names,
+a shared TOP FIVE table, independent stats and three awards, explicit save/load,
+and loading into a second caller-owned arena. It uses a compact canvas/BFB UI;
+the old asset-driven login/show/sign-in flows and Clone/Combine remain outside
+its coverage.
+
+The 2026-10-19 integration repairs zero/padded arena allocation, exact player-name
+matching, personal table entry counts, score ties, new-award indexing and the
+checksum's personal-table/partial-task-byte iteration. Machine specs are now
+applied, including the corrected TOS major-version shift. Game-name pointers and
+scalar metadata relocate/delocate symmetrically.
+
+Save reports filesystem failures and restores live relocated data. Load validates
+serialized extents, strings, arrays and user chains in temporary storage before
+committing to the caller arena; rejected loads preserve the current profile.
+Live-game loads require matching game ID and definition counts. Save still uses
+a direct file write and legacy XOR obfuscation, not an atomic replacement or
+secure encryption. Malformed older snapshots with absolute game-name pointers
+are rejected; direct Achieve_Relocate remains a trusted-data API.
+
+Native regression coverage is in `godlib.spl/achieve/analysis`: 29 core checks plus
+an IKBD-driven UI/save/load test on STE / 8 MHz / 1 MiB / German TOS 1.62.
 
 ## cli
 
@@ -919,7 +939,51 @@ Possible relevance to `niezwyciezony`:
 - Reusing it for an intro would probably mean using selected renderer ideas
   rather than adopting the whole FED runtime directly.
 
+### Host FEBUILD and FE example (2026-10-19)
+
+`tools/febuild` now compiles the original `<TYPE name=ID>` text chunks to FED
+v2 using checked-in Atari ABI metadata, explicit big-endian fields and 32-bit
+header-relative offsets. It supports all 18 data-model object types, forward
+references and repeated list entries; it does not use the experimental JSON
+builder. Regenerate its schema after FE header changes. See the tool README for
+source syntax, validation, unsupported directives and native format tests.
+
+`godlib.spl/fe/FE.PRG` embeds compiled MAIN/OPTIONS pages, native BFB fonts, PI1
+backgrounds and a selection cursor. It uses FE's list, slider, LINK/CALL, keyboard/
+joystick navigation and palette transitions. Difficulty/volume persist between
+pages; a short AMIXER chime demonstrates actual volume scaling. START is an
+application callback demonstration, not a game. Native graphics kernels render
+all runtime menu widgets. No runtime text parser or rasters are used.
+
+Fixes made for this integration: v2 slider variable pointers now delocate to
+offsets, sprite-list arrays are delocated once, and fade colours are serialized
+as U16 values rather than pointer arithmetic. Intro completion waits until its
+transition has actually started. Page cursors override the style cursor correctly;
+missing cursors/styles are safe in cursor-save/sample lookup. Control index checks
+include the count boundary. AssetClient_DeInit balances the context registration
+from AssetClient_Init. The old index-format builder/JSON paths and page sprite-list
+rendering have not been completed by this work.
+
+The example binds embedded data after normal FE asset-client registration in a
+static context, then deinitializes all clients before removing that context. Its
+Hatari regression leaves zero live variable bindings and zero context references.
+The separate `tools/febuild/tests` 68000 fixture checks all 18 v2 object layouts
+through four byte-exact relocate/delocate cycles. Tests use STE/8 MHz/1 MiB and
+German TOS 1.62; neither hardware accuracy nor CPU timing is claimed from them.
+
 ## asset
+
+The [Asset / Linkfile sample](../../godlib.spl/asset/README.md) now exercises
+PackageManager/AssetClient with PI1, BFB and BSB from loose files, raw LNK and a
+whole-GodPack LNK. It explicitly initializes BFB/BSB relocators, checks shared
+clients and repeated unload/reload, and documents borrowed archive pointers.
+Native and interactive Hatari evidence is under its `analysis` directory.
+
+Integration fixes: unload callbacks use the current client asset after earlier
+clients have been cleared; same-file client removal walks mpNext, not
+mpContextNext; LNK packages populate mFileCount and asset LOADED bits. Existing
+AssetClient_DeInit reference balancing is also exercised. These focused tests
+do not establish recursive package loading or validation of malformed assets.
 
 `godlib/asset` is GodLib's package and asset-client system. It ties together
 named contexts, packages, loaded files, type-specific relocators and runtime
@@ -1095,6 +1159,11 @@ Possible relevance to an Orion Prime-style adventure:
 machine, package switching, input multiplexing, clocks, CLI commands and input
 record/replay.
 
+The [Input / Kernel sample](../../godlib.spl/input/README.md) exercises a real
+Kernel task, keyboard/joystick handover and deterministic RAM/file replay.
+Native codec/lifecycle regressions and IKBD/joystick Hatari evidence are in its
+`analysis` directory. It does not certify package transitions or every device.
+
 Files:
 
 - `kernel.h` - public task/package definitions and runtime API.
@@ -1186,8 +1255,8 @@ Input handling:
 
 - The kernel builds one combined input from direction sources and fire sources.
 - Direction input always includes IKBD.
-- Fire input is mouse if mouse is enabled, otherwise joy0/joy1 if joystick mode
-  is enabled.
+- In joystick mode, joy0/joy1 now join the combined direction/action sources,
+  including fire. Mouse mode retains the separate legacy mouse-fire overlay.
 - Joypads/team taps can be included as direction sources.
 - Team tap inputs are disabled by default through `gKernelUsesTeamTapsFlag == 0`
   because processing them is considered slow.
@@ -1224,9 +1293,16 @@ Input record/replay:
   - `0xFF` means no input bytes changed for that frame.
 - `Kernel_InputBufferSet()` records deltas.
 - `Kernel_InputBufferGet()` applies deltas.
+- `Kernel_InputRecordBegin(capacity)` now starts bounded recording on Atari too.
+  Stop/ReplayBegin retain or rewind it; GetInputMode/FrameCount/Frame/Bytes expose
+  progress. Each delta frame is committed atomically; full buffers stop recording
+  before the frame, and EOF supplies neutral input before returning to normal.
 - On Windows builds (`dGODLIB_PLATFORM_WIN`), if no replay file was requested,
   the kernel allocates a 64 KB buffer and records input.
-- `Kernel_InputBufferSave()` writes `INPUTS.KIP`.
+- `Kernel_InputBufferSave()` writes `INPUTS.KIP`. The new BufferWrite(name) and
+  BufferRead(name) return success; reads validate all delta offsets, payloads and
+  frame boundaries in temporary storage before replacing the current recording.
+  KIP remains raw ABI-dependent sInput/deltas, without a version/hash/game state.
 - `Kernel_RequestInputLoad()` stores a filename to be loaded during
   `Kernel_Init()`.
 
@@ -1251,8 +1327,9 @@ CLI:
 Important limitations and risks:
 
 - The whole runtime is global and supports one active kernel instance.
-- `Kernel_Main()` assumes task 0 exists and that the current task pointer is
-  valid.
+- `Kernel_Main()` requires a nonempty task array with valid callbacks. Init now
+  uses its first declared index; it need not be zero. Shutdown deinitializes the
+  final task. Kernel_DeInit removes the monitor callback and restores GEMDOS DTA.
 - Task switching does not check whether `Kernel_GetpTask()` returned `0` before
   using the task pointer.
 - Package bit operations assume valid package definitions for all used bit
@@ -1712,8 +1789,9 @@ Combining:
 
 - `Input_CombinedInit()` initializes one destination and an array of source
   inputs.
-- `Input_CombinedUpdate()` updates all source inputs, clears destination status,
-  then copies any non-zero source status into the destination.
+- `Input_CombinedUpdate()` updates sources, ORs their HELD bits, then derives
+  HIT/UNHIT from the previous combined action. Releasing one device cannot cancel
+  another still-held source or generate an extra HIT on device handover.
 - `Input_Combine()` combines two already-updated inputs.
 - `Input_CombineFire()` combines only fire A state from two inputs.
 - `Input_DirClear()` clears only directional actions.
@@ -1733,8 +1811,9 @@ Important limitations and risks:
 - `Input_UpdateStatus()` is implemented as a macro, so arguments must be simple
   expressions without side effects.
 - `mRepeatCounts` exists but the repeat handling is commented out.
-- Combining currently lets later non-zero sources overwrite earlier non-zero
-  status for the same action.
+- The older Input_Combine/Input_CombineFire helpers still let later non-zero
+  sources overwrite earlier status; use CombinedUpdate for aggregate edges.
+- Rapid re-press after UNHIT now produces HIT, using the previous HELD bit.
 - Fixed in the GCC port: `eINPUTTYPE_AI` now has an explicit no-op case in
   `Input_Update()`.
 - `Input_ProcessJagPad()` treats pad key bit 8 as quit; this is a GodLib
@@ -2060,6 +2139,11 @@ Important limitations and risks:
   stubs or platform guards for these routines.
 
 ## linkfile
+
+See the [three-source Asset example](../../godlib.spl/asset/README.md) for the
+MAKELINK/GODPACK host pipeline, byte-exact target depacking and file/RAM reads.
+Whole-archive compression reduces disk size; RAM members still occupy their
+uncompressed size and are borrowed until LinkFile_DeInit/package unload.
 
 `godlib/linkfile` implements GodLib `.LNK` archive files. A linkfile stores a
 small FAT/header tree plus concatenated file data. It can be used either as an

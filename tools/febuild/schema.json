@@ -1,0 +1,524 @@
+{
+  "header": {
+    "size": 116,
+    "id": 1178944595
+  },
+  "chunks": {
+    "ASSET": {
+      "fields": {
+        "FILENAME": {
+          "type": "STRING",
+          "offset": 48
+        },
+        "CONTEXT": {
+          "type": "STRING",
+          "offset": 52
+        }
+      },
+      "size": 60,
+      "table": 8,
+      "count": 80
+    },
+    "CALL": {
+      "fields": {
+        "CALL_VAR": {
+          "type": "pVAR",
+          "offset": 4
+        },
+        "CALL_VALUE": {
+          "type": "S32",
+          "offset": 8
+        },
+        "PAGE_RETURN": {
+          "type": "pPAGE",
+          "offset": 0
+        }
+      },
+      "size": 12,
+      "table": 12,
+      "count": 82
+    },
+    "CONTROL": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "CONTROL_TYPE": {
+          "type": "CONTROL",
+          "offset": 40
+        },
+        "CALL": {
+          "type": "pCALL",
+          "offset": 28
+        },
+        "LIST": {
+          "type": "pLIST",
+          "offset": 24
+        },
+        "LOCK": {
+          "type": "pLOCK",
+          "offset": 4
+        },
+        "LINK": {
+          "type": "pPAGE",
+          "offset": 20
+        },
+        "SLIDER": {
+          "type": "pSLIDER",
+          "offset": 16
+        },
+        "SPRITE": {
+          "type": "pSPRITE",
+          "offset": 12
+        },
+        "TITLE": {
+          "type": "pTEXT",
+          "offset": 8
+        },
+        "SET_VAR": {
+          "type": "pVAR",
+          "offset": 32
+        },
+        "SET_VALUE": {
+          "type": "S32",
+          "offset": 36
+        }
+      },
+      "size": 44,
+      "table": 16,
+      "count": 84
+    },
+    "CONTROLLIST": {
+      "fields": {
+        "CONTROL": {
+          "type": "CONTROL_LIST",
+          "offset": 4
+        },
+        "INDEX": {
+          "type": "U16",
+          "offset": 2
+        }
+      },
+      "size": 8,
+      "table": 20,
+      "count": 86,
+      "mControlCount": 0
+    },
+    "FONTGROUP": {
+      "fields": {
+        "FONT_LOCKED": {
+          "type": "pASSET",
+          "offset": 8
+        },
+        "FONT_LOCKEDSELECTED": {
+          "type": "pASSET",
+          "offset": 12
+        },
+        "FONT_NORMAL": {
+          "type": "pASSET",
+          "offset": 0
+        },
+        "FONT_SELECTED": {
+          "type": "pASSET",
+          "offset": 4
+        }
+      },
+      "size": 16,
+      "table": 24,
+      "count": 88
+    },
+    "LIST": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "ITEM": {
+          "type": "ITEM_LIST",
+          "offset": 4
+        },
+        "VAR": {
+          "type": "pVAR",
+          "offset": 8
+        }
+      },
+      "size": 16,
+      "table": 28,
+      "count": 90,
+      "mItemCount": 12
+    },
+    "LISTITEM": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "SPRITEGROUP": {
+          "type": "pSPRITEGROUP",
+          "offset": 4
+        },
+        "TEXT": {
+          "type": "pTEXT",
+          "offset": 8
+        },
+        "LOCK": {
+          "type": "pLOCK",
+          "offset": 12
+        }
+      },
+      "size": 16,
+      "table": 32,
+      "count": 92
+    },
+    "LOCK": {
+      "fields": {
+        "LOCK_VAR": {
+          "type": "pVAR",
+          "offset": 0
+        },
+        "LOCK_VALUE": {
+          "type": "S32",
+          "offset": 4
+        },
+        "LOCK_COMPARE": {
+          "type": "COMPARE",
+          "offset": 16
+        },
+        "VIS_VAR": {
+          "type": "pVAR",
+          "offset": 8
+        },
+        "VIS_VALUE": {
+          "type": "S32",
+          "offset": 12
+        },
+        "VIS_COMPARE": {
+          "type": "COMPARE",
+          "offset": 18
+        }
+      },
+      "size": 20,
+      "table": 36,
+      "count": 94
+    },
+    "PAGE": {
+      "fields": {
+        "TITLE": {
+          "type": "pTEXT",
+          "offset": 4
+        },
+        "BG": {
+          "type": "pASSET",
+          "offset": 8
+        },
+        "CURSOR": {
+          "type": "pSPRITE",
+          "offset": 12
+        },
+        "CONTROL_LIST": {
+          "type": "pCONTROLLIST",
+          "offset": 20
+        },
+        "SAMPLE_MOVE": {
+          "type": "pSAMPLE",
+          "offset": 24
+        },
+        "SAMPLE_SELECT": {
+          "type": "pSAMPLE",
+          "offset": 28
+        },
+        "PAGE_STYLE": {
+          "type": "pPAGESTYLE",
+          "offset": 16
+        },
+        "SPRITE_LIST": {
+          "type": "pSPRITELIST",
+          "offset": 32
+        },
+        "PAGE_PARENT": {
+          "type": "pPAGE",
+          "offset": 36
+        }
+      },
+      "size": 44,
+      "table": 40,
+      "count": 96,
+      "mHash": 0
+    },
+    "PAGESTYLE": {
+      "fields": {
+        "PAGE_TITLE_FONT": {
+          "type": "pASSET",
+          "offset": 0
+        },
+        "PAGE_BG": {
+          "type": "pASSET",
+          "offset": 4
+        },
+        "CONTROL_FONTS": {
+          "type": "pFONTGROUP",
+          "offset": 8
+        },
+        "SAMPLE_MOVE": {
+          "type": "pSAMPLE",
+          "offset": 24
+        },
+        "SAMPLE_SELECT": {
+          "type": "pSAMPLE",
+          "offset": 28
+        },
+        "CURSOR": {
+          "type": "pSPRITE",
+          "offset": 12
+        },
+        "INTRO_TRANS": {
+          "type": "pTRANS",
+          "offset": 16
+        },
+        "OUTRO_TRANS": {
+          "type": "pTRANS",
+          "offset": 20
+        }
+      },
+      "size": 32,
+      "table": 44,
+      "count": 98
+    },
+    "SAMPLE": {
+      "fields": {
+        "ASSET": {
+          "type": "pASSET",
+          "offset": 0
+        },
+        "PAN": {
+          "type": "U8",
+          "offset": 4
+        },
+        "VOLUME": {
+          "type": "U8",
+          "offset": 5
+        }
+      },
+      "size": 8,
+      "table": 48,
+      "count": 100
+    },
+    "SLIDER": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "HEIGHT": {
+          "type": "S16",
+          "offset": 6
+        },
+        "WIDTH": {
+          "type": "S16",
+          "offset": 4
+        },
+        "VAR": {
+          "type": "pVAR",
+          "offset": 8
+        },
+        "VALUE_MIN": {
+          "type": "S32",
+          "offset": 12
+        },
+        "VALUE_MAX": {
+          "type": "S32",
+          "offset": 16
+        },
+        "VALUE_ADD": {
+          "type": "S32",
+          "offset": 20
+        }
+      },
+      "size": 24,
+      "table": 52,
+      "count": 102
+    },
+    "SPRITE": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "ASSET": {
+          "type": "pASSET",
+          "offset": 4
+        },
+        "ANIM_SPEED": {
+          "type": "S32",
+          "offset": 8
+        },
+        "FRAME": {
+          "type": "U16",
+          "offset": 16
+        }
+      },
+      "size": 20,
+      "table": 56,
+      "count": 104
+    },
+    "SPRITEGROUP": {
+      "fields": {
+        "SPRITE_LOCKED": {
+          "type": "pSPRITE",
+          "offset": 8
+        },
+        "SPRITE_LOCKEDSELECTED": {
+          "type": "pSPRITE",
+          "offset": 12
+        },
+        "SPRITE_NORMAL": {
+          "type": "pSPRITE",
+          "offset": 0
+        },
+        "SPRITE_SELECTED": {
+          "type": "pSPRITE",
+          "offset": 4
+        }
+      },
+      "size": 16,
+      "table": 60,
+      "count": 106
+    },
+    "SPRITELIST": {
+      "fields": {
+        "SPRITE": {
+          "type": "SPRITE_LIST",
+          "offset": 2
+        }
+      },
+      "size": 6,
+      "table": 64,
+      "count": 108,
+      "mSpriteCount": 0
+    },
+    "TEXT": {
+      "fields": {
+        "X": {
+          "type": "S16",
+          "offset": 0
+        },
+        "Y": {
+          "type": "S16",
+          "offset": 2
+        },
+        "WIDTH": {
+          "type": "S16",
+          "offset": 4
+        },
+        "HEIGHT": {
+          "type": "S16",
+          "offset": 6
+        },
+        "FONT_GROUP": {
+          "type": "pFONTGROUP",
+          "offset": 8
+        },
+        "STRING": {
+          "type": "STRING",
+          "offset": 12
+        },
+        "ALIGN": {
+          "type": "ALIGN",
+          "offset": 16
+        }
+      },
+      "size": 20,
+      "table": 68,
+      "count": 110
+    },
+    "TRANSITION": {
+      "fields": {
+        "FADE_COLOUR": {
+          "type": "U16",
+          "offset": 2
+        },
+        "FADE_TYPE": {
+          "type": "FADE",
+          "offset": 4
+        },
+        "WIPE_TYPE": {
+          "type": "WIPE",
+          "offset": 8
+        },
+        "WIPE_INDEX": {
+          "type": "U16",
+          "offset": 6
+        },
+        "FADE_FRAME_COUNT": {
+          "type": "U16",
+          "offset": 0
+        }
+      },
+      "size": 10,
+      "table": 72,
+      "count": 112
+    },
+    "VAR": {
+      "fields": {
+        "NAME": {
+          "type": "STRING",
+          "offset": 0
+        }
+      },
+      "size": 32,
+      "table": 76,
+      "count": 114
+    }
+  },
+  "enums": {
+    "ALIGN": {
+      "LEFT": 0,
+      "RIGHT": 1,
+      "CENTRE": 2
+    },
+    "COMPARE": {
+      "GREATER": 0,
+      "EQUAL": 1,
+      "LESS": 2
+    },
+    "CONTROL": {
+      "NONE": 0,
+      "LINK": 1,
+      "CALL": 2,
+      "LIST": 3,
+      "SLIDER": 4
+    },
+    "FADE": {
+      "NONE": 0,
+      "BG": 1,
+      "PAL": 2,
+      "RGB": 3
+    },
+    "WIPE": {
+      "NONE": 0,
+      "RANDOM": 1,
+      "SPECIFIC": 2
+    }
+  }
+}

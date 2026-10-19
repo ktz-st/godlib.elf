@@ -2,6 +2,7 @@
 """Small native TOOLBASE replacement for simple GodLib asset scripts.
 
 Implemented commands:
+  FEBUILD  <source.txt> <destination.fed>
   CUTBUILD <source.txt> <destination.cut>
   MASKMAKE <src.pi1> <dst.pi1>
   BSBMAKE  <script.scr>
@@ -711,7 +712,14 @@ def run_tbs(path: Path) -> None:
             continue
         cmd = parts[0].upper()
         args = parts[1:]
-        if cmd == "CUTBUILD":
+        if cmd == "FEBUILD":
+            args = shlex.split(line, posix=False)[1:]
+            if len(args) != 2:
+                raise ValueError(f"{path}: FEBUILD needs 2 args")
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "febuild"))
+            from febuild import febuild
+            febuild(resolve(base, args[0]), resolve(base, args[1]))
+        elif cmd == "CUTBUILD":
             args = shlex.split(line, posix=False)[1:]
             if len(args) != 2:
                 raise ValueError(f"{path}: CUTBUILD needs 2 args")

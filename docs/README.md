@@ -1,5 +1,13 @@
 # GodLib documentation
 
+- [Asset / Linkfile example](../../godlib.spl/asset/README.md): picture/font/sprites
+  from loose files, raw LNK and a whole GodPack-compressed archive.
+- [Input / Kernel example](../../godlib.spl/input/README.md): combined keyboard/joystick
+  actions, bounded delta recording, KIP files and deterministic replay checks.
+- [Achieve example](../../godlib.spl/achieve/README.md): players, scores, stats,
+  awards and validated disk persistence with native regression tests.
+- [FEBUILD / FE menus](../tools/febuild/README.md): native host compiler,
+  FED v2 layout, runtime repairs and MAIN/OPTIONS example.
 - [Host BSBMAKER](../tools/toolbase/README.md): sprite/font builds, rotated
   graphics and masks, radians, pivots and legacy `rot90` semantics.
 - [macOS AssetView](../tools/assetview/README.md): native BSB/BFB viewer,

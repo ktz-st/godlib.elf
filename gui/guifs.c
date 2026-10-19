@@ -72,6 +72,12 @@ enum
 #  STRUCTS
 ################################################################################### */
 
+typedef struct sGuiFSRow
+{
+ sGuiButton mButton;
+ sHashTreeVarClient mClient;
+} sGuiFSRow;
+
 typedef	struct sGuiFSClass
 {
 	sHashTree *				mpTree;
@@ -87,6 +93,10 @@ typedef	struct sGuiFSClass
 	sGemDosDTA				mDTA;
 	sGemDosDTA *			mpDTAs;
 	sGuiFSInfo *			mpInfo;
+ sGuiFSRow *mpRows;
+ sGuiWindow *mpFileWindow;
+ sGuiInfo **mppOriginalControls;
+ U16 mOriginalControlCount;
 } sGuiFSClass;
 
 
@@ -115,6 +125,28 @@ void	GuiFS_OnCancel( sHashTreeVarClient * apVar );
 
 int		GuiFS_DTASort( const void * apDTA0, const void * apDTA1 );
 
+
+static void GuiFS_RowEvent(sHashTreeVarClient *client)
+{
+ sGuiEvent *event=(sGuiEvent*)client->mpVar->mpData;
+ HashTree_VarWrite(&gGuiFS.mVars[client->mUserData?eGUIFS_VAR_FOLDER:eGUIFS_VAR_FILE],event);
+}
+
+static void GuiFS_RowsFree(void)
+{
+ U16 i;
+ if(gGuiFS.mpRows){
+  for(i=0;i<gGuiFS.mpFileWindow->mControlCount;++i){
+   HashTree_VarClient_DeInit(&gGuiFS.mpRows[i].mClient,gGuiFS.mpTree);
+   HashTree_Var_DeInit(&gGuiFS.mpRows[i].mButton.mInfo.mEventVar,gGuiFS.mpTree);
+  }
+  _Memory_Release(gGuiFS.mpRows);
+ }
+ if(gGuiFS.mAllocFlag && gGuiFS.mpFileWindow->mppControls)_Memory_Release(gGuiFS.mpFileWindow->mppControls);
+ if(gGuiFS.mpFileWindow){gGuiFS.mpFileWindow->mppControls=0;gGuiFS.mpFileWindow->mControlCount=0;}
+ if(gGuiFS.mpDTAs)_Memory_Release(gGuiFS.mpDTAs);
+ gGuiFS.mpRows=0;gGuiFS.mpDTAs=0;gGuiFS.mAllocFlag=0;
+}
 
 /* ###################################################################################
 #  CODE
@@ -170,7 +202,10 @@ void	GuiFS_Init( sHashTree * apTree )
 	HashTree_VarClient_Init( &gGuiFS.mVarClients[ eGUIFS_VARCLIENT_FOLDERBACK ], apTree, "GUI\\BUTTONS\\BUTT_FOLDERBACK",	GuiFS_OnFolderBack );
 	HashTree_VarClient_Init( &gGuiFS.mVarClients[ eGUIFS_VARCLIENT_WINDOW     ], apTree, "GUI\\WINDOWS\\WND_FS",			0 );
 
-	gGuiFS.mAllocFlag = 0;
+ gGuiFS.mAllocFlag = 0;
+ /* HashTree stores <=4-byte vars internally; explicitly publish pointers. */
+ {U16 ids[5]={eGUIFS_VAR_DRIVE,eGUIFS_VAR_FILEMASK,eGUIFS_VAR_FILENAME,eGUIFS_VAR_FILEPATH,eGUIFS_VAR_TITLE};
+  for(i=0;i<5;++i)HashTree_VarWrite(&gGuiFS.mVars[ids[i]],&gGuiFS.mpStrings[i]);}
 }
 
 
@@ -183,6 +218,10 @@ void	GuiFS_Init( sHashTree * apTree )
 void	GuiFS_DeInit( sHashTree * apTree )
 {
 	U16	i;
+ sGuiWindow *window=gGuiFS.mpFileWindow;
+ GuiFS_RowsFree();
+ if(window){window->mppControls=gGuiFS.mppOriginalControls;window->mControlCount=gGuiFS.mOriginalControlCount;}
+ gGuiFS.mpFileWindow=0;gGuiFS.mpInfo=0;
 
 	for( i=0; i<eGUIFS_VAR_LIMIT; i++ )
 	{
@@ -273,161 +312,67 @@ U16	GuiFS_GetFileCount( char * apFileSpec )
 * CREATION : 28.02.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
-void	GuiFS_FileListWindowBuild( sGuiWindow * apWindow )
+void GuiFS_FileListWindowBuild(sGuiWindow *window)
 {
-	sString			lPath;
-	sString			lString;
-	sGuiButton *	lpButtons;
-	S16				lY;
-	U16				lCount;
-	U16				lFileCount;
-	U16				lFolderCount;
-	U16				i,j;
-	U32				lSize;
-
-	for( i=0; i<apWindow->mControlCount; i++ )
-	{
-		/* HashTree_VarUnRegister( gGuiFS.mpTree, apWindow->mppControls[ i ]->mpEventVar ); */
-		HashTree_Var_DeInit( &apWindow->mppControls[ i ]->mEventVar, gGuiFS.mpTree );
-	}
-
-	if( apWindow->mppControls && gGuiFS.mAllocFlag )
-	{
-		mMEMFREE( apWindow->mppControls[ 0 ] );
-		mMEMFREE( apWindow->mppControls );
-		apWindow->mppControls   = 0;
-		apWindow->mControlCount = 0;
-	}
-	if( gGuiFS.mpDTAs )
-	{
-		mMEMFREE( gGuiFS.mpDTAs );
-		gGuiFS.mpDTAs = 0;
-	}
-
-	String_Init( &lPath, gGuiFS.mStrings[ eGUIFS_STRING_DRIVE ].mpChars );
-	String_Append( &lPath, ":\\" );
-	String_Append( &lPath, gGuiFS.mStrings[ eGUIFS_STRING_FILEPATH ].mpChars );
-	String_Append( &lPath, "\\" );
-
-
-	String_Init( &lString, lPath.mpChars );
-	String_Append( &lString, gGuiFS.mStrings[ eGUIFS_STRING_FILEMASK ].mpChars );
-	String_Append( &lPath, "*.*" );
-
-	lFolderCount = GuiFS_GetFolderCount( lPath.mpChars );
-	lFileCount   = GuiFS_GetFileCount( lString.mpChars );
-
-	lCount       = (U16)(lFileCount + lFolderCount);
-	if( lCount )
-	{
-		gGuiFS.mAllocFlag = 1;
-
-		lSize  = lCount;
-		lSize *= sizeof( sGemDosDTA );
-		gGuiFS.mpDTAs = (sGemDosDTA*)mMEMCALLOC( lSize );
-
-		i = 0;
-
-		File_SetDTA( &gGuiFS.mDTA );
-		if( !File_ReadFirst( lPath.mpChars, dGEMDOS_FA_DIR ) )
-		{
-			do
-			{
-				if( gGuiFS.mDTA.mAttrib & dGEMDOS_FA_DIR )
-				{
-					if( (String_StrCmpi( gGuiFS.mDTA.mFileName, "..")) && (String_StrCmpi( gGuiFS.mDTA.mFileName, ".")) )
-					{
-						gGuiFS.mpDTAs[ i ] = gGuiFS.mDTA;
-						for( j=0; j<13; j++)
-						{
-							gGuiFS.mpDTAs[ i ].mFileName[ j+1 ] = gGuiFS.mDTA.mFileName[ j ];
-						}
-						gGuiFS.mpDTAs[ i ].mFileName[ 0 ] = 3;
-						i++;
-					}
-				}
-			} while( !File_ReadNext() );
-		}
-
-		File_SetDTA( &gGuiFS.mDTA );
-		if( !File_ReadFirst( lString.mpChars, dGEMDOS_FA_READONLY ) )
-		{
-			do
-			{
-				if( (String_StrCmpi( gGuiFS.mDTA.mFileName, "..")) && (String_StrCmpi( gGuiFS.mDTA.mFileName, ".")) )
-				{
-					gGuiFS.mpDTAs[ i++ ] = gGuiFS.mDTA;
-				}
-			} while( !File_ReadNext() );
-		}
-
-		if( lFolderCount )
-		{
-			qsort( &gGuiFS.mpDTAs[ 0 ], lFolderCount, sizeof(sGemDosDTA), GuiFS_DTASort );
-		}
-		if( lFileCount )
-		{
-			qsort( &gGuiFS.mpDTAs[ lFolderCount ], lFileCount, sizeof(sGemDosDTA), GuiFS_DTASort );
-		}
-
-		lSize  = lCount;
-		lSize *= sizeof( sGuiButton );
-
-		lpButtons = (sGuiButton*)mMEMCALLOC( lSize );
-
-
-		lY = 1;
-		for( i=0; i<lCount; i++ )
-		{
-			lpButtons[ i ].mInfo.mType                    = eGUI_TYPE_BUTTON;
-			lpButtons[ i ].mInfo.mEvent.mpInfo            =&lpButtons[ i ].mInfo;
-			lpButtons[ i ].mInfo.mEvent.mEvent            = 0;
-			lpButtons[ i ].mInfo.mRectPair.mLocal.mX      = 2;
-			lpButtons[ i ].mInfo.mRectPair.mLocal.mWidth  = -2;
-			lpButtons[ i ].mInfo.mRectPair.mLocal.mY      = lY;
-			lpButtons[ i ].mInfo.mRectPair.mLocal.mHeight = dGUIFS_BUTTON_HEIGHT;
-			lpButtons[ i ].mButtonType                    = eGUI_BUTTON_HOVER;
-			lpButtons[ i ].mString.mRects.mLocal.mX       = dGUIFS_BUTTON_STRINGX;
-			lpButtons[ i ].mString.mpTitle                = &gGuiFS.mpDTAs[ i ].mFileName[ 0 ];
-#if 0
-/* 2d0 - revisit this when new hastree var API is finished */
-			if( gGuiFS.mpDTAs[ i ].mAttrib & dGEMDOS_FA_DIR )
-			{
-				lpButtons[ i ].mString.mRects.mLocal.mX       = dGUIFS_BUTTON_STRINGX-6;
-				HashTree_Var_Init( &lpButtons[ i ].mInfo.mEventVar, gGuiFS.mpTree, "GUI\\FS\\FOLDER" );
-			}
-			else
-			{
-				HashTree_Var_Init( &lpButtons[ i ].mInfo.mEventVar, gGuiFS.mpTree, "GUI\\FS\\FILE" );
-			}
-#endif			
-			lY += dGUIFS_BUTTON_HEIGHT;
-		}
-
-		apWindow->mppControls     = (sGuiInfo**)mMEMCALLOC( lCount * 4 );
-		for( i=0; i<lCount; i++ )
-		{
-			apWindow->mppControls[ i ] = (sGuiInfo*)&lpButtons[ i ];
-		}
-		apWindow->mControlCount   = lCount;
-		if( lY > apWindow->mInfo.mRectPair.mWorld.mHeight )
-		{
-			apWindow->mCanvas.mHeight = (S16)(lY + 4);
-		}
-		else
-		{
-			apWindow->mCanvas.mHeight = apWindow->mInfo.mRectPair.mWorld.mHeight;
-		}
-		apWindow->mCanvas.mY = 0;
-		apWindow->mInfo.mRedrawFlag = 2;
-
-		Gui_WorldPosUpdate();
-	}
-
-	String_DeInit( &lString );
-	String_DeInit( &lPath );
+ sString path,spec; sGemDosDTA *oldDTA=File_GetDTA();
+ U16 folders,files,count,i,n=0,j; char eventName[48];
+ if(!window)return;
+ if(!gGuiFS.mpFileWindow){
+  gGuiFS.mpFileWindow=window;gGuiFS.mppOriginalControls=window->mppControls;
+  gGuiFS.mOriginalControlCount=window->mControlCount;
+ }
+ GuiFS_RowsFree();
+ String_Init(&path,gGuiFS.mStrings[eGUIFS_STRING_DRIVE].mpChars);String_Append(&path,":\\");
+ if(String_GetLength(&gGuiFS.mStrings[eGUIFS_STRING_FILEPATH])){
+  String_Append(&path,gGuiFS.mStrings[eGUIFS_STRING_FILEPATH].mpChars);String_Append(&path,"\\");
+ }
+ String_Init(&spec,path.mpChars);String_Append(&spec,gGuiFS.mStrings[eGUIFS_STRING_FILEMASK].mpChars);
+ String_Append(&path,"*.*");folders=GuiFS_GetFolderCount(path.mpChars);files=GuiFS_GetFileCount(spec.mpChars);
+ /* Row positions use S16. Reject overflow before allocating or publishing. */
+ count=((U32)folders+files<=3275UL)?(U16)(folders+files):0;
+ if(count){
+  gGuiFS.mpDTAs=Memory_Calloc((U32)count*sizeof(sGemDosDTA));
+  gGuiFS.mpRows=Memory_Calloc((U32)count*sizeof(sGuiFSRow));
+  window->mppControls=Memory_Calloc((U32)count*sizeof(sGuiInfo*));gGuiFS.mAllocFlag=1;
+  if(!gGuiFS.mpDTAs || !gGuiFS.mpRows || !window->mppControls){GuiFS_RowsFree();count=0;}
+ }
+ if(count){
+  File_SetDTA(&gGuiFS.mDTA);
+  if(!File_ReadFirst(path.mpChars,dGEMDOS_FA_DIR))do{
+   if((gGuiFS.mDTA.mAttrib&dGEMDOS_FA_DIR) && String_StrCmpi(gGuiFS.mDTA.mFileName,".") && String_StrCmpi(gGuiFS.mDTA.mFileName,"..") && n<count){
+    gGuiFS.mpDTAs[n]=gGuiFS.mDTA;
+    for(j=0;j<13;++j)gGuiFS.mpDTAs[n].mFileName[j+1]=gGuiFS.mDTA.mFileName[j];
+    gGuiFS.mpDTAs[n++].mFileName[0]='>';
+   }
+  }while(!File_ReadNext());
+  folders=n;
+  if(!File_ReadFirst(spec.mpChars,dGEMDOS_FA_READONLY))do{
+   if(!(gGuiFS.mDTA.mAttrib&dGEMDOS_FA_DIR) && n<count)gGuiFS.mpDTAs[n++]=gGuiFS.mDTA;
+  }while(!File_ReadNext());
+  files=(U16)(n-folders);count=n;
+  if(folders)qsort(gGuiFS.mpDTAs,folders,sizeof(sGemDosDTA),GuiFS_DTASort);
+  if(files)qsort(gGuiFS.mpDTAs+folders,files,sizeof(sGemDosDTA),GuiFS_DTASort);
+  for(i=0;i<count;++i){
+   sGuiFSRow *row=&gGuiFS.mpRows[i];sGuiButton *button=&row->mButton;
+   button->mInfo.mType=eGUI_TYPE_BUTTON;button->mInfo.mEvent.mpInfo=button;
+   button->mInfo.mRectPair.mLocal.mX=2;button->mInfo.mRectPair.mLocal.mY=(S16)(1+i*10);
+   button->mInfo.mRectPair.mLocal.mWidth=-2;button->mInfo.mRectPair.mLocal.mHeight=10;
+   button->mButtonType=eGUI_BUTTON_HOVER;button->mString.mRects.mLocal.mX=2;
+   button->mString.mpTitle=gGuiFS.mpDTAs[i].mFileName;
+   sprintf(eventName,"GUI\\FS\\ROW%u",i);
+   HashTree_Var_Init(&button->mInfo.mEventVar,gGuiFS.mpTree,eventName,sizeof(sGuiEvent),&button->mInfo.mEvent);
+   row->mClient.mUserData=i<folders;
+   HashTree_VarClient_Init(&row->mClient,gGuiFS.mpTree,eventName,GuiFS_RowEvent);
+   window->mppControls[i]=&button->mInfo;
+  }
+  window->mControlCount=count;
+ }
+ if(!count){files=0;folders=0;}
+ window->mCanvas.mY=0;window->mCanvas.mHeight=(S16)(count*10+4);
+ if(window->mCanvas.mHeight<window->mInfo.mRectPair.mWorld.mHeight)window->mCanvas.mHeight=window->mInfo.mRectPair.mWorld.mHeight;
+ window->mInfo.mRedrawFlag=2;gGuiFS.mFileCount=files;gGuiFS.mFolderCount=folders;
+ File_SetDTA(oldDTA);String_DeInit(&spec);String_DeInit(&path);Gui_WorldPosUpdate();
 }
-
 
 /*-----------------------------------------------------------------------------------*
 * FUNCTION : GuiFS_OnFileWindow( sHashTreeVarClient  * apVar )
@@ -443,7 +388,7 @@ void	GuiFS_OnFileWindow( sHashTreeVarClient  * apClient )
 	lpEvent  = (sGuiEvent*)apClient->mpVar->mpData;
 	lpWindow = (sGuiWindow*)lpEvent->mpInfo;
 	DebugLog_Printf1( "GuiFS_OnFileWindow() %p", lpWindow );
-	if( lpWindow )
+	if( lpWindow && (lpEvent->mEvent==eGUIEVENT_WINDOW_OPEN || lpEvent->mEvent==eGUIEVENT_WINDOW_REFRESH) )
 	{
 		DebugLog_Printf1( "window name: %s", lpWindow->mInfo.mpName );
 		GuiFS_FileListWindowBuild(lpWindow);
@@ -623,7 +568,7 @@ void	GuiFS_OnFile( sHashTreeVarClient  * apClient )
 			lpVar = &gGuiFS.mVars[ eGUIFS_VAR_FILENAME ];
 			if( lpVar )
 			{
-				HashTree_VarWrite( lpVar, &gGuiFS.mStrings[ eGUIFS_STRING_FILENAME ] );
+				HashTree_VarWrite( lpVar, &gGuiFS.mpStrings[ eGUIFS_STRING_FILENAME ] );
 			}
 /*
 			lpVar = gGuiFS.mpVarClients[ eGUIFS_VARCLIENT_FILENAME ]->mpVar;
@@ -768,7 +713,7 @@ void	GuiFS_OnOK( sHashTreeVarClient  * apClient )
 				String_Set( &lpInfo->mFileMask, gGuiFS.mStrings[ eGUIFS_STRING_FILEMASK ].mpChars );
 				String_Set( &lpInfo->mFileName, gGuiFS.mStrings[ eGUIFS_STRING_FILENAME ].mpChars );
 				String_Set( &lpInfo->mFilePath, gGuiFS.mStrings[ eGUIFS_STRING_FILEPATH ].mpChars );
-				lpInfo->mpCB( lpInfo );
+				if(lpInfo->mpCB)lpInfo->mpCB( lpInfo );
 			}
 		}
 	}
@@ -796,7 +741,7 @@ void	GuiFS_OnCancel( sHashTreeVarClient  * apClient )
 			if( lpInfo )
 			{
 				lpInfo->mButton    = eGUIFS_BUTTON_CANCEL;
-				lpInfo->mpCB( lpInfo );
+				if(lpInfo->mpCB)lpInfo->mpCB( lpInfo );
 			}
 		}
 	}

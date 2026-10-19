@@ -13,12 +13,13 @@ Implemented BSBMAKE chunks:
   [ HEADER ], [ SPRITE ], [ FONT ]
 
 The binary output is written in GodLib's delocated big-endian layouts.
-Rotation and GUIBUILD are intentionally not implemented here.
+Sprite rotations are supported; GUIBUILD is not implemented here.
 """
 
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import platform
 import shutil
@@ -65,6 +66,8 @@ def read_pi1(path: Path) -> tuple[bytes, bytes]:
     data = path.read_bytes()
     if len(data) < DEGAS_HEADER_SIZE + DEGAS_SCREEN_SIZE:
         raise ValueError(f"{path}: file too small for PI1")
+    if struct.unpack_from(">H", data)[0] != 0:
+        raise ValueError(f"{path}: expected uncompressed low-resolution PI1")
     return data[:DEGAS_HEADER_SIZE], data[DEGAS_HEADER_SIZE:DEGAS_HEADER_SIZE + DEGAS_SCREEN_SIZE]
 
 
@@ -130,6 +133,12 @@ class SpriteDef:
     charlast: int = 0
     spacewidth: int = 4
     charmap: list[int] = field(default_factory=list)
+    rot90: int = 0
+    rotframecount: int = 0
+    rotstartangle: float = 0.0
+    rotendangle: float = 0.0
+    rotpivotx: int = 0
+    rotpivoty: int = 0
 
 
 @dataclass
@@ -212,11 +221,14 @@ def parse_scr(path: Path) -> tuple[HeaderDef, list[SpriteDef]]:
                 spr.spacewidth = int(val, 0)
             elif key in {
                 "x", "y", "stepx", "stepy", "width", "height", "planes",
-                "canvaswidth", "framecount", "opaque",
+                "canvaswidth", "framecount", "opaque", "rot90", "rotframecount",
+                "rotpivotx", "rotpivoty",
             }:
                 setattr(spr, key, int(val, 0))
+            elif key in ("rotstartangle", "rotendangle"):
+                setattr(spr, key, float(val))
             elif key.startswith("rot"):
-                raise NotImplementedError("rotated sprites are not implemented")
+                raise ValueError(f"{path}: unknown rotation option {key}")
         sprites.append(spr)
     return header, sprites
 
@@ -238,6 +250,8 @@ def parse_charmap(value: str) -> list[int]:
 
 
 def make_sprite(gfx_pixels: bytes, mask_pixels: bytes, spr: SpriteDef, frame: int) -> SpriteBytes:
+    if spr.canvaswidth < 0 or (spr.canvaswidth and spr.canvaswidth < spr.width):
+        raise ValueError("canvaswidth must be zero or at least sprite width")
     x = spr.x + frame * spr.stepx
     y = spr.y
     if spr.canvaswidth:
@@ -246,6 +260,8 @@ def make_sprite(gfx_pixels: bytes, mask_pixels: bytes, spr: SpriteDef, frame: in
             y += spr.stepy
     xwords = (spr.width + 15) >> 4
     src_xword = x >> 4
+    if x < 0 or y < 0 or (src_xword + xwords) * 16 > 320 or y + spr.height > 200:
+        raise ValueError(f"source frame {frame} lies outside the 320x200 PI1")
     mask_out = bytearray()
     gfx_out = bytearray()
 
@@ -286,6 +302,87 @@ def serialize_sprite(sprite: SpriteBytes, sprite_offset: int) -> bytes:
             sprite.gfx,
         ]
     )
+
+
+def sprite_pixels(sprite: SpriteBytes) -> tuple[list[int], list[bool]]:
+    """Decode indices and the GodLib keep-background mask (one means transparent)."""
+    colours, transparent = [], []
+    words = (sprite.width + 15) // 16
+    for y in range(sprite.height):
+        for x in range(sprite.width):
+            word = y * words + x // 16
+            bit = 0x8000 >> (x & 15)
+            colours.append(sum((1 << p) for p in range(sprite.gfx_planes)
+                               if struct.unpack_from(">H", sprite.gfx, (word * sprite.gfx_planes + p) * 2)[0] & bit))
+            transparent.append(bool(struct.unpack_from(">H", sprite.mask, word * 2)[0] & bit))
+    return colours, transparent
+
+
+def planar_sprite(width: int, height: int, planes: int, mask_planes: int,
+                  colours: list[int], transparent: list[bool]) -> SpriteBytes:
+    words = (width + 15) // 16
+    mask = bytearray(b"\xff\xff" * (words * height))
+    gfx = bytearray(words * height * planes * 2)
+    for y in range(height):
+        for x in range(width):
+            i, w, bit = y * width + x, y * words + x // 16, 0x8000 >> (x & 15)
+            if not transparent[i]:
+                struct.pack_into(">H", mask, w * 2, struct.unpack_from(">H", mask, w * 2)[0] & ~bit)
+                for p in range(planes):
+                    if colours[i] & (1 << p):
+                        off = (w * planes + p) * 2
+                        struct.pack_into(">H", gfx, off, struct.unpack_from(">H", gfx, off)[0] | bit)
+    return SpriteBytes(width, height, planes, mask_planes, bytes(mask), bytes(gfx))
+
+
+def rotate_sprites(sprite: SpriteBytes, spr: SpriteDef) -> list[SpriteBytes]:
+    """Shared canvas/pivot, radians and exclusive end, as in the RG script format.
+
+    Inverse nearest-neighbour sampling avoids the holes of the old forward mapper.
+    Pixel-centre bounds are rounded outwards so no edge pixels are truncated.
+    """
+    if not 1 <= spr.rotframecount <= 4096:
+        raise ValueError("rotframecount must be 1..4096")
+    if not all(math.isfinite(v) and abs(v) <= 1e6 for v in (spr.rotstartangle, spr.rotendangle)):
+        raise ValueError("rotation angles must be finite radians within +/-1000000")
+    angles = [spr.rotstartangle + i * (spr.rotendangle - spr.rotstartangle) / spr.rotframecount
+              for i in range(spr.rotframecount)]
+    def trig(angle: float) -> tuple[float, float]:
+        # Snap cardinal angles to avoid a spurious extra row/column.
+        def snap(v: float) -> float:
+            return float(round(v)) if abs(v - round(v)) < 1e-10 else v
+        return snap(math.cos(angle)), snap(math.sin(angle))
+    transforms = [trig(a) for a in angles]
+    corners = [(x - spr.rotpivotx, y - spr.rotpivoty)
+               for x in (0, spr.width - 1) for y in (0, spr.height - 1)]
+    xs = [c*x - s*y for c, s in transforms for x, y in corners]
+    ys = [s*x + c*y for c, s in transforms for x, y in corners]
+    x0, y0 = math.floor(min(xs)), math.floor(min(ys))
+    width = (math.ceil(max(xs)) - x0 + 16) & ~15
+    height = math.ceil(max(ys)) - y0 + 1
+    if width > 4096 or height > 4096 or width * height * spr.rotframecount > 16_000_000:
+        raise ValueError("rotation output exceeds 16 million pixels or 4096-pixel canvas")
+    src, mask = sprite_pixels(sprite)
+    result = []
+    for c, s in transforms:
+        colours, transparent = [0] * (width * height), [not spr.opaque] * (width * height)
+        for y in range(height):
+            for x in range(width):
+                sx = math.floor(c*(x+x0) + s*(y+y0) + spr.rotpivotx + .5)
+                sy = math.floor(-s*(x+x0) + c*(y+y0) + spr.rotpivoty + .5)
+                if 0 <= sx < spr.width and 0 <= sy < spr.height:
+                    i, j = y*width+x, sy*sprite.width+sx
+                    colours[i], transparent[i] = src[j], mask[j] if not spr.opaque else False
+        result.append(planar_sprite(width, height, sprite.gfx_planes, sprite.mask_planes, colours, transparent))
+    return result
+
+
+def legacy_rot90(sprite: SpriteBytes) -> SpriteBytes:
+    """RG's rot90 is a diagonal transpose, including its mask, not a CW turn."""
+    colours, mask = sprite_pixels(sprite)
+    indices = [x * sprite.width + y for y in range(sprite.width) for x in range(sprite.height)]
+    return planar_sprite(sprite.height, sprite.width, sprite.gfx_planes, sprite.mask_planes,
+                         [colours[i] for i in indices], [mask[i] for i in indices])
 
 
 def serialize_bsb(sprites: list[SpriteBytes]) -> bytes:
@@ -579,12 +676,20 @@ def bsbmake(script: Path) -> None:
     dst_base = resolve(base, header.dstpath) if header.dstpath else base
 
     for spr in defs:
+        if not (1 <= spr.width <= 320 and 1 <= spr.height <= 200 and 1 <= spr.planes <= 4):
+            raise ValueError("sprites require width 1..320, height 1..200 and planes 1..4")
+        if not 1 <= spr.framecount <= 4096 or not 0 <= spr.rotframecount <= 4096:
+            raise ValueError("framecount must be 1..4096 and rotframecount 0..4096")
         gfx_path = resolve(gfx_base, spr.src)
         msk_path = resolve(msk_base, spr.msk) if spr.msk else gfx_path
         dst_path = resolve(dst_base, spr.dst)
         _, gfx_pixels = read_pi1(gfx_path)
         _, mask_pixels = read_pi1(msk_path)
-        frames = [make_sprite(gfx_pixels, mask_pixels, spr, frame) for frame in range(spr.framecount)]
+        frames = (rotate_sprites(make_sprite(gfx_pixels, mask_pixels, spr, 0), spr)
+                  if spr.rotframecount else
+                  [make_sprite(gfx_pixels, mask_pixels, spr, frame) for frame in range(spr.framecount)])
+        if spr.rot90:
+            frames = [legacy_rot90(frame) for frame in frames]
         data = serialize_bfb(frames, spr) if spr.font else serialize_bsb(frames)
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         dst_path.write_bytes(data)
@@ -646,6 +751,12 @@ def run_tbs(path: Path) -> None:
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0].upper() in ("BSBMAKE", "BSBMAKER"):
+        parser = argparse.ArgumentParser(description="Host BSBMAKER: sprites, fonts and rotations")
+        parser.add_argument("script", type=Path)
+        ns = parser.parse_args(argv[1:])
+        bsbmake(ns.script)
+        return 0
     if argv and argv[0].upper() == "CUTBUILD":
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cutbuild"))
         from cutbuild import main as cutbuild_main

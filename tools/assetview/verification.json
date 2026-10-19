@@ -1,0 +1,18 @@
+{
+  "platform": "Darwin/arm64",
+  "rotation_tests": 6,
+  "compiled_decoder_export_tests": 6,
+  "result": "PASS",
+  "app_sha256": "2eb7a872742ab17261fb0c787d796f71c4a5ccdb607e64a10fb47eca56d0f77a",
+  "ui_verified": [
+    "Original RG ROCKANIM.BSB open / palette / playback",
+    "Generated ROTATE.BSB: 32 frames and mask toggle",
+    "GodLib font6x6.bfb glyph sheet and sample text",
+    "ANIM.TXT: 32 frames, TIME=3 -> 16.67 FPS, Play advances sequence"
+  ],
+  "limitations": [
+    "Cocoa viewer is macOS-only",
+    "Uncompressed BSB/BFB and PI1 only",
+    "No physical Atari hardware test"
+  ]
+}

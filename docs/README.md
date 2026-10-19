@@ -1,5 +1,9 @@
 # GodLib documentation
 
+- [Host BSBMAKER](../tools/toolbase/README.md): sprite/font builds, rotated
+  graphics and masks, radians, pivots and legacy `rot90` semantics.
+- [macOS AssetView](../tools/assetview/README.md): native BSB/BFB viewer,
+  font preview, palettes, PNG export and ANIM8R playback.
 - [Missing Link REFLECT](reflection.md): native ASM water reflection and original-code verification.
 - [Example coverage and module audit](module-audit.md): 2026-10-19 review,
   suggested examples, unused versus unexercised APIs and confirmed incomplete paths.

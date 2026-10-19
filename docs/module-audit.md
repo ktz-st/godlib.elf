@@ -14,7 +14,7 @@ All new example executables should use `.PRG`.
 
 | Priority | Example | Existing modules | What it would demonstrate / prerequisites |
 | --- | --- | --- | --- |
-| 1 | Native GUI and file selector | `gui`, `guifs`, `hashtree` | Window, buttons, editable field, scrollbar and directory/file choice inside the GodLib screen. Distinct from the existing `fileselect` GEM/AES example. Needs GUI data with the expected names/bindings, cursor/font assets and checking dynamic file-list ownership. |
+| 1 | Native GUI and file selector — implemented | `gui`, `guifs`, `hashtree` | `godlib.spl/gui` now demonstrates windows, buttons, native text editing/sliders, mouse and GuiFS filtering/folders/scrolling. See its README and verification evidence; the GEM/AES example remains `fileselect`. |
 | 2 | Scripted game menu | `fe`, `input`, `asset`, `hashtree` | MAIN/OPTIONS pages, difficulty selector, volume slider, locks and fade/wipe transitions. Start with the established text parser or native structures; the JSON builder/reflection path needs repairs first. |
 | 3 | Scores, profiles and achievements | `achieve` | Enter a name, insert a score, unlock an award, save and reload. The data model and UI exist, including assets under `achieve/gfx`; first check buffer sizing, persistence/relocation and lifecycle. `Achieve_GodLib_Specs_Set` currently builds a local structure without applying it. |
 | 4 | Packed asset loading | `asset`, `linkfile`, `packer` | Load the same picture/font/sprite from loose files and a linkfile, relocate it and unload safely; show packed/unpacked sizes. Use the available linkfile tool path: the local Python TOOLBASE subset does not implement every historical SPLMAKE command. |
@@ -33,7 +33,7 @@ example would add that renderer/logic rather than merely expose a hidden API.
 ## Missing coverage versus genuinely unused code
 
 No direct public-API calls from current sample source were found for the major
-runtime systems `gui/GuiFS`, `fe`, `achieve`, `registry`, `kernel`, `input`,
+runtime systems `fe`, `achieve`, `registry`, `kernel`, `input`,
 `asset/linkfile`, `clock`, `scrngrab`, `profiler` or `cli`. Some are used internally
 or enabled only by build flags. In particular:
 

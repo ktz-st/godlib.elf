@@ -524,7 +524,7 @@ void	GuiWindow_EventClose( sGuiWindow * apWindow )
 			lpWindow = (sGuiWindow*)apWindow->mppControls[ i ];
 			if( eGUI_TYPE_WINDOW == lpWindow->mInfo.mType )
 			{
-				GuiWindow_EventOpen( lpWindow );
+				GuiWindow_EventClose( lpWindow );
 			}
 		}
 	}

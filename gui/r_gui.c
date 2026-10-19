@@ -119,10 +119,27 @@ void	RenderGui_DeInit( void )
 * CREATION : 14.02.2004 PNK
 *-----------------------------------------------------------------------------------*/
 
+/* A lower widget can redraw without its window being dirty. Repaint covering
+ * windows too, or that update leaks through an otherwise static modal dialog. */
+static U16 RenderGui_HasDamage(const sGuiInfo *info)
+{
+ U16 i;
+ if(info->mRedrawFlag)return 1;
+ if(info->mType==eGUI_TYPE_WINDOW){
+  const sGuiWindow *w=(const sGuiWindow*)info;
+  for(i=0;i<w->mControlCount;++i)if(RenderGui_HasDamage(w->mppControls[i]))return 1;
+ }else if(info->mType==eGUI_TYPE_SLIDER){
+  const sGuiSlider *slider=(const sGuiSlider*)info;
+  for(i=0;i<eGUI_SLIDERBUT_LIMIT;++i)if(slider->mpButtons[i] && RenderGui_HasDamage(&slider->mpButtons[i]->mInfo))return 1;
+ }else if(info->mType==eGUI_TYPE_BUTTON && ((const sGuiButton*)info)->mSprite.mRedrawFlag)return 1;
+ return 0;
+}
+
 void	RenderGui_Update( sGraphicCanvas * apLogic )
 {
 	sGuiMouse *		lpMouse;
 	U16				lWindowCount;
+ U16 coverRedraw=0;
 	U16				lRedrawFlag;
 	U16				i;
 	sGuiWindow **	lppWindows;
@@ -156,8 +173,10 @@ void	RenderGui_Update( sGraphicCanvas * apLogic )
 
 	for( i=0; i<lWindowCount; i++ )
 	{
-		apLogic->mClipBox = lClipBox;
-		RenderGui_WindowDraw( lppWindows[ i ], apLogic, lRedrawFlag );
+		U16 damaged=RenderGui_HasDamage(&lppWindows[i]->mInfo);
+  apLogic->mClipBox = lClipBox;
+		RenderGui_WindowDraw( lppWindows[ i ], apLogic, (U16)(lRedrawFlag|coverRedraw) );
+  if(damaged)coverRedraw=1;
 	}
 
 	apLogic->mClipBox = lClipBox;
@@ -411,6 +430,7 @@ void	RenderGui_SliderDraw( sGuiSlider * apSlider,sGraphicCanvas * apCanvas,sGuiB
 			apCanvas->mClipBox = lBox;
 			RenderGui_ButtonDraw( apSlider->mpButtons[ i ], apCanvas, apStyle, apFontGroup, lRedrawFlag );
 		}
+  if(apSlider->mInfo.mRedrawFlag)--apSlider->mInfo.mRedrawFlag;
 	}
 }
 

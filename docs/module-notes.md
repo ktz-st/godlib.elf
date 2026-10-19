@@ -4555,6 +4555,30 @@ Important limitations and risks:
   on `gGuiFS.mAllocFlag`; this should be handled carefully if file selector
   windows are reused or customized.
 
+### Native GUI/GuiFS example and repairs (2026-10-19)
+
+`godlib.spl/gui/GUI.PRG` demonstrates native window/button/text-line/slider
+widgets and GuiFS with a masked mouse cursor, filters, folders, scrolling and
+read-only path selection. Data/asset bindings are native writable C structures;
+no GUIBUILD or runtime GUI parser is needed. See its README for lifecycle and
+required event names. Hash-tree <=4-byte variables need explicit initial writes.
+
+GuiFS rows now bind clicks through per-row modern hash-tree events/clients;
+rebuild/DeInit unregister them and release controls/DTA buffers, restoring the
+caller's original file-window controls at teardown. Empty lists reset their
+extent and enumeration restores GEMDOS DTA. GuiFS's initial string pointers are
+published and filename selection writes a pointer rather than descriptor bytes.
+Result callbacks are NULL-checked. File-window refresh only responds to OPEN or
+REFRESH; nested window close now sends CLOSE rather than OPEN to children.
+
+RenderGui consumes slider redraw counters and propagates damage beneath covering
+windows, avoiding lower controls leaking through a static dialog. Ordinary GUI
+rendering remains based on existing GodLib ASM graphics kernels.
+
+Mouse/IKBD playback evidence is in `godlib.spl/gui/analysis/verification.json`.
+The example exercises bounded names and valid geometry, not every parser/serialized
+GUI path or every extreme slider range mentioned above.
+
 ### Standalone blitter canvas geometry
 
 - Blitter_DrawSprite, DrawOpaqueSprite, DrawColouredSprite, DrawBox and CopyBox

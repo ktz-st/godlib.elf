@@ -1,0 +1,24 @@
+{
+  "source_directory": "ugh.agt",
+  "original_sha256": {
+    "src/atari/tfmx_engine.asm": "86b5afbbd5e18d33cafd31ae366bf9e60dc6e2966817c1c58902df2ab638a4b1",
+    "src/atari/tfmx_bridge.asm": "7e79ce3148b9fd09d9d8bf84a384227f4c3637d2b8955b127b82ca61178cb28b",
+    "assets/res/SOUNDS.MDT": "5d4e29a1475602240ff6efd765abbde93c4fdad339548b652e623a8c1c44d3b9",
+    "assets/res/SOUNDS.SMP": "749bc6c45d000967a559fcf95dd70e8fb25ab21323df3ef10e8853113ce3838f"
+  },
+  "used": "Native four-channel UGH! TFMX engine recovered with IRA; existing GodLib Lance/Leonard Paula backends. No ScummVM or generic TFMX decoder imported.",
+  "changes": [
+    "GCC ELF fastcall bridge and automatic PAL VBL owner, SR/USP preservation",
+    "immediate DMA gate/latch on every original DMACON write; scratch IRQ/CIA registers",
+    "backend-specific private signed 8-bit/7-bit PCM representation",
+    "four 672-byte bounded/stitched source windows for live TFMX loop changes on Lance",
+    "block doubling for tiny source loops; consumed-source/phase feedback",
+    "shared exclusive DMA ownership and clean shutdown",
+    "start completed Lance DMA buffer before variable-cost sequence/window work",
+    "zero-copy Lance window when the current sample has at least 672 bytes remaining",
+    "saturate TFMX envelope volume to 0..64 at Lance input, matching Leonard; prevent volume-65 paired-voice dropouts and out-of-bounds LMC lookup",
+    "Leonard sequences through accepted-block user callback like UGH; no sequence step on a rejected PCM block"
+  ],
+  "format": "UGH! four-voice TFMX-SONG MDAT + SMPL, PAL STE, 12.5/25 kHz",
+  "limits": "Not a TFMX Pro/7-voice player or an untrusted macro-bytecode sandbox. No new music redistribution licence."
+}

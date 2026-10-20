@@ -79,13 +79,13 @@ exactly `1084 + 1024*patternCount + sampleBytes`, ignoring trailing file padding
 Lance, this replay does not create 664-byte guards or duplicate loop samples.
 Empty slots point at shared silence. Duration alone does not predict MOD size.
 
-## 12.5K pitch and looping
+## Pitch and looping
 
 The DMA mode, block count and frequency table all change together. The 12.5K
 frequency constant is twice the original 25K value, preserving the replay's
-existing PAL tuning convention. The original 25K mixer clamps integer source
-steps above one, which clips the highest notes if simply reused at half rate.
-12.5K therefore keeps full 16.16 steps. A small looped fallback handles steps of
+existing PAL tuning convention. Both rates now keep full 16.16 source steps;
+the original 25K clamp to one source byte per output sample has been removed.
+This also preserves high notes supplied by the RJP1 sequencer. A small looped fallback handles steps of
 two or more and preserves overshoot across even very short sample loops, without
 reserving another generated tower. The normal generated paths remain in use for
 lower steps. Period lookup is bounded to the existing table. The output-rate
@@ -115,3 +115,12 @@ to TOS without a remaining audio callback. Configuration: STE / 68000 / 8 MHz /
 1 MiB / German TOS 1.62 / PAL. See `verification-vbl.json` for exact results and
 binary hashes. This is functional emulation, not a CPU profile or a substitute
 for listening/hardware tests.
+
+## Shared native backend
+
+`leonardmixer.[ch]` / `leonardmixer_s.s` provide the allocator and native Paula
+engine independently of ProTracker. LeonardMod retains its public API and
+workspace sizes. RJP1 can select the same engine with its own VBL sequencer.
+A shared ownership lease rejects simultaneous Lance/Leonard MOD/RJP users.
+One-shot reloads to shared silence bypass the last-two-bytes shortcut, preventing
+a nonzero final sample value from being held indefinitely.

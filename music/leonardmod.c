@@ -4,11 +4,8 @@
 #include <godlib/memory/memory.h>
 #include <godlib/system/system.h>
 
-extern U8 LeonardMod_CoreStart(void *apMod,void *const *apBuffers,U8 aFrequency);
-static void *spWorkspace;
-static U32 sWorkspaceBytes;
-static U8 Rate(U8 n){return n==eLEONARDMOD_FREQ_12K?n:eLEONARDMOD_FREQ_25K;}
-static U32 Samples(U8 n){return Rate(n)==eLEONARDMOD_FREQ_12K?254UL:504UL;}
+#include "leonardmixer.h"
+extern U8 LeonardMod_CoreStart(void *apMod);
 static U16 Word(const U8 *p){return ((U16)p[0]<<8)|p[1];}
 
 U8 LeonardMod_GetModuleInfo(const void *apHeader,U32 aFileBytes,sLeonardModModuleInfo *apInfo)
@@ -54,33 +51,18 @@ void *LeonardMod_Load(const char *apFileName)
     File_Close(f);return p;
 }
 void LeonardMod_UnLoad(void *apModData){if(apModData){mMEMFREE(apModData);}}
-U32 LeonardMod_GetPaulaWorkspaceSize(U8 aFrequency)
-{
-    /* Four stereo DMA blocks, eight generated towers, frequency and volume
-       tables, worst-case 256-byte volume and 16-byte base alignment. */
-    return Samples(aFrequency)*120UL+48UL+13696UL+16895UL+15UL;
-}
-U32 LeonardMod_GetPaulaAllocatedSize(void){return sWorkspaceBytes;}
+U32 LeonardMod_GetPaulaWorkspaceSize(U8 rate){return LeonardMixer_GetWorkspaceSize(rate);}
+U32 LeonardMod_GetPaulaAllocatedSize(void){return LeonardMixer_GetOwner()==1?LeonardMixer_GetAllocatedSize():0;}
 void LeonardMod_ShutdownPaula(void)
 {
-    LeonardMod_Stop();
-    if(spWorkspace){mMEMSCREENFREE(spWorkspace);spWorkspace=0;}
-    sWorkspaceBytes=0;
+ if(LeonardMixer_GetOwner()!=1)return;
+ LeonardMod_Stop();LeonardMixer_Shutdown(1);
 }
-U8 LeonardMod_Start(void *apModData,U8 aFrequency)
+U8 LeonardMod_Start(void *mod,U8 rate)
 {
-    U8 *base;void *buffers[4];U32 n=Samples(aFrequency),bytes;
-    LeonardMod_ShutdownPaula();
-    if(!apModData || (System_GetMCH()!=MCH_STE && System_GetMCH()!=MCH_MEGASTE))return 0;
-    bytes=LeonardMod_GetPaulaWorkspaceSize(aFrequency);
-    spWorkspace=mMEMSCREENCALLOC(bytes);
-    if(!spWorkspace)return 0;
-    sWorkspaceBytes=bytes;
-    base=(U8 *)(((UPTR)spWorkspace+15)&~(UPTR)15);
-    buffers[0]=base;
-    buffers[1]=base+n*8UL;
-    buffers[3]=base+n*8UL+13696UL;
-    buffers[2]=base+n*120UL+13696UL+48UL;
-    if(LeonardMod_CoreStart(apModData,buffers,Rate(aFrequency)))return 1;
-    LeonardMod_ShutdownPaula();return 0;
+ if(LeonardMixer_GetOwner() && LeonardMixer_GetOwner()!=1)return 0;
+ LeonardMod_ShutdownPaula();
+ if(!mod || (System_GetMCH()!=MCH_STE && System_GetMCH()!=MCH_MEGASTE))return 0;
+ if(!LeonardMixer_Init(1,rate==1?1:2))return 0;
+ LeonardMod_CoreStart(mod);return 1;
 }

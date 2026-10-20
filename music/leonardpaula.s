@@ -277,10 +277,6 @@ frequenceBuild:	move.l	LeoFrequencyBuffer(pc),a0
 		move.l	d5,d3
 		divu	d0,d3
 		move.w	d3,d4
-        cmpi.b #_12KHZ_8BITS,iHwConfig
-        beq.s .fullStep
-		cmpi.w	#2,d4
-		bge.s	.clamp
  .fullStep:
 		swap	d4
 		move.w	d2,d3
@@ -623,6 +619,8 @@ voiceMixProcess:
 		bgt.s	.ok
 		cmpi.l	#2,d6			; if replen=1 we MUST test if a large sample is finishing
 		bgt.s	.ok
+        cmpi.l #nullSample,d3
+        beq.s .ok
 		; fast
 		; high with loop
 		; low with loop

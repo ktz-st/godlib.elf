@@ -28,6 +28,10 @@
   previews, ICE XY and stereo/mono modes, ASM drawing and verification.
 - [Wizzcat](../music/wizzcat.md): automatic MOD workspace sizing, faster
   initialization, four-channel activity and regression evidence.
+- [RJP1](../music/rjp1.md): native Richard Joseph / VectorDean playback, shared
+  Lance/Leonard mixers, backend-specific PCM preparation, subsongs and PAL VBL ownership.
+- [TFMX](../music/tfmx.md): UGH! four-channel ASM replay, selectable Lance/Leonard,
+  12.5/25 kHz PAL VBL and bounded live-loop source windows.
 - [LeonardMod](../music/leonardmod.md): ProTracker replay, 12.5/25 kHz, dynamic
   ST-RAM buffers, memory accounting and verification.
 - [PCM mixer guide](../audio/pcm-mixers.md): backend selection, rates, loops,

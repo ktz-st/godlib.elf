@@ -2,69 +2,48 @@
         section text
         xdef LeonardMod_CoreStart,LeonardMod_Stop,LeonardMod_Tick,LeonardMod_GetVisualizer
         xdef LeonardMod_SetRasterDebug
-; a0 raw MOD, a1 -> {DMA, frequency, volume, code}, d0 rate (1/2).
+        xref LeonardMixer_SetUserRoutine,LeonardMixer_Tick,LeonardMixer_Stop
+        xref LeoInstalled,LeoSampleBuffer,renderingBlock,blockSize,channela,pSampA,emudmacon
+; a0 raw MOD; Paula workspace is already installed by the common C allocator.
 LeonardMod_CoreStart:
         movem.l d2-d7/a2-a6,-(sp)
         move.w sr,-(sp)
-        move.l a0,-(sp)
-        move.l (a1)+,LeoSampleBuffer
-        move.l (a1)+,LeoFrequencyBuffer
-        move.l (a1)+,LeoVolumeBuffer
-        move.l (a1)+,LeoCodeBuffer
-        move.b d0,LeoRate
-        clr.w renderingBlock
-        moveq #1,d0             ; STE-compatible format on STE/MegaSTE
-        bsr paulaInstall
-        move.l a0,d0
-        beq.s .finish
-        st LeoInstalled
-        lea mt_music,a0
-        bsr setUserRout
-        move.l (sp),a0
         bsr mt_init
+        lea mt_music,a0
+        jsr LeonardMixer_SetUserRoutine
         move.l #$40004000,mt_Visualizer
         move.l #$40004000,mt_Visualizer+4
         st mt_Enable
         moveq #1,d0
-.finish:
-        addq.l #4,sp
         move.w (sp)+,sr
         movem.l (sp)+,d2-d7/a2-a6
         rts
 LeonardMod_Stop:
         movem.l d0-a6,-(sp)
         move.w sr,-(sp)
-        tst.b LeoInstalled
+        tst.b mt_Enable
         beq.s .done
-        sf LeoInstalled
         bsr mt_end
-        bsr paulaClose
+        jsr LeonardMixer_Stop
 .done:
         move.w (sp)+,sr
         movem.l (sp)+,d0-a6
         rts
-; Non-reentrant supervisor entry, usable from one PAL VBL owner or manually.
-; paulaTick temporarily enters user mode and uses USP as its mixer stack.
-; Preserve interrupted renderer USP and the caller's SR, as in UGH's service.
 LeonardMod_Tick:
         movem.l d0-a6,-(sp)
         move.w sr,-(sp)
-        move.l usp,a0
-        move.l a0,-(sp)
-        tst.b LeoInstalled
+        tst.b mt_Enable
         beq.s .done
         tst.b LeoRaster
         beq.s .normal
         move.w $ffff8240.w,LeoSavedColour
         move.w #$700,$ffff8240.w
 .normal:
-        bsr paulaTick
+        jsr LeonardMixer_Tick
         tst.b LeoRaster
         beq.s .done
         move.w LeoSavedColour,$ffff8240.w
 .done:
-        move.l (sp)+,a0
-        move.l a0,usp
         move.w (sp)+,sr
         movem.l (sp)+,d0-a6
         rts
@@ -102,8 +81,8 @@ LeonardMod_GetOscilloscope:
         move.l sp,a0
         move.w sr,d7
         ori.w #$700,sr
-        lea channela(pc),a1
-        lea pSampA(pc),a2
+        lea channela,a1
+        lea pSampA,a2
         moveq #0,d6
 .voice:
         move.l (a2),(a0)+
@@ -121,7 +100,7 @@ LeonardMod_GetOscilloscope:
         moveq #0,d0
         tst.b mt_Enable
         beq.s .inactive
-        move.w emudmacon(pc),d1
+        move.w emudmacon,d1
         btst d6,d1
         sne d0
 .inactive:
@@ -153,13 +132,13 @@ LeonardMod_GetStereoOscilloscope:
         beq.s .idle
         tst.b mt_Enable
         beq.s .idle
-        move.l LeoSampleBuffer(pc),a1
-        move.w renderingBlock(pc),d0
-        sub.w blockSize(pc),d0
+        move.l LeoSampleBuffer,a1
+        move.w renderingBlock,d0
+        sub.w blockSize,d0
         bpl.s .offset
-        move.w blockSize(pc),d0
+        move.w blockSize,d0
         add.w d0,d0
-        add.w blockSize(pc),d0
+        add.w blockSize,d0
 .offset:
         adda.w d0,a1
         bra.s .copy
@@ -172,11 +151,9 @@ LeonardMod_GetStereoOscilloscope:
         rts
 
 ATARIPAULA=1
-        include "music/leonardpaula.s"
+        xref emuDFF,updateDmacon
         include "music/leonardtracker.s"
         section data
-LeoRate: dc.b 2
-LeoInstalled: dc.b 0
 LeoRaster: dc.b 0
         even
 LeoSavedColour: dc.w 0

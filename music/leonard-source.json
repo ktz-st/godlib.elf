@@ -12,7 +12,10 @@
     "rate-dependent 12.5K/25K public LeonardMod API in GodLib",
     "full 12.5K source steps with loop overshoot fallback",
     "bounded period-table lookup",
-    "clear per-song tracker channel/effect state on every init"
+    "clear per-song tracker channel/effect state on every init",
+    "shared Leonard backend independent of ProTracker, common Lance/Leonard DMA owner lease",
+    "full source integer steps at both 12.5K and 25K",
+    "one-shot nullSample reload bypasses last-two-byte hold shortcut"
   ],
   "format": "STE/MegaSTE 12.5 or 25 kHz, 8-bit stereo",
   "location": "godlib/music/leonardmod*; leonardpaula.s and leonardtracker.s"

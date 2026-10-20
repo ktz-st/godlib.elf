@@ -1,0 +1,24 @@
+{
+  "source_directory": "cfintro.rjp",
+  "author_notice": "CODED BY ANDI SMITHERS, VECTORDEAN (C) MILLENNIUM 1992",
+  "original_sha256": {
+    "vectordean.s": "bd90bb8399ae9ea8df362af84ff8f867c9ea4dca219fb62aa18a0adea896be6c",
+    "vd_translate.c": "575c40c479f6857ef0a2d3f96326ae8d6b59284231e45a9721069b389d6aaa40",
+    "mod_replay.s": "a020b5bb6e10f3c2dc7f73504eabf86ff4415c769c9571cc6f693d49d0bec016",
+    "lancepaula.s": "94f7963fc3c1ae6eed35be8e60716fd78b61f506744e3bd2a287117958501006",
+    "rjp1_player.c": "1b0af186b4764827b80c202bc0e1ad39ca873a10d7ef7b4f533e492ec5287618"
+  },
+  "used": "ASM VectorDean sequencer; selectable GodLib Lance or Leonard Paula mixer. The unused ScummVM/GPL C sequencer is not imported.",
+  "changes": [
+    "direct native Lance channel writes, no emulated AUD/DMACON mirror or C polling translator",
+    "prepared immutable song records and guarded 7-bit PCM, original modulation values preserved",
+    "deduplicate attack/loop descriptions and reuse suffix loops",
+    "explicit one-shot/loop/retrigger behavior",
+    "bound period writes to Lance pitch table",
+    "shared exclusive rate-dependent Paula workspace, automatic PAL VBL owner, clean shutdown",
+    "selectable Lance/Leonard backend at preparation time",
+    "Leonard retains full 8-bit INS and relocated SNG; explicit voice/phase/reload adapter",
+    "PAL sequencer runs on every VBL independently of Leonard block-generation decisions"
+  ],
+  "format": "RJP1SMOD SNG plus RJP1 INS, PAL STE/MegaSTE"
+}

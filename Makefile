@@ -48,7 +48,7 @@ SOURCES = \
 	main/god_main.c \
 	memory/memory.c memory/heap.c \
 	mfp/mfp.c \
-	music/lancemod.c music/leonardmod.c music/pinknote.c music/snd.c music/wizzcat.c \
+	music/tfmx.c music/paulaowner.c music/paulamixer.c music/leonardmixer.c music/rjp1.c music/lancemod.c music/leonardmod.c music/pinknote.c music/snd.c music/wizzcat.c \
 	packer/ari_dec.c packer/ari_enc.c packer/brun1.c packer/bwt_dec.c packer/bwt_enc.c packer/godpack.c packer/godpackp.c packer/lz77_dec.c packer/lz77_enc.c packer/lz77bdec.c packer/lz77benc.c packer/mtf_dec.c packer/mtf_enc.c packer/packer.c packer/rle.c packer/rnc.c \
 	pictypes/amigaraw.c pictypes/art.c pictypes/canvas.c pictypes/canvasic.c pictypes/colquant.c pictypes/degas.c pictypes/gfx.c pictypes/gif.c pictypes/god.c pictypes/gsm.c pictypes/iff.c pictypes/neo.c pictypes/octtree.c pictypes/rel_gsm.c pictypes/tga.c \
 	platform/platform.c \
@@ -90,7 +90,7 @@ SOURCES_S = \
 	linea/linea_s.s \
 	memory/memory_s.s \
 	mfp/mfp_s.s \
-	music/lancemod_s.s music/leonardmod_s.s music/modscope_s.s \
+	music/tfmx_s.s music/paulamixer_s.s music/leonardmixer_s.s music/rjp1_s.s music/rjp1leo_s.s music/lancemod_s.s music/leonardmod_s.s music/modscope_s.s \
 	music/pnknot_s.s \
 	music/snd_s.s \
 	music/wizzcat_s.s \
@@ -133,17 +133,17 @@ $(OUT): $(OBJECTS) $(OBJECTS_S)
 $(filter-out except/except.o,$(OBJECTS)): %.o: %.c
 	 $(CC) -c $(CFLAGS) $< -o $@
 
-$(filter-out music/leonardmod_s.o,$(OBJECTS_S)): %.o: %.s
+$(filter-out music/leonardmod_s.o music/leonardmixer_s.o,$(OBJECTS_S)): %.o: %.s
 	 $(AS) -nosym -devpac -Felf $< -o $@
 
 clean:
 	rm -rf $(OBJECTS_S) $(OBJECTS) $(OUT)
 
-music/lancemod_s.o: music/lancepaula.s music/lancetracker.s
-music/lancemod.o: music/lancemod.h
+music/lancemod_s.o: music/lancetracker.s music/paulavoice.i
+music/lancemod.o: music/lancemod.h music/paulamixer.h
 
 music/leonardmod.o: music/leonardmod.h
-music/leonardmod_s.o: music/leonardmod_s.s music/leonardpaula.s music/leonardtracker.s
+music/leonardmod_s.o: music/leonardmod_s.s music/leonardtracker.s
 	$(AS) -Felf $< -o $@
 
 music/wizzcat.o: music/wizzcat.h
@@ -151,3 +151,22 @@ music/wizzcat.o: music/wizzcat.h
 music/lancemod.o music/leonardmod.o music/wizzcat.o: music/modscope.h
 
 memory/heap.o: memory/heap.h memory/memory.h
+
+music/paulamixer_s.o: music/lancepaula.s
+music/rjp1_s.o: music/rjp1core.s
+music/rjp1.o: music/rjp1.h music/paulamixer.h
+
+music/paulamixer.o: music/paulamixer.h music/lancemod.h
+
+music/leonardmixer_s.o: music/leonardmixer_s.s music/leonardpaula.s
+	$(AS) -Felf $< -o $@
+music/leonardmixer.o: music/leonardmixer.h
+music/leonardmod.o: music/leonardmixer.h
+
+music/rjp1.o: music/leonardmixer.h
+music/paulamixer.o music/leonardmixer.o music/paulaowner.o: music/paulaowner.h
+music/lancemod.o: music/paulamixer.h
+music/paulamixer_s.o music/rjp1_s.o music/rjp1leo_s.o: music/paulavoice.i
+
+music/tfmx.o: music/tfmx.h music/paulamixer.h music/leonardmixer.h
+music/tfmx_s.o: music/tfmxcore.s

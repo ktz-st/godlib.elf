@@ -91,3 +91,11 @@ before preparing it again; these changes do not make `LanceMod_Init` idempotent.
 The optional `GetOscilloscope` getter supplies four pitched, volume-scaled source
 previews without changing replay state. O switches bars/scopes in the example;
 V hides/shows the selected mode. See [the shared scope API](modscope.md).
+
+## Shared mixer backend
+
+The workspace allocator and native Paula bridge now live in
+`paulamixer.c` / `paulamixer_s.s`, shared with the optional [RJP1](rjp1.md)
+sequencer. LanceMod entry points, buffer sizes and MOD preparation remain
+unchanged. Stop/shutdown one owner before acquiring the other; attempts to
+start LanceMod while RJP1 owns Paula fail without stopping RJP1.

@@ -4708,3 +4708,61 @@ See the [PCM mixer guide](../audio/pcm-mixers.md) for canonical names, sampling
 rates, input constraints and migration. Historical game/library-name headers
 provide source aliases; the interim PcmStreamMixer name is replaced by
 PcmVoiceMixer. Current game sources use PcmVoiceMixer directly.
+
+### RJP1 / shared Paula mixer
+
+See [RJP1](../music/rjp1.md). `music/rjp1.h` adds native VectorDean song/bank
+playback, with automatic PAL VBL ownership, subsong selection, volume snapshots
+and explicit shutdown. The original C polling translator is removed.
+`paulamixer.[ch]` / `paulamixer_s.s` own the shared Lance workspace and mixer;
+LanceMod public functions remain compatible. Ownership is exclusive and RJP1
+linking does not pull in ProTracker. Samples have explicit guards, one-shot and
+sustain handling; modulation is retained at its original 8-bit precision.
+Period outputs are bounded to the existing Lance table range on the Lance path.
+`Rjp1_LoadEx` / `CreateEx` select Lance or Leonard before preparation. Leonard
+retains full 8-bit INS and uses 61134/91134 B workspaces at 12.5/25 kHz; Lance
+also supports 50 kHz. Shared `leonardmixer*` does not pull in ProTracker. A common
+owner lease excludes simultaneous MOD/RJP engines. Both RJP sequencers run once
+per VBL even when Leonard skips block generation. See the example's backend
+comparison for measured CPU and song-plus-workspace RAM on JON and WARX4.
+
+### TFMX / UGH!
+
+See [TFMX](../music/tfmx.md). The four-channel UGH! native engine now has an
+automatic PAL VBL owner with selectable Lance/Leonard at 12.5/25 kHz. Every
+DMACON write applies immediately, retaining macro clear/set and same-address
+retriggers. Leonard uses the 8-bit bank directly; Lance converts its private
+bank to 7 bits and stitches four 672-byte windows across live loop boundaries.
+Short loops use block doubling. No allocation or whole-sample copy happens in
+VBL. Lance sequences every VBL; Leonard sequences only from its accepted-block
+callback, like UGH!, so a busy ring buffer cannot discard a musical step.
+The shared owner lease excludes MOD/RJP/TFMX concurrency. 28000 sequence steps
+match the UGH! source; native tests cover all seven slots, rate/mixer cadence,
+USP, window boundaries, retriggers and complete cleanup. CPU/RAM comparisons
+are in `godlib.spl/tfmx/README.md`. This supports UGH! four-voice assets, not
+TFMX Pro/seven voices or arbitrary untrusted bytecode. UGH! itself is unchanged.
+
+TFMX Lance DMA timing fix: start the previously mixed buffer at the beginning
+of the VBL callback, before sequencing and source-window preparation. The old
+ordering caused up to 53840 cycles (~6.73 ms at 8 MHz) of adjacent-frame start
+jitter in a 15-second title trace, cutting/gapping one-shot DMA playback. Long
+sample segments now bypass window copies; boundary-crossing segments keep the
+stitched path. See the example's `analysis/dma-timing*.json`, window regression
+and updated CPU profiles. The 7-bit Lance representation and its hardware
+volume control still differ from Leonard's 8-bit software-volume path.
+
+Further TFMX/Lance diagnosis: the original UGH! macro envelopes emit volume
+65 frequently, although Lance's ratio and LMC tables require 0..64. This
+corrupted the paired voice volume lookup and explains the instrument dropouts
+remaining after the DMA timing fix. Clamp only at the Lance adapter boundary,
+matching Leonard's existing saturation; keep the raw sequencer registers.
+`Tfmx_GetVolumes` now reports saturated values too. The new native volume-65
+regression fails on the old bridge (stage 18), then passes after the clamp.
+
+TFMX/Leonard cadence correction: use `LeonardMixer_SetUserRoutine` to run the
+sequencer inside each accepted PCM block, matching UGH!'s tracker callback.
+Calling it before `LeonardMixer_Tick` consumed notes/retriggers even on frames
+where Leonard declined to render. The new PAL 50 Hz realtime cadence test
+counts VBLs, sequence steps, actual blocks, and steps without a block at both
+rates. `gTfmxTicks` counts rendered sequence steps, not all VBL invocations.
+Shared Leonard code and the MOD/RJP1 adapters are unchanged by this correction.

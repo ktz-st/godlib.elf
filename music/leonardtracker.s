@@ -196,7 +196,7 @@ setemsk
 	if	ATARIPAULA==1
 DFFPTR	equ	emuDFF
 DMAUPDATE	macro
-	BSR	updateDmacon
+	JSR	updateDmacon
 	endm
 	else
 DFFPTR	equ	$DFF000

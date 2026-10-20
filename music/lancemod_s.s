@@ -1,6 +1,3 @@
-	xdef	Paula_Init
-	xdef	Paula_SetReplayBuf
-	xdef	Paula_SetWorkspace,Paula_SetInitScratch
 	xdef	LanceMod_Init
 	xdef	LanceMod_Play
 	xdef	LanceMod_StartDma
@@ -13,31 +10,6 @@
 	xdef	LanceMod_SetRasterDebug
 	xdef	LanceMod_GetVisualizer
 	xdef	LanceMod_GetEndFlag
-
-Paula_Init:
-	movem.l	d0-a6,-(a7)
-	jsr	paula_init
-	movem.l	(a7)+,d0-a6
-	rts
-
-Paula_SetReplayBuf:
-	move.l	a0,paula_replay_buf_p
-	rts
-
-Paula_SetInitScratch:
-    move.l a0,paula_freq_list
-    rts
-
-; a0 -> seven resident workspace pointers, in C layout order.
-Paula_SetWorkspace:
-    move.l (a0)+,paula_freq_table
-    move.l (a0)+,paula_frame_freq_t
-    move.l (a0)+,paula_frame_freq_p
-    move.l (a0)+,paula_volume_base
-    move.l (a0)+,paula_div_table
-    move.l (a0)+,paula_mixcode_p
-    move.l (a0)+,paula_mixer_code
-    rts
 
 LanceMod_Init:
 	movem.l	d0-a6,-(a7)
@@ -195,7 +167,10 @@ LanceMod_GetStereoOscilloscope:
 .return:
         rts
 
-	include	"music/lancepaula.s"
+	xref paula_calc,paula_start_dma,paula_mix_next,paula_clear_buffer,paula_done
+	xref paula_channel_0,paula_replay_buf_p,paula_buffer_rd_idx,paula_buffer_str
+	xref paula_channel_0,paula_channel_1,paula_channel_2,paula_channel_3,paula_dummy_spl
+	include "music/paulavoice.i"
 	include	"music/lancetracker.s"
 
 	section	data

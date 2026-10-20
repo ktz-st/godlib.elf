@@ -24,7 +24,10 @@ U32 LeonardMod_GetPaulaAllocatedSize(void);
  * Start replaces the previous player; invalid rates default to 25K.
  * DMA/trap #0 are exclusive. No automatic VBL callback is installed. */
 U8 LeonardMod_Start(void *apModData,U8 aFrequency);
-/* Call once per main-loop frame after Screen_Update; NOT inside a VBL ISR. */
+/* Supervisor, non-reentrant. Prefer one PAL VBL callback (see SPL example);
+ * Tick preserves caller USP/SR/registers across the native user-mode mixer.
+ * Start does not register it automatically. Use VBL OR manual Tick, never both.
+ * Detach the callback before Start, Stop or Shutdown, and before MOD unload. */
 void LeonardMod_Tick(void);
 /* Stop DMA and restore trap #0; workspace remains until Shutdown/next Start. */
 void LeonardMod_Stop(void);

@@ -43,8 +43,9 @@ LeonardMod_Stop:
         move.w (sp)+,sr
         movem.l (sp)+,d0-a6
         rts
-; Call from the main loop, once per Screen_Update, as in Leonard's original demo.
-; paulaTick temporarily uses USP as its mixer stack; preserve the caller's USP.
+; Non-reentrant supervisor entry, usable from one PAL VBL owner or manually.
+; paulaTick temporarily enters user mode and uses USP as its mixer stack.
+; Preserve interrupted renderer USP and the caller's SR, as in UGH's service.
 LeonardMod_Tick:
         movem.l d0-a6,-(sp)
         move.w sr,-(sp)

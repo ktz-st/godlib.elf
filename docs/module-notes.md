@@ -3869,9 +3869,17 @@ LeonardMod:
 - `LeonardMod_Start(mod, eLEONARDMOD_FREQ_12K/25K)` allocates 61134/91134 bytes
   of ST RAM for the selected rate instead of the original 194384-byte arrays.
   `GetPaulaWorkspaceSize` and `GetPaulaAllocatedSize` expose accounting.
-- Call `LeonardMod_Tick()` from the synchronized main loop after Screen_Update,
-  not VBL. Stop restores trap #0 and halts DMA; ShutdownPaula also frees memory.
+- The SPL example now owns one PAL VBL callback around `LeonardMod_Tick()`,
+  independent of rendering. The existing bridge preserves interrupted USP, SR
+  and registers; the old note forbidding VBL use was incorrect (compare UGH).
+  Start still installs no callback automatically. Use VBL OR manual Tick, never
+  both, and detach the caller-owned callback before restart/Stop/Shutdown or MOD
+  unload. Stop restores trap #0/halts DMA; ShutdownPaula also frees memory.
   Start prepares writable samples in place: reload raw MOD before another Start.
+- `godlib.spl/leonard/analysis/verification-vbl.json` records 18 native checks
+  including 64 callbacks/64 VBLs with a stalled foreground and USP sentinel at
+  both rates, plus all five release visualizations, active stereo WAV and cleanup.
+  Configuration: STE / 8 MHz / 1 MiB / German TOS 1.62. Not a CPU profile.
 - 12.5K has full source steps for high notes and handles short-loop overshoot.
   The four activity bars use `LeonardMod_GetVisualizer`, CH1/CH4 left and
   CH2/CH3 right. F1 shows replay time via palette zero; V toggles bars.

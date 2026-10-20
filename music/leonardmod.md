@@ -7,20 +7,39 @@ the application and shares the four-bar artwork/kernel with `lancemod`.
 
 ```c
 void *mod = LeonardMod_Load("MUSIC.MOD");
+U8 attached = 0;
 if (mod && LeonardMod_Start(mod, eLEONARDMOD_FREQ_12K)) {
-    /* each main-loop frame: */
-    Screen_Update();
-    LeonardMod_Tick();
+    U16 mask = System_GetIML();
+    System_SetIML(7);
+    attached = Vbl_AddCall(LeonardMod_Tick);
+    System_SetIML(mask);
+    /* foreground: Screen_Update(), input, drawing; no second Tick */
+}
+{
+    U16 mask = System_GetIML();
+    System_SetIML(7);
+    if (attached) Vbl_RemoveCall(LeonardMod_Tick);
+    System_SetIML(mask);
 }
 LeonardMod_ShutdownPaula();
 LeonardMod_UnLoad(mod);
 ```
 
-Use supervisor mode after `Platform_Init()`. Call Tick once per synchronized
-main-loop frame, not inside VBL: the native core temporarily enters user mode,
-uses USP for its internal stack and returns through trap #0. The bridge preserves
-caller USP, SR and GCC callee-saved registers. It does not install a VBL callback.
-DMA and trap #0 have one exclusive owner; stop other players first.
+Use supervisor mode after `Platform_Init()`. The example now calls Tick from
+one PAL VBL callback, independently of rendering speed, following UGH's VBL
+service. The earlier prohibition on VBL use was incorrect: the existing bridge
+preserves the interrupted caller's **USP, SR and registers** while the native
+core temporarily enters user mode, uses its own stack and returns through trap
+#0. This is the same essential USP protection used around Paula in `ugh.agt`.
+
+`Start` still does **not** install a callback automatically. Check Vbl_AddCall's
+return value and shut down on registration failure. Use exactly one scheduling
+owner: a VBL callback **or** explicit foreground Tick calls, never both. The core
+is non-reentrant. Protect callback-table changes against interrupts, and detach
+the callback **before Start/restart, Stop, ShutdownPaula or module unload**.
+The sample's wrapper only calls Tick and increments a diagnostic counter; all
+scope sampling and rendering remain in the foreground. DMA and trap #0 have one
+exclusive owner; stop other players first.
 
 Start replaces any previous instance and resets per-song tracker state. Stop halts DMA and restores trap #0 but
 retains the allocation; ShutdownPaula also frees it. Repeated shutdown is safe.
@@ -80,3 +99,19 @@ time rather than a numeric CPU percentage.
 The optional `GetOscilloscope` getter supplies four pitched, volume-scaled source
 previews without changing replay state. O switches bars/scopes in the example;
 V hides/shows the selected mode. See [the shared scope API](modscope.md).
+
+## VBL regression evidence
+
+Run `make -C godlib.spl/leonard check` for both rates and five visualizations.
+`godlib.spl/leonard/analysis/vbl-check.c` performs 18 native checks: with no
+foreground drawing/Tick calls, 64 audio callbacks follow 64 PAL VBLs at each
+rate while USP holds a sentinel. It checks USP and interrupt-mask preservation,
+nonzero/changing mixed PCM, then detaches the callback and verifies stopped
+DMA, restored trap #0, freed workspace/free RAM and callback counts.
+
+The release tests cycle bars, four scopes, ICE XY, stereo and mono, toggle
+visibility/raster indication, check non-silent stereo WAV captures and return
+to TOS without a remaining audio callback. Configuration: STE / 68000 / 8 MHz /
+1 MiB / German TOS 1.62 / PAL. See `verification-vbl.json` for exact results and
+binary hashes. This is functional emulation, not a CPU profile or a substitute
+for listening/hardware tests.

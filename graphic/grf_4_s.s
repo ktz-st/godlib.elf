@@ -463,8 +463,8 @@ G4BP_Blit_R:
 	and.w	d5,(a5)
 	or.w	d3,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d7,.yloop
 
@@ -520,8 +520,8 @@ G4BP_Blit_L:
 	and.w	d5,(a5)
 	or.w	d3,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d7,.yloop
 
@@ -1959,8 +1959,8 @@ G4BP_Blit_R_A:
 	and.w	d5,(a5)
 	or.w	d3,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d6,.yloop
 
@@ -2009,8 +2009,8 @@ G4BP_Blit_CR_A:
 	and.w	d5,(a5)
 	or.w	d3,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d7,.yloop
 
@@ -2036,8 +2036,8 @@ G4BP_Blit_C_A:
 
 	dbra	d0,.xloop
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 	dbra	d1,.yloop
 
 	bra		G4BP_Blit_RTS
@@ -2072,8 +2072,8 @@ G4BP_Blit_L_A:
 	and.w	d5,(a5)
 	or.w	d3,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d6,.yloop
 
@@ -2131,8 +2131,8 @@ G4BP_Blit_LR_A:
 	and.w	d7,(a5)
 	or.w	d0,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d1,.yloop
 	bra		G4BP_Blit_RTS
@@ -2178,8 +2178,8 @@ G4BP_Blit_LC_A:
 	dbra	d0,.xloop
 
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d7,.yloop
 
@@ -2245,8 +2245,8 @@ G4BP_Blit_LCR_A:
 	and.w	d7,(a5)
 	or.w	d0,(a5)+
 
-	add.l	a0,a3
-	add.l	a1,a5
+	add.l	a1,a3
+	add.l	a0,a5
 
 	dbra	d1,.yloop
 

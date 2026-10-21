@@ -3405,6 +3405,14 @@ Function tables:
   defined by `grf_4.c`, rather than relying on archive order to resolve duplicates.
 - `grf_b4_s.s` provides blitter-backed 4-plane routines and forwards line draw
   to the non-blitter line implementation.
+- `Graphic_4BP_Blit` (CPU, `grf_4_s.s`) computes A0 = destination line modulo and
+  A1 = source line modulo. Nine loops (`R`, `L` and all aligned `*_A` variants)
+  added them the other way round (A0 to the source pointer A3, A1 to the
+  destination A5), so blits between canvases of different line widths (e.g. an
+  atlas into the screen) produced garbage; only equal-stride blits worked. All
+  loops now add A1 to A3 and A0 to A5, like the other variants (2026-10-21, found
+  by the Mozgprocesor port: 64/128-pixel atlases blitted to a 320-pixel screen).
+  The blitter path (`grf_b4_s.s`) was not reviewed for the same issue.
 - `Graphic_4BP_DrawLine` now keeps its word pointer and pixel mask in registers
   across the Bresenham loop, replacing the former per-pixel address calculation
   and 12-register save/restore. Colour replacement on all four planes, including

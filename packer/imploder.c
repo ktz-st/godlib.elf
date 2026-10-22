@@ -1,6 +1,7 @@
 #include "imploder.h"
 
 extern S32 Imploder_DepackAsm( void * apSrc, void * apDst );
+extern U32 Imploder_ChecksumAsm( const void * apSrc, U32 aSize );
 
 static U32 Imploder_Read32( const U8 * apData )
 {
@@ -34,7 +35,7 @@ U8 Imploder_DepackChecked( const void * apSrc, U32 aSrcSize, void * apDst, U32 a
 {
 	const U8 * src = (const U8 *)apSrc;
 	U8 * dst = (U8 *)apDst;
-	U32 packed, size, sum = 7, i;
+	U32 packed, size, i;
 	if( aSrcSize < dIMPLODER_HEADER_SIZE || !Imploder_IsPacked( apSrc ) || !dst )
 		return 0;
 	packed = Imploder_GetPackedSize( apSrc );
@@ -45,9 +46,7 @@ U8 Imploder_DepackChecked( const void * apSrc, U32 aSrcSize, void * apDst, U32 a
 	if( src != dst && ((U32)dst > (U32)src ? (U32)dst - (U32)src < packed
 	                                      : (U32)src - (U32)dst < size) )
 		return 0;
-	for( i = 0; i < packed - 4; i += 2 )
-		sum += ((U32)src[i] << 8) | src[i+1];
-	if( sum != Imploder_Read32( src + packed - 4 ) )
+	if( Imploder_ChecksumAsm( src, packed - 4 ) != Imploder_Read32( src + packed - 4 ) )
 		return 0;
 	/* The original decoder restores twelve compressed bytes over its header.
 	   Copying into dst first keeps separate packed assets read-only and requires

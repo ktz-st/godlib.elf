@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-22",
+  "baseline_commit": "591668c",
+  "machine": "Hatari-HRDB STE / MC68000 8 MHz / PAL low / German TOS 1.62; no blitter or DMA audio",
+  "method": "Same six fixture files as original packer comparison; 8 complete calls per sample/variant. CPU cycles in Packer, wrapper and codec objects; disk, setup, verification and interrupts excluded. Raw variant excludes checksum. All outputs and guards verified. Stack includes call return and generic dispatch.",
+  "original_sha256": "b0f7935bfc9a553218b687106b439c14d486bb12b14d80c683a09854b4baccbb",
+  "core_bytes": 364,
+  "checksum_asm_bytes": 50,
+  "core_binary_changes": [
+    {
+      "offset": 11,
+      "original": 56,
+      "adapted": 60
+    },
+    {
+      "offset": 92,
+      "original": 28,
+      "adapted": 60
+    }
+  ],
+  "rows": [
+    {
+      "file": "CASTLE.PI1",
+      "variant": "imploder",
+      "old_cycles": 4697564.0,
+      "micro_cycles": 4100648.0,
+      "old_ms": 587.1955,
+      "micro_ms": 512.581,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "CASTLE.PI1",
+      "variant": "imploder_core",
+      "old_cycles": 3695260.0,
+      "micro_cycles": 3660964.0,
+      "old_ms": 461.9075,
+      "micro_ms": 457.6205,
+      "old_stack": 76,
+      "micro_stack": 64
+    },
+    {
+      "file": "FOREST.PI1",
+      "variant": "imploder",
+      "old_cycles": 4583708.0,
+      "micro_cycles": 3879088.0,
+      "old_ms": 572.9635,
+      "micro_ms": 484.886,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "FOREST.PI1",
+      "variant": "imploder_core",
+      "old_cycles": 3350944.0,
+      "micro_cycles": 3339204.0,
+      "old_ms": 418.868,
+      "micro_ms": 417.4005,
+      "old_stack": 76,
+      "micro_stack": 64
+    },
+    {
+      "file": "FONT.BFB",
+      "variant": "imploder",
+      "old_cycles": 1061828.0,
+      "micro_cycles": 965828.0,
+      "old_ms": 132.7285,
+      "micro_ms": 120.7285,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "FONT.BFB",
+      "variant": "imploder_core",
+      "old_cycles": 941160.0,
+      "micro_cycles": 909464.0,
+      "old_ms": 117.645,
+      "micro_ms": 113.683,
+      "old_stack": 76,
+      "micro_stack": 64
+    },
+    {
+      "file": "SPARKS.BSB",
+      "variant": "imploder",
+      "old_cycles": 202672.0,
+      "micro_cycles": 182948.0,
+      "old_ms": 25.334,
+      "micro_ms": 22.8685,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "SPARKS.BSB",
+      "variant": "imploder_core",
+      "old_cycles": 172164.0,
+      "micro_cycles": 165784.0,
+      "old_ms": 21.5205,
+      "micro_ms": 20.723,
+      "old_stack": 76,
+      "micro_stack": 64
+    },
+    {
+      "file": "QUICKIE.MOD",
+      "variant": "imploder",
+      "old_cycles": 3629828.0,
+      "micro_cycles": 3165288.0,
+      "old_ms": 453.7285,
+      "micro_ms": 395.661,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "QUICKIE.MOD",
+      "variant": "imploder_core",
+      "old_cycles": 2845564.0,
+      "micro_cycles": 2820404.0,
+      "old_ms": 355.6955,
+      "micro_ms": 352.5505,
+      "old_stack": 76,
+      "micro_stack": 64
+    },
+    {
+      "file": "SCENE.LNK",
+      "variant": "imploder",
+      "old_cycles": 6126376.0,
+      "micro_cycles": 5410256.0,
+      "old_ms": 765.797,
+      "micro_ms": 676.282,
+      "old_stack": 128,
+      "micro_stack": 120
+    },
+    {
+      "file": "SCENE.LNK",
+      "variant": "imploder_core",
+      "old_cycles": 4982116.0,
+      "micro_cycles": 4908852.0,
+      "old_ms": 622.7645,
+      "micro_ms": 613.6065,
+      "old_stack": 76,
+      "micro_stack": 64
+    }
+  ]
+}

@@ -4291,6 +4291,9 @@ Imploder:
 - Native 68000 backward decoder supports in-place decoding without heap or
   overflow padding; separate-buffer decoding copies packed bytes into the
   destination first and preserves the source.
+- The current ASM core is the original MICRO/FRT 364-byte decoder, reassembled
+  exactly before adding A5 preservation for GCC. Checksum calculation is also
+  ASM, with an unaligned-source path and unchanged validation.
 - `Imploder_DepackChecked()` checks actual input length, destination capacity,
   even destination alignment, partial overlap and the original word checksum.
 - `Packer_*` dispatch and whole compressed `LinkFile_InitToRAM()` loading are

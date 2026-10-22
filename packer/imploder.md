@@ -1,11 +1,16 @@
 # Imploder data support
 
 `packer/imploder.c`, `imploder.h` and `imploder_s.s` add `IMP!` data streams to
-the normal GodLib Packer API. The 362-byte 68000 decoder is adapted to GCC ELF
-`-mfastcall` from `imploder/explode_68000.s`; MICRO uses the same algorithm via
-an embedded original depacker. The GodLib implementation is readable vasm
-source, without an external game-binary dependency. Upstream provenance and
-BSD-2-Clause terms are in [tools/imploder](../tools/imploder/README.md).
+the normal GodLib Packer API. The current 364-byte 68000 decoder is extracted
+from MICRO's original FRT `$66560..$666CC`. The initial reassembly matches the
+original block byte-for-byte (SHA-256
+`b0f7935bfc9a553218b687106b439c14d486bb12b14d80c683a09854b4baccbb`).
+The only core adaptation adds A5 to both MOVEM masks for GCC ELF `-mfastcall`.
+Lookup tables, backward `DBRA` match copying and bit decoding retain the original
+logic. This is readable vasm source; no game binary is required to build GodLib.
+A separate 50-byte ASM word-sum routine replaces the C checksum loop, including
+an odd-address byte path. Host packer provenance and BSD-2-Clause terms remain
+in [tools/imploder](../tools/imploder/README.md).
 
 ```c
 #include <godlib/packer/imploder.h>
@@ -31,8 +36,9 @@ Destination must be even-aligned and have at least the unpacked size in bytes.
 Separate buffers must not overlap. In that case packed bytes are copied into
 the destination before in-place decoding, so the original source is unchanged
 and may be read-only. Source alignment is unrestricted in the C wrapper.
-The ASM core uses 72 bytes of saved registers/local stack plus the return
-address; the C wrapper adds its normal call frame. No mutable codec globals.
+The adapted ASM core uses 60 bytes of saved registers/local stack plus the
+return address; the C wrapper adds its normal call frame. The full Packer path
+peaked at 120 bytes of stack in native tests (previously 128). No mutable codec globals.
 
 ## Generic loading
 
@@ -65,3 +71,23 @@ also recognizes historical clone signatures; those are not part of this API.
 Amiga/X68000 executable envelopes and TOS executable packing are separate.
 See the [tool tests](../tools/imploder/README.md#tests) for reproducible target
 verification, including original MICRO assets.
+
+## MICRO decoder comparison (2026-10-22)
+
+Compared against commit `591668c` on the same six PI1/BFB/BSB/MOD/LNK files,
+using Hatari-HRDB MC68000 8 MHz and German TOS 1.62. Eight complete calls per
+sample; disk IO and preparation excluded. All outputs and guards matched.
+
+| Full GodLib path | Previous | MICRO core + ASM checksum |
+|---|---:|---:|
+| CASTLE.PI1 | 587.20 ms | 512.58 ms |
+| QUICKIE.MOD | 453.73 ms | 395.66 ms |
+| SCENE.LNK | 765.80 ms | 676.28 ms |
+| Aggregate throughput | 55.3 KiB/s | 63.5 KiB/s |
+| Peak stack | 128 B | 120 B |
+
+Total CPU time decreased 12.8%. The raw core alone improved 1.1% in this
+cycle-profiled corpus; most of the gain comes from replacing the C checksum
+with the original-style word loop in ASM. Validation remains enabled. This
+still does not match RNC2's 161.1 KiB/s on the same corpus. Size on disk is
+unchanged. See [raw measurements](imploder-micro-benchmark.json).

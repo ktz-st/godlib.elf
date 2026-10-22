@@ -53,8 +53,13 @@ sizes and files larger than 64 KiB, and rejects invalid arguments, truncated
 files, bad checksums and uncompressible input. It also builds a compressed LNK.
 The native test checks in-place and separate-buffer decode, generic Packer
 dispatch and size queries, output guards, invalid lengths/capacities/alignment,
-overlap and checksum failures, and whole-archive `LinkFile_InitToRAM()` loading.
+overlap and checksum failures, unaligned read-only source, checksum wraparound,
+and whole-archive `LinkFile_InitToRAM()` loading.
 On 2026-10-22, all 72 generated cases and all 82 original MICRO fixtures passed
 on Hatari STE with German TOS 1.62; host ASan/UBSan round trips also passed.
+
+The runtime ASM now uses the original MICRO/FRT decoder (364 bytes, with A5
+preservation for GCC), plus a 50-byte assembly checksum routine. This is
+independent of the host compressor source above.
 
 See [runtime API and format](../../packer/imploder.md).

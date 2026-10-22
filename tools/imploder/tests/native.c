@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern U32 Imploder_ChecksumAsm(const void *, U32);
+
 static unsigned char *load(const char *name, U32 *size)
 {
     FILE *f = fopen(name,"rb");
@@ -27,7 +29,7 @@ int main(void)
     char name[16];
     U16 n, j;
     U32 packedSize, rawSize;
-    U8 *packed, *raw, *space, *dst;
+    U8 *packed, *raw, *space, *dst, *odd;
     FILE *log;
     for(n=0;n<999;++n)
     {
@@ -58,6 +60,17 @@ int main(void)
         memset(dst,0xa5,rawSize);
         Packer_Depack(packed,dst);
         check(memcmp(raw,dst,rawSize)==0);
+        /* The ASM checksum must also support an unaligned read-only source. */
+        odd=malloc(packedSize+1); check(odd!=0);
+        if(odd)
+        {
+            memcpy(odd+1,packed,packedSize);
+            memset(dst,0xa5,rawSize);
+            check(Imploder_DepackChecked(odd+1,packedSize,dst,rawSize));
+            check(memcmp(raw,dst,rawSize)==0);
+            check(memcmp(odd+1,packed,packedSize)==0);
+            free(odd);
+        }
         /* All these fail before writing the destination. */
         memset(dst,0xa5,rawSize);
         check(!Imploder_DepackChecked(packed,packedSize-1,dst,rawSize));
@@ -89,6 +102,17 @@ int main(void)
         free(expected);
     }
     Memory_DeInit();
+    /* Word-sum wraps at 32 bits: 65537 * 65535 + 7 == 6. */
+    space=malloc(131076UL); check(space!=0);
+    if(space)
+    {
+        memset(space,0xff,131076UL);
+        check(Imploder_ChecksumAsm(space,0)==7);
+        check(Imploder_ChecksumAsm(space,2)==65542UL);
+        check(Imploder_ChecksumAsm(space,131074UL)==6);
+        check(Imploder_ChecksumAsm(space+1,131074UL)==6);
+        free(space);
+    }
     check(!Imploder_IsPacked(0));
     check(!Imploder_DepackChecked(0,0,0,0));
     log=fopen("NATIVE.TXT","w");

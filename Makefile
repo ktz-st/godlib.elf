@@ -49,7 +49,7 @@ SOURCES = \
 	memory/memory.c memory/heap.c \
 	mfp/mfp.c \
 	music/tfmx.c music/paulaowner.c music/paulamixer.c music/leonardmixer.c music/rjp1.c music/lancemod.c music/leonardmod.c music/pinknote.c music/snd.c music/wizzcat.c \
-	packer/ari_dec.c packer/ari_enc.c packer/brun1.c packer/bwt_dec.c packer/bwt_enc.c packer/godpack.c packer/godpackp.c packer/lz77_dec.c packer/lz77_enc.c packer/lz77bdec.c packer/lz77benc.c packer/mtf_dec.c packer/mtf_enc.c packer/packer.c packer/rle.c packer/rnc.c \
+	packer/ari_dec.c packer/ari_enc.c packer/brun1.c packer/bwt_dec.c packer/bwt_enc.c packer/godpack.c packer/godpackp.c packer/lz77_dec.c packer/lz77_enc.c packer/lz77bdec.c packer/lz77benc.c packer/mtf_dec.c packer/mtf_enc.c packer/packer.c packer/rle.c packer/rnc.c packer/imploder.c \
 	pictypes/amigaraw.c pictypes/art.c pictypes/canvas.c pictypes/canvasic.c pictypes/colquant.c pictypes/degas.c pictypes/gfx.c pictypes/gif.c pictypes/god.c pictypes/gsm.c pictypes/iff.c pictypes/neo.c pictypes/octtree.c pictypes/rel_gsm.c pictypes/tga.c \
 	platform/platform.c \
 	profiler/profile.c profiler/profiler.c \
@@ -100,6 +100,7 @@ SOURCES_S = \
 	packer/lz77_s.s \
 	packer/lz77b_s.s \
 	packer/packer_s.s \
+	packer/imploder_s.s \
 	packer/rle_s.s \
 	packer/rnc1_s.s \
 	packer/rnc2_s.s \
@@ -170,3 +171,5 @@ music/paulamixer_s.o music/rjp1_s.o music/rjp1leo_s.o: music/paulavoice.i
 
 music/tfmx.o: music/tfmx.h music/paulamixer.h music/leonardmixer.h
 music/tfmx_s.o: music/tfmxcore.s
+
+packer/packer.o packer/imploder.o: packer/imploder.h

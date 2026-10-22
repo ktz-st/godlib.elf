@@ -72,3 +72,11 @@ Platform in supervisor mode. Stop audio callbacks before freeing their PCM;
 remove hardware/VBL users and restore video before freeing screen storage.
 Use the corresponding Platform teardown before returning to TOS. Each sample
 shows its required ownership and cleanup sequence.
+
+## Imploder data compression
+
+Build the native host packer with `make -C tools imploder` (from this directory).
+The output is `bin/<System>/<Arch>/imploder`. GodLib recognizes `IMP!` data via
+`Packer_*`; `Imploder_DepackChecked()` provides explicit length/capacity checks
+and checksum validation. In-place decode requires only the unpacked buffer.
+See [Imploder runtime](packer/imploder.md) and [host tool/tests](tools/imploder/README.md).

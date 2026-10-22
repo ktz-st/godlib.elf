@@ -1,5 +1,8 @@
 # GodLib documentation
 
+- [Imploder compression](../packer/imploder.md): native host packer, `IMP!`
+  detection, checked 68000 ASM depacking and compressed Linkfile loading.
+
 - [Asset / Linkfile example](../../godlib.spl/asset/README.md): picture/font/sprites
   from loose files, raw LNK and a whole GodPack-compressed archive.
 - [Input / Kernel example](../../godlib.spl/input/README.md): combined keyboard/joystick

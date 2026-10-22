@@ -15,6 +15,7 @@
 #include	"packer.h"
 #include	"godpack.h"
 #include	"rnc.h"
+#include	"imploder.h"
 
 
 /* ###################################################################################
@@ -88,6 +89,10 @@ ePacker	Packer_GetType( sPackerHeader * apHeader )
 	{
 		return( ePACKER_RNC );
 	}
+	if( Imploder_IsPacked( apHeader ) )
+	{
+		return( ePACKER_IMPLODER );
+	}
 	return( ePACKER_NONE );
 }
 
@@ -128,6 +133,10 @@ U32		Packer_GetDepackSize( sPackerHeader * apHeader )
 
 	case	ePACKER_RNC:
 		lSize = Rnc_GetDepackSize( apHeader );
+		break;
+
+	case ePACKER_IMPLODER:
+		lSize = Imploder_GetDepackSize( apHeader );
 		break;
 
 	default:
@@ -173,6 +182,10 @@ void	Packer_Depack( void * apSrc, void * apDst )
 		GodPack_DePack( apSrc, apDst );
 		break;
 
+	case ePACKER_IMPLODER:
+		Imploder_Depack( apSrc, apDst );
+		break;
+
 	case ePACKER_RNC:
 		Rnc_Depack( apSrc, apDst );
 		break;
@@ -190,6 +203,10 @@ U32		Packer_GetHeaderSize( sPackerHeader * apHeader )
 	{
 	case ePACKER_GODPACK:
 		lSize = sizeof(sGodPackHeader);
+		break;
+
+	case ePACKER_IMPLODER:
+		lSize = dIMPLODER_HEADER_SIZE;
 		break;
 
 	case ePACKER_RNC:

@@ -4238,6 +4238,8 @@ Files:
   pack and depack pipeline.
 - `rnc.h` / `rnc.c`, `rnc1_s.s`, `rnc2_s.s` - Rob Northen compression method 1
   and 2 depackers.
+- `imploder.h`, `imploder.c`, `imploder_s.s` - validated `IMP!` data wrapper
+  and 68000 ASM depacker; see [Imploder](../packer/imploder.md).
 - `rle.c`, `lz77*_*.c`, `bwt_*.c`, `mtf_*.c`, `ari_*.c` - GodPack transform
   stages and older experimental stages.
 - `brun1.c` / `brun1.h` - ByteRun1 depacker, used by `pictypes/iff.c`.
@@ -4253,11 +4255,12 @@ Dispatcher behavior:
   - `SPv3` as `ePACKER_SPEED3`
   - `GDPK` as `ePACKER_GODPACK`
   - `RNC1` and `RNC2` as `ePACKER_RNC`
+  - canonical `IMP!` as `ePACKER_IMPLODER` (with plausible header sizes)
 - `Packer_GetDepackSize()` knows the unpacked-size offsets for the legacy ST
-  formats and delegates to `GodPack` / `Rnc` for those formats.
-- `Packer_GetHeaderSize()` returns non-zero only for `GODPACK` and `RNC`.
+  formats and delegates to the format helpers for RNC and Imploder.
+- `Packer_GetHeaderSize()` returns non-zero for `GODPACK`, `RNC` and `IMPLODER` (12 bytes).
 - `Packer_GetLoadOffset()` is only meaningful for `GODPACK`.
-- `Packer_Depack(src, dst)` uses `dst` for `GODPACK` and `RNC`, but the old ST
+- `Packer_Depack(src, dst)` uses `dst` for `GODPACK`, `RNC` and `IMPLODER`, but the old ST
   depackers ignore `dst` and operate on `src` in their original in-place style.
 
 GodPack:
@@ -4280,6 +4283,23 @@ RNC:
 - `Rnc_Depack()` dispatches to assembler `Rnc_Depack1()` or `Rnc_Depack2()`.
 - CRC fields are present in the header structure, but the C wrapper does not
   validate them.
+
+Imploder:
+
+- Host build: `make -C godlib/tools imploder`, output
+  `bin/<System>/<Arch>/imploder`; modes `-0` through `-11` (default 11).
+- Native 68000 backward decoder supports in-place decoding without heap or
+  overflow padding; separate-buffer decoding copies packed bytes into the
+  destination first and preserves the source.
+- `Imploder_DepackChecked()` checks actual input length, destination capacity,
+  even destination alignment, partial overlap and the original word checksum.
+- `Packer_*` dispatch and whole compressed `LinkFile_InitToRAM()` loading are
+  integrated. `File_Load()` still loads raw bytes.
+- Only `IMP!` data is handled by GodLib, not executable envelopes or clone IDs.
+- Verification: 72 generated cases across all 12 modes plus 82 MICRO originals,
+  in-place/separate/dispatch/guards and compressed LNK loading, passed on
+  Hatari STE / 68000 / German TOS 1.62 (2026-10-22). Host ASan/UBSan passed.
+  Commands and restrictions: [Imploder tool](../tools/imploder/README.md).
 
 Important limitations and risks:
 

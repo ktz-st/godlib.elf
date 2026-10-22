@@ -19,6 +19,7 @@
 **************************************************************************************
 
 	XDEF	Graphic_4BP_Blit_BLT
+	XREF	Graphic_4BP_DrawSprite_ClipExact
 	XDEF	Graphic_4BP_ClearScreen_BLT
 	XDEF	Graphic_4BP_CopyScreen_BLT
 	XDEF	Graphic_4BP_DrawBox_BLT
@@ -959,6 +960,15 @@ Graphic_4BP_DrawSprite_Clip_BLT:
     ble     .clip
 .y1_ok:
 
+; ---------- Both X edges clipped: the skew/FXSR/NFSR choice below gets it wrong ----------
+    move.w  d0,d4
+    add.w   d2,d4
+    cmp.w   sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d4
+    ble.s   .one_edge
+    cmp.w   sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d0
+    blt     Graphic_4BP_DrawSprite_ClipExact    ; CPU, exact
+.one_edge:
+
 ; ---------- Prepare blitter: set SKEW from original X ----------
     movea.w #eBLITTER_BASE,a6
     mBlitterWait_a6
@@ -1521,6 +1531,14 @@ set_count:
 * Src_Yinc is the offset in bytes from the last word of one Source
 * line to the first word of the next Source line
 
+* Entry 7 (one word, shift left) needs FXSR: two source reads per line, the
+* first advancing by Src_Xinc. NFSR does not cancel the read when X_Count=1,
+* so Src_Yinc must step back that extra word or the source drifts per line.
+
+	cmp.w     #7,d6
+	bne.s     .src_yinc
+	addq.w    #1,d1               ; d1<- words read past the first
+.src_yinc:
 	mulu      d4,d1               ; d1<- width of src line in bytes
 	sub.w     d1,d5               ; d5<- value added to ptr at end
 	move.w    d5,Src_Yinc(a5)     ; of line to reach start of next
@@ -1595,7 +1613,7 @@ skew_flags:
 	dc.b 0         ; Implies a Source span of no words
 	dc.b mSkewFXSR ; Source span of two words
 	dc.b 0         ; Skew flags aren't set if Source and
-	dc.b mSkewFXSR ; Spans equal Shift Source left
+	dc.b mSkewFXSR ; Spans equal Shift Source left (Src_Yinc corrected above)
 ;      dc.b 0         ; Destination spans are both one word
 
 next_plane:

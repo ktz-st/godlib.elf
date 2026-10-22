@@ -39,6 +39,8 @@
 	XDEF	Graphic_4BP_DrawQuad_Clip
 
 	XDEF	gGraphicBlitRout
+	XDEF	Graphic_4BP_DrawSprite_ClipExact
+	XDEF	Graphic_4BP_DrawSprite_ClipExact_Test
 
 
 **************************************************************************************
@@ -536,8 +538,7 @@ G4BP_Blit_LR:
 
 	move.l	a4,d7
 	subq.w	#1,d7
-	swap	d4
-	swap	d5
+	swap	d4						; source masks: left word in the high half
 .yloop:
 	move.w	(a3)+,d0
 	move.w	(a3)+,d1
@@ -885,7 +886,68 @@ G4BP_Blit_R_F:
 ;	-C--	Central Blit	[ not possible ]
 ;-------------------------------------------------------------------------------------------------
 
-G4BP_Blit_C_F:
+G4BP_Blit_C_F:							; centre words only, after an extra first source read
+	move.l	#$FFFF0000,d4			; mask
+	ror.l	d6,d4					; shift mask
+.yloop:
+	move.w	(a3)+,d0				; gfx plane0
+	move.w	(a3)+,d1				; gfx plane0
+	move.w	(a3)+,d2				; gfx plane0
+	move.w	(a3)+,d3				; gfx plane0
+	ror.l	d6,d0					; shift gfx plane 0
+	ror.l	d6,d1					; shift gfx plane 0
+	ror.l	d6,d2					; shift gfx plane 0
+	ror.l	d6,d3					; shift gfx plane 0
+
+	move.l	a6,a2					; chunk loop
+.xloop:
+
+	swap	d0						; rem of last gfx plane 0
+	swap	d1						; rem of last gfx plane 1
+	swap	d2						; rem of last gfx plane 2
+	swap	d3						; rem of last gfx plane 3
+
+	and.l	d4,d0					; clear unwanted plane0 bits
+	and.l	d4,d1					; clear unwanted plane1 bits
+	and.l	d4,d2					; clear unwanted plane2 bits
+	and.l	d4,d3					; clear unwanted plane3 bits
+
+	moveq	#0,d7					; clear high word of tmp
+	move.w	(a3)+,d7				; read gfx plane 0
+	ror.l	d6,d7					; shift gfx plane 0
+	or.l	d7,d0					; combine last and new plane0 chunks
+
+	moveq	#0,d7					; clear high word of tmp
+	move.w	(a3)+,d7				; read gfx plane 1
+	ror.l	d6,d7					; shift gfx plane 1
+	or.l	d7,d1					; combine last and new plane1 chunks
+
+	moveq	#0,d7					; clear high word of tmp
+	move.w	(a3)+,d7				; read gfx plane 2
+	ror.l	d6,d7					; shift gfx plane 2
+	or.l	d7,d2					; combine last and new plane1 chunks
+
+	moveq	#0,d7					; clear high word of tmp
+	move.w	(a3)+,d7				; read gfx plane 2
+	ror.l	d6,d7					; shift gfx plane 2
+	or.l	d7,d3					; combine last and new plane1 chunks
+
+	move.w	d0,(a5)+				; draw plane 0
+	move.w	d1,(a5)+				; draw plane 1
+	move.w	d2,(a5)+				; draw plane 2
+	move.w	d3,(a5)+				; draw plane 3
+
+	suba.l	#1,a2					; dec mid loop counter
+	move.l	a2,d7
+	bne		.xloop					; loop
+
+	add.l	a0,a5					; next screen line
+	add.l	a1,a3					; next gfx line
+
+	suba.l	#1,a4					; dec y
+	move.l	a4,d0
+	bne		.yloop
+
 	bra		G4BP_Blit_RTS
 
 
@@ -3101,6 +3163,9 @@ Graphic_4BP_DrawSprite_Clip:
 
 .y1_ok:
 
+	bsr		Graphic_4BP_DrawSprite_ClipExact_Test	; ne: X clip the fast bodies get wrong
+	bne		Graphic_4BP_DrawSprite_ClipExact
+
 	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d0
 	bge		.x0_ok
 	sub.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d0
@@ -3133,6 +3198,215 @@ Graphic_4BP_DrawSprite_Clip:
 
 	movem.l	(a7)+,d3-d7/a2-a6
 	rts
+
+
+*------------------------------------------------------------------------------------*
+* FUNCTION: Graphic_4BP_DrawSprite_ClipExact_Test
+* ACTION:   after Y clipping in a DrawSprite_Clip routine (a0 canvas, d0 X, d2 width):
+*           Z clear when X clipping is one the fast bodies draw wrongly:
+*           both edges clipped, or a clipped edge that is not 16-aligned.
+*           Uses d4-d6 only. Unclipped and aligned single-edge cases keep their path.
+* CREATION: 22.10.26
+*------------------------------------------------------------------------------------*
+
+Graphic_4BP_DrawSprite_ClipExact_Test:
+	moveq	#0,d6								; clipped edges
+	move.w	d0,d4
+	add.w	d2,d4								; X+width
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d4
+	ble.s	.noRight
+	addq.w	#1,d6
+	moveq	#15,d5
+	and.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d5
+	bne.s	.exact								; unaligned right edge
+.noRight:
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d0
+	bge.s	.fast
+	tst.w	d6
+	bne.s	.exact								; both edges
+	moveq	#15,d5
+	and.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d5
+	rts											; ne: unaligned left edge
+.fast:
+	moveq	#0,d6								; eq
+	rts
+.exact:
+	moveq	#1,d6								; ne
+	rts
+
+
+*------------------------------------------------------------------------------------*
+* FUNCTION: Graphic_4BP_DrawSprite_ClipExact
+* ACTION:   clipped sprite, exact for any clip box: every destination word gets the
+*           source bits for its own pixels, masked by the sprite mask and the clip box.
+*           Entered by bra after Y clipping, registers saved by the caller:
+*           a0 canvas, a2 sprite, a3 gfx, a4 mask (first visible row), d0 X, d1 Y, d3 height
+* CREATION: 22.10.26
+*------------------------------------------------------------------------------------*
+
+cgx_pLine	EQU	0		; L next mpLineOffsets entry
+cgx_VRAM	EQU	4		; L canvas VRAM
+cgx_DstX	EQU	8		; W byte offset of the first destination word
+cgx_O0		EQU	10		; W first destination word X - sprite X
+cgx_Count	EQU	12		; W destination words per row - 1
+cgx_LM		EQU	14		; W clip mask, first word
+cgx_RM		EQU	16		; W clip mask, last word
+cgx_NW		EQU	18		; W source words per row
+cgx_Msk		EQU	20		; W mask plane count (0 = opaque)
+cgx_sizeof	EQU	22
+
+Graphic_4BP_DrawSprite_ClipExact:
+	lea		-cgx_sizeof(a7),a7
+
+	move.w	d0,d4								; left = max(X, clip X0)
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d4
+	bge.s	.l_ok
+	move.w	sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d4
+.l_ok:
+	move.w	d0,d5								; right = min(X+width, clip X1)
+	add.w	sGraphicSprite_mWidth(a2),d5
+	cmp.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d5
+	ble.s	.r_ok
+	move.w	sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d5
+.r_ok:
+	cmp.w	d5,d4
+	bge		.done
+	tst.w	d3
+	ble		.done
+
+	move.w	d4,d6
+	and.w	#$FFF0,d6							; first destination word X
+	move.w	d5,d7
+	subq.w	#1,d7
+	and.w	#$FFF0,d7							; last destination word X
+	move.w	d7,d2
+	sub.w	d6,d2
+	lsr.w	#4,d2
+	move.w	d2,cgx_Count(a7)
+
+	sub.w	d6,d4
+	move.w	#$FFFF,d2
+	lsr.w	d4,d2
+	move.w	d2,cgx_LM(a7)						; pixels from left on
+	sub.w	d7,d5								; 1..16 pixels in the last word
+	move.w	#$FFFF,d2
+	lsr.w	d5,d2								; 16: register shift gives 0
+	not.w	d2
+	move.w	d2,cgx_RM(a7)						; pixels before right
+
+	move.w	d6,d2
+	sub.w	d0,d2
+	move.w	d2,cgx_O0(a7)						; -15..width-1
+	lsr.w	#1,d6
+	move.w	d6,cgx_DstX(a7)
+
+	move.w	sGraphicSprite_mWidth(a2),d2
+	add.w	#15,d2
+	lsr.w	#4,d2
+	move.w	d2,cgx_NW(a7)
+	move.w	sGraphicSprite_mMaskPlaneCount(a2),cgx_Msk(a7)
+
+	move.l	sGraphicCanvas_mpVRAM(a0),cgx_VRAM(a7)
+	move.l	sGraphicCanvas_mpLineOffsets(a0),a1
+	add.w	d1,d1
+	add.w	d1,d1
+	add.w	d1,a1
+	move.l	a1,cgx_pLine(a7)
+
+	subq.w	#1,d3
+.yloop:
+	move.l	cgx_pLine(a7),a1
+	move.l	(a1)+,d0
+	move.l	a1,cgx_pLine(a7)
+	move.l	cgx_VRAM(a7),a1
+	add.l	d0,a1
+	add.w	cgx_DstX(a7),a1						; destination word
+	move.w	cgx_O0(a7),d5						; its X within the sprite
+	move.w	cgx_Count(a7),d6
+.xloop:
+	moveq	#-1,d4								; clip mask
+	cmp.w	cgx_Count(a7),d6
+	bne.s	.notFirst
+	and.w	cgx_LM(a7),d4
+.notFirst:
+	tst.w	d6
+	bne.s	.notLast
+	and.w	cgx_RM(a7),d4
+.notLast:
+	moveq	#15,d2
+	and.w	d5,d2								; bit offset into the source word pair
+	move.w	d5,d7
+	asr.w	#4,d7								; first source word: -1..NW-1
+
+	moveq	#-1,d1								; opaque: draw every pixel
+	tst.w	cgx_Msk(a7)
+	beq.s	.maskDone
+	moveq	#-1,d0								; outside the sprite = transparent
+	move.w	d7,d1
+	add.w	d1,d1
+	tst.w	d7
+	bmi.s	.mNoHi
+	move.w	(a4,d1.w),d0
+.mNoHi:
+	swap	d0
+	move.w	d7,d1
+	addq.w	#1,d1
+	cmp.w	cgx_NW(a7),d1
+	bge.s	.mNoLo
+	add.w	d1,d1
+	move.w	(a4,d1.w),d0
+.mNoLo:
+	lsl.l	d2,d0
+	swap	d0
+	move.w	d0,d1
+	not.w	d1								; mask bits set = transparent
+.maskDone:
+	and.w	d4,d1								; pixels to write
+
+	move.w	d7,d0
+	lsl.w	#3,d0
+	lea		(a3,d0.w),a5						; high source word, 4 planes
+	lea		8(a5),a6							; low source word
+	tst.w	d7
+	bpl.s	.hiOk
+	lea		gGraphic_4BP_ZeroChunk(pc),a5
+.hiOk:
+	addq.w	#1,d7
+	cmp.w	cgx_NW(a7),d7
+	blt.s	.loOk
+	lea		gGraphic_4BP_ZeroChunk(pc),a6
+.loOk:
+
+	rept	4
+	move.w	(a5)+,d0
+	swap	d0
+	move.w	(a6)+,d0
+	lsl.l	d2,d0
+	swap	d0									; source bits of this word
+	move.w	(a1),d7
+	eor.w	d7,d0
+	and.w	d1,d0
+	eor.w	d7,d0								; dst ^ ((dst ^ src) & draw)
+	move.w	d0,(a1)+
+	endr
+
+	add.w	#16,d5
+	dbra	d6,.xloop
+
+	move.w	cgx_NW(a7),d0
+	add.w	d0,d0
+	add.w	d0,a4								; next mask row
+	add.w	d0,d0
+	add.w	d0,d0
+	add.w	d0,a3								; next gfx row
+	dbra	d3,.yloop
+
+.done:
+	lea		cgx_sizeof(a7),a7
+	movem.l	(a7)+,d3-d7/a2-a6
+	rts
+
+gGraphic_4BP_ZeroChunk:	dc.w	0,0,0,0
 
 
 *------------------------------------------------------------------------------------*

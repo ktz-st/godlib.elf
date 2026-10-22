@@ -3413,6 +3413,48 @@ Function tables:
   loops now add A1 to A3 and A0 to A5, like the other variants (2026-10-21, found
   by the Mozgprocesor port: 64/128-pixel atlases blitted to a 320-pixel screen).
   The blitter path (`grf_b4_s.s`) was not reviewed for the same issue.
+- Two more `Graphic_4BP_Blit` (CPU) loops were wrong for every input that reached
+  them (2026-10-22, found by the SeaWolf II port, NOBLIT path; neither depends on
+  canvas width, the 720-pixel canvases only made them frequent):
+  - `G4BP_Blit_LR` (two destination words, shift right, no FXSR/NFSR) swapped
+    the destination keep-mask D5 on entry as well as the source mask D4, so the
+    left word was written with the right mask and vice versa. Only D4 is swapped
+    now (as in `LR_A`).
+  - `G4BP_Blit_C_F` (destination fully covered whole words, source starting
+    further right in its word, e.g. src x=1 -> dst x=0, width 16/32/...) was an
+    empty stub ("not possible") and drew nothing. It is now `CR_F` without the
+    right edge word.
+- `BLiT_iT` (`grf_b4_s.s`, used by `Graphic_4BP_Blit_BLT`) table `skew_flags`
+  entry 7 (single destination word, equal spans, source shifted left) needs FXSR:
+  the first word read must land in the high half of the blitter buffer. FXSR
+  makes two source reads per line, the extra one advancing by `Src_Xinc`, but
+  `Src_Yinc` was computed for one read, so the source drifted by one word (8
+  bytes) per line after the first. `BLiT_iT` now subtracts that word from
+  `Src_Yinc` for entry 7 (Atari's original listing had 0 there, which takes the
+  wrong buffer half). FXSR+NFSR, as in entry 3, is not a fix for X_Count=1:
+  Hatari still makes both reads and shifts the buffer once more, which gives
+  wrong pixels. Entry 4 is unreachable (two source words with source shift <=
+  destination shift cannot fit one destination word). Not verified on real STE.
+- `graphic/tests/canvas-wide` checks CPU and blitter `Blit` (4839 cases each,
+  720 px and 320 px canvases, source x up to 655, all reachable `skew_flags`
+  entries, guards), `DrawSprite` and `DrawSprite_Clip` (widths 16..64, left/right
+  clip, x > 512, 12 clip boxes with aligned/unaligned edges) against a
+  per-pixel reference.
+- `DrawSprite_Clip` X clipping (2026-10-22). The CPU bodies take the bit phase
+  from the left edge (`x & 15`) or, with a right partial word, from the right
+  edge, and left clip only skips whole source words. That is right when one
+  edge is clipped at a 16-aligned clip box edge (the common screen/canvas case)
+  and wrong otherwise: a clip box edge not on 16 px (CPU) or both edges clipped,
+  i.e. a sprite wider than the box (CPU and blitter, whose skew/FXSR choice
+  misses this case too). Those cases now go to
+  `Graphic_4BP_DrawSprite_ClipExact` (`grf_4_s.s`, CPU): per destination word it
+  takes the 32-bit source/mask word pair at the right bit offset and writes
+  `dst ^ ((dst ^ src) & ~mask & clip)`. Selection is
+  `Graphic_4BP_DrawSprite_ClipExact_Test` (CPU clipper) and an inline
+  both-edges test (blitter clipper; the blitter already handles single
+  unaligned edges). Unclipped and aligned single-edge draws keep their old code
+  and timing (`tests/sprite-audit` unchanged). Before: 1587/2386 unaligned-box
+  cases wrong on CPU, 135 on blitter, 225/1916 both-edge cases wrong on each.
 - `Graphic_4BP_DrawLine` now keeps its word pointer and pixel mask in registers
   across the Bresenham loop, replacing the former per-pixel address calculation
   and 12-register save/restore. Colour replacement on all four planes, including

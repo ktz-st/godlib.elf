@@ -19,7 +19,6 @@
 **************************************************************************************
 
 	XDEF	Graphic_4BP_Blit_BLT
-	XREF	Graphic_4BP_DrawSprite_ClipExact
 	XDEF	Graphic_4BP_ClearScreen_BLT
 	XDEF	Graphic_4BP_CopyScreen_BLT
 	XDEF	Graphic_4BP_DrawBox_BLT
@@ -960,13 +959,13 @@ Graphic_4BP_DrawSprite_Clip_BLT:
     ble     .clip
 .y1_ok:
 
-; ---------- Both X edges clipped: the skew/FXSR/NFSR choice below gets it wrong ----------
+; ---------- Both X edges clipped: derive skew/read spans from the visible rect ----------
     move.w  d0,d4
     add.w   d2,d4
     cmp.w   sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d4
     ble.s   .one_edge
     cmp.w   sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d0
-    blt     Graphic_4BP_DrawSprite_ClipExact    ; CPU, exact
+    blt     Graphic_4BP_DrawSprite_ClipBoth_BLT
 .one_edge:
 
 ; ---------- Prepare blitter: set SKEW from original X ----------
@@ -1084,6 +1083,118 @@ Graphic_4BP_DrawSprite_Clip_BLT:
     rts
 
 
+; Both horizontal edges clipped. Registers/stack match the parent clipper after
+; Y clipping: a0 canvas, a2 sprite, a3 gfx, a4 mask, d0 original X, d1 Y, d3 H.
+; Use the actual source/destination spans, rather than subtracting rounded
+; left/right crop counts independently. Keep mask and graphics in native form.
+Graphic_4BP_DrawSprite_ClipBoth_BLT:
+    move.w  sGraphicCanvas_mClipBox+sGraphicBox_mX0(a0),d4
+    move.w  sGraphicCanvas_mClipBox+sGraphicBox_mX1(a0),d2
+    sub.w   d4,d2                           ; visible width
+    ble     G4BP_DrawSprite_RTS
+
+    move.w  d0,-(a7)                       ; original sprite X
+    movea.w #eBLITTER_BASE,a6
+    mBlitterWait_a6
+
+    move.l  sGraphicCanvas_mpVRAM(a0),a5
+    move.l  sGraphicCanvas_mpLineOffsets(a0),a1
+    add.w   d1,d1
+    add.w   d1,d1
+    add.l   (a1,d1.w),a5
+    move.w  6(a1),d1                        ; destination stride
+    move.w  d4,d5
+    and.w   #$fff0,d5
+    lsr.w   #1,d5
+    add.w   d5,a5                          ; first destination word
+
+    moveq   #15,d6
+    and.w   d4,d6                          ; destination fine phase
+    move.w  #$ffff,d5
+    lsr.w   d6,d5
+    move.w  d5,eBLITTER_ENDMASK_1(a6)
+    move.w  #$ffff,eBLITTER_ENDMASK_2(a6)
+    move.w  d4,d7
+    add.w   d2,d7
+    subq.w  #1,d7                          ; last visible destination pixel
+    moveq   #15,d5
+    and.w   d7,d5
+    addq.w  #1,d5
+    move.w  #$ffff,d0
+    lsr.w   d5,d0
+    not.w   d0
+    move.w  d0,eBLITTER_ENDMASK_3(a6)
+
+    lsr.w   #4,d7
+    move.w  d4,d5
+    lsr.w   #4,d5
+    sub.w   d5,d7                          ; destination span - 1
+    bne.s   .manyWords
+    and.w   d0,eBLITTER_ENDMASK_1(a6)       ; one word uses combined edge mask
+.manyWords:
+    move.w  d7,d5
+    addq.w  #1,d5
+    move.w  d5,eBLITTER_COUNT_X(a6)
+    move.w  #8,eBLITTER_DST_INC_X(a6)
+    move.w  d7,d5
+    lsl.w   #3,d5
+    sub.w   d5,d1
+    move.w  d1,eBLITTER_DST_INC_Y(a6)
+
+    sub.w   (a7)+,d4                       ; visible source X = left - original X
+    move.w  d4,d1
+    lsr.w   #4,d1                          ; first source word
+    move.w  d1,d0
+    lsl.w   #3,d0
+    add.w   d0,a3
+    lsr.w   #2,d0
+    add.w   d0,a4
+    moveq   #15,d5
+    and.w   d4,d5                          ; source fine phase
+    add.w   d2,d4
+    subq.w  #1,d4
+    lsr.w   #4,d4
+    sub.w   d1,d4                          ; source span - 1
+
+    moveq   #0,d0                          ; generic skew_flags discriminator
+    cmp.w   d6,d5
+    ble.s   .phaseOK
+    addq.w  #1,d0
+.phaseOK:
+    cmp.w   d4,d7
+    bne.s   .spanOK
+    addq.w  #2,d0
+.spanOK:
+    tst.w   d7
+    bne.s   .multiple
+    addq.w  #4,d0
+.multiple:
+    sub.w   d5,d6
+    and.w   #15,d6                         ; destination phase - source phase
+    lea     skew_flags(pc),a1
+    or.b    (a1,d0.w),d6
+    move.b  d6,eBLITTER_SKEW(a6)
+    cmp.w   #7,d0
+    bne.s   .readsOK
+    ; Both spans are a single word. Duplicate the required word for FXSR
+    ; instead of fetching past it (important on the sprite's final row).
+    moveq   #0,d0                          ; no advance between the two reads
+    bra.s   .increments
+.readsOK:
+    moveq   #2,d0
+.increments:
+    move.w  sGraphicSprite_mWidth(a2),d1
+    add.w   #15,d1
+    lsr.w   #4,d1
+    sub.w   d4,d1
+    add.w   d1,d1
+    move.w  d1,eBLITTER_SRC_INC_Y(a6)       ; mask stride - consumed word advances
+    move.w  d0,eBLITTER_SRC_INC_X(a6)
+    move.b  #eBLITTERHOP_SRC,eBLITTER_HOP(a6)
+    bra     Graphic_4BP_DrawSprite_Planes
+
+
+
 *------------------------------------------------------------------------------------*
 * FUNCTION: void (* DrawSprite )(  const struct sGraphicCanvas * apCanvas, const sGraphicPos * apCoords,  const void * apSprite );
 * ACTION:   draws a sprite
@@ -1179,7 +1290,7 @@ Graphic_4BP_DrawSprite_Go:
 
 	and.w	d0,d2
 	move.w	d2,eBLITTER_ENDMASK_1(a6)
-	bra		.start
+	bra		Graphic_4BP_DrawSprite_Planes
 
 .xcnot1:
 	cmp.w	#1,d5
@@ -1189,7 +1300,7 @@ Graphic_4BP_DrawSprite_Go:
 	move.w	d2,eBLITTER_ENDMASK_2(a6)
 	move.w	d2,eBLITTER_ENDMASK_3(a6)
 
-	bra		.start
+	bra		Graphic_4BP_DrawSprite_Planes
 
 .xcnot2:
 
@@ -1197,7 +1308,7 @@ Graphic_4BP_DrawSprite_Go:
 	move.w	#$FFFF,eBLITTER_ENDMASK_2(a6)
 	move.w	d2,eBLITTER_ENDMASK_3(a6)
 
-.start:
+Graphic_4BP_DrawSprite_Planes:
 
 	move.b	#eBLITTERLOP_SRC,eBLITTER_LOP(a6)
 	tst.w	sGraphicSprite_mMaskPlaneCount(a2)

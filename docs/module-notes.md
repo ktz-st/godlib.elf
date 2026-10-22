@@ -3446,15 +3446,56 @@ Function tables:
   edge is clipped at a 16-aligned clip box edge (the common screen/canvas case)
   and wrong otherwise: a clip box edge not on 16 px (CPU) or both edges clipped,
   i.e. a sprite wider than the box (CPU and blitter, whose skew/FXSR choice
-  misses this case too). Those cases now go to
-  `Graphic_4BP_DrawSprite_ClipExact` (`grf_4_s.s`, CPU): per destination word it
+  misses this case too). The CPU clipper routes these cases through
+  `Graphic_4BP_DrawSprite_ClipExact` (`grf_4_s.s`): per destination word it
   takes the 32-bit source/mask word pair at the right bit offset and writes
   `dst ^ ((dst ^ src) & ~mask & clip)`. Selection is
-  `Graphic_4BP_DrawSprite_ClipExact_Test` (CPU clipper) and an inline
-  both-edges test (blitter clipper; the blitter already handles single
-  unaligned edges). Unclipped and aligned single-edge draws keep their old code
+  `Graphic_4BP_DrawSprite_ClipExact_Test`. The blitter initially used this CPU
+  fallback for both edges; it now has the native both-edge path described below.
+  Unclipped and aligned single-edge draws keep their old code
   and timing (`tests/sprite-audit` unchanged). Before: 1587/2386 unaligned-box
   cases wrong on CPU, 135 on blitter, 225/1916 both-edge cases wrong on each.
+- Native BLiTTER both-edge sprite clipping (2026-10-22):
+  `Graphic_4BP_DrawSprite_ClipBoth_BLT` computes the actual visible source X,
+  source/destination word spans, combined partial-word end masks, FXSR/NFSR
+  and source/destination line increments. It then reuses the existing four
+  mask AND passes and four graphics OR passes (opaque sprites use SRC passes).
+  The single-source/single-destination FXSR case uses Xinc=0 to duplicate the
+  needed source word, avoiding a forward fetch outside that row; Yinc stays
+  the full source stride. Sprite data and public API are unchanged, with no
+  allocations or extra graphics buffers. `libgod.a` was updated by replacing
+  only `grf_b4_s.o`; other archive members were verified unchanged.
+
+  IMS comparison: `agtools/agtsys/m68k/ste/b_spr.s` uses a 10-byte group per
+  16 pixels (mask + four graphics words), hardware skew and eight mask/graphics
+  passes. It explicitly assumes a sprite does not cross both viewport edges;
+  top clipping skips the bottom test and left clipping skips the right test.
+  Its clipping logic cannot directly replace the general GodLib clipper.
+  The new path keeps GodLib's separate mask/graphics representation and handles
+  both edges, including non-16-aligned clip windows.
+
+  Hatari HRDB, STE 68000 8 MHz PAL, German TOS 1.62: masked sprites, one draw
+  per 50 Hz frame. CPU figures include native setup and blitter bus stalls/
+  waits, excluding C dispatch, OS interrupts and background restoration. These
+  are representative averages, not worst-case bounds; phases and geometry matter.
+
+  | Visible fragment | CPU fallback cycles | BLiTTER cycles | CPU fallback frame | BLiTTER frame | Speedup |
+  |---|---:|---:|---:|---:|---:|
+  | 8x16 | 13396 | 4732 | 8.37% | 2.96% | 2.83x |
+  | 16x32 | 28386 | 7073 | 17.74% | 4.42% | 4.01x |
+  | 30x32 | 88956 | 18661 | 55.60% | 11.66% | 4.77x |
+  | 64x64 | 310343 | 58044 | 193.97% | 36.28% | 5.35x |
+  | 48x32 (stride 320 B) | 174451 | 29421 | 109.03% | 18.39% | 5.93x |
+
+  At 64x64 visible pixels this is about 38.79 ms versus 7.26 ms per draw.
+  Verification ran in an isolated `/tmp` snapshot, leaving deleted test/analysis
+  directories in the workspace untouched: 19102 original canvas-wide cases,
+  19664 extra phase/opaque cases, and 7168 dedicated both-edge cases. All 45934
+  pass the independent per-pixel oracle including whole-buffer guards. The
+  dedicated matrix covers all 16x16 source/destination phases, 1/8/16/17/31/32/48
+  pixel windows, masked/opaque 128-pixel sprites, top/bottom clipping, and
+  160/360-byte canvas strides. Fixtures originate from commit `45e4af8` and were
+  extended for this run. Tested on Hatari; physical STE timing is not claimed.
 - `Graphic_4BP_DrawLine` now keeps its word pointer and pixel mask in registers
   across the Bresenham loop, replacing the former per-pixel address calculation
   and 12-register save/restore. Colour replacement on all four planes, including

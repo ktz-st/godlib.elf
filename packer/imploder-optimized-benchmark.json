@@ -1,0 +1,280 @@
+{
+  "date": "2026-10-23",
+  "baseline_commit": "f3134ac",
+  "machine": "Hatari-HRDB STE / MC68000 8 MHz / PAL low / German TOS 1.62; no blitter or DMA audio",
+  "method": "Same six fixture files and eight complete calls per file/variant. CPU cycles in codec and Packer/wrapper objects, excluding disk/setup/verification/interrupts. Full variant includes checksum. Input reloaded outside measurement; decode is in-place. All outputs and canaries verified.",
+  "summary": {
+    "input_bytes": 143819,
+    "baseline_ms": 2213.007,
+    "optimized_ms": 1645.1845,
+    "time_reduction_percent": 25.658414094487725,
+    "baseline_kib_s": 63.4648883566568,
+    "optimized_kib_s": 85.36929577655272,
+    "rnc2_kib_s": 161.09248589347806,
+    "decoder_bytes": 526,
+    "checksum_bytes": 108,
+    "asm_total_bytes": 634,
+    "baseline_asm_total_bytes": 414,
+    "peak_packer_stack_bytes": 128,
+    "baseline_peak_packer_stack_bytes": 120,
+    "extra_heap_bytes": 0
+  },
+  "corpus": [
+    {
+      "name": "CASTLE.PI1",
+      "source": "godlib.spl/asset/UNLINK/SCENE/CASTLE.PI1",
+      "size": 32034,
+      "sha256": "50d149f9c6d7cad64bfa241156dd6228e0ff3762155ba5d8106d6ab57036cd38",
+      "packed": {
+        "imploder": 21650,
+        "rnc1": 21062,
+        "rnc2": 21790,
+        "ice": 21670,
+        "godpack": 22818
+      },
+      "files": {
+        "imploder": "D0.IMP",
+        "rnc1": "D0.RN1",
+        "rnc2": "D0.RN2",
+        "ice": "D0.ICE",
+        "godpack": "D0.GOD"
+      }
+    },
+    {
+      "name": "FOREST.PI1",
+      "source": "godlib.spl/wipe/FOREST.PI1",
+      "size": 32034,
+      "sha256": "0dba355f754ed925179acf9ba9b7a6a4f2c14233cddba16bbca853e5ed6ffe09",
+      "packed": {
+        "imploder": 26660,
+        "rnc1": 26149,
+        "rnc2": 26826,
+        "ice": 26615,
+        "godpack": 27648
+      },
+      "files": {
+        "imploder": "D1.IMP",
+        "rnc1": "D1.RN1",
+        "rnc2": "D1.RN2",
+        "ice": "D1.ICE",
+        "godpack": "D1.GOD"
+      }
+    },
+    {
+      "name": "FONT.BFB",
+      "source": "godlib.spl/asset/UNLINK/SCENE/FONT.BFB",
+      "size": 10007,
+      "sha256": "4d2619f1280a2d4b51241ce2475e5010797eb469f184fe5415e550f7b39dd12b",
+      "packed": {
+        "imploder": 2484,
+        "rnc1": 2014,
+        "rnc2": 2295,
+        "ice": 2502,
+        "godpack": 2330
+      },
+      "files": {
+        "imploder": "D2.IMP",
+        "rnc1": "D2.RN1",
+        "rnc2": "D2.RN2",
+        "ice": "D2.ICE",
+        "godpack": "D2.GOD"
+      }
+    },
+    {
+      "name": "SPARKS.BSB",
+      "source": "godlib.spl/asset/UNLINK/SCENE/SPARKS.BSB",
+      "size": 2088,
+      "sha256": "a438d9e7319449f6493a407872fa82ee9f8e06f3e5ac310d73142568fc60657f",
+      "packed": {
+        "imploder": 524,
+        "rnc1": 437,
+        "rnc2": 465,
+        "ice": 453,
+        "godpack": 538
+      },
+      "files": {
+        "imploder": "D3.IMP",
+        "rnc1": "D3.RN1",
+        "rnc2": "D3.RN2",
+        "ice": "D3.ICE",
+        "godpack": "D3.GOD"
+      }
+    },
+    {
+      "name": "QUICKIE.MOD",
+      "source": "godlib.spl/wizzcat/QUICKIE.MOD",
+      "size": 23328,
+      "sha256": "bc33f33cee7312fc46276f29409eb23018bb7834d4278ad956b94f0841d96ddf",
+      "packed": {
+        "imploder": 16910,
+        "rnc1": 16463,
+        "rnc2": 16746,
+        "ice": 16210,
+        "godpack": 18023
+      },
+      "files": {
+        "imploder": "D4.IMP",
+        "rnc1": "D4.RN1",
+        "rnc2": "D4.RN2",
+        "ice": "D4.ICE",
+        "godpack": "D4.GOD"
+      }
+    },
+    {
+      "name": "SCENE.LNK",
+      "source": "godlib.spl/asset/DATA/SCENE.LNK",
+      "size": 44328,
+      "sha256": "d40adaee1517cef02cacb3d64527e3e7b7eebfb2134c4253fbe0a084d57dee7f",
+      "packed": {
+        "imploder": 24736,
+        "rnc1": 23655,
+        "rnc2": 24623,
+        "ice": 24708,
+        "godpack": 25775
+      },
+      "files": {
+        "imploder": "D5.IMP",
+        "rnc1": "D5.RN1",
+        "rnc2": "D5.RN2",
+        "ice": "D5.ICE",
+        "godpack": "D5.GOD"
+      }
+    }
+  ],
+  "rows": [
+    {
+      "file": "CASTLE.PI1",
+      "variant": "imploder",
+      "baseline_cycles": 4100648.0,
+      "optimized_cycles": 3042096.0,
+      "baseline_ms": 512.581,
+      "optimized_ms": 380.262,
+      "rnc2_ms": 194.3045,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "CASTLE.PI1",
+      "variant": "imploder_core",
+      "baseline_cycles": 3660964.0,
+      "optimized_cycles": 2834944.0,
+      "baseline_ms": 457.6205,
+      "optimized_ms": 354.368,
+      "rnc2_ms": 194.3045,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    },
+    {
+      "file": "FOREST.PI1",
+      "variant": "imploder",
+      "baseline_cycles": 3879088.0,
+      "optimized_cycles": 2874040.0,
+      "baseline_ms": 484.886,
+      "optimized_ms": 359.255,
+      "rnc2_ms": 202.7045,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "FOREST.PI1",
+      "variant": "imploder_core",
+      "baseline_cycles": 3339204.0,
+      "optimized_cycles": 2620612.0,
+      "baseline_ms": 417.4005,
+      "optimized_ms": 327.5765,
+      "rnc2_ms": 202.7045,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    },
+    {
+      "file": "FONT.BFB",
+      "variant": "imploder",
+      "baseline_cycles": 965828.0,
+      "optimized_cycles": 756500.0,
+      "baseline_ms": 120.7285,
+      "optimized_ms": 94.5625,
+      "rnc2_ms": 49.6005,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "FONT.BFB",
+      "variant": "imploder_core",
+      "baseline_cycles": 909464.0,
+      "optimized_cycles": 726700.0,
+      "baseline_ms": 113.683,
+      "optimized_ms": 90.8375,
+      "rnc2_ms": 49.6005,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    },
+    {
+      "file": "SPARKS.BSB",
+      "variant": "imploder",
+      "baseline_cycles": 182948.0,
+      "optimized_cycles": 150948.0,
+      "baseline_ms": 22.8685,
+      "optimized_ms": 18.8685,
+      "rnc2_ms": 9.227,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "SPARKS.BSB",
+      "variant": "imploder_core",
+      "baseline_cycles": 165784.0,
+      "optimized_cycles": 139240.0,
+      "baseline_ms": 20.723,
+      "optimized_ms": 17.405,
+      "rnc2_ms": 9.227,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    },
+    {
+      "file": "QUICKIE.MOD",
+      "variant": "imploder",
+      "baseline_cycles": 3165288.0,
+      "optimized_cycles": 2315908.0,
+      "baseline_ms": 395.661,
+      "optimized_ms": 289.4885,
+      "rnc2_ms": 161.5435,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "QUICKIE.MOD",
+      "variant": "imploder_core",
+      "baseline_cycles": 2820404.0,
+      "optimized_cycles": 2152620.0,
+      "baseline_ms": 352.5505,
+      "optimized_ms": 269.0775,
+      "rnc2_ms": 161.5435,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    },
+    {
+      "file": "SCENE.LNK",
+      "variant": "imploder",
+      "baseline_cycles": 5410256.0,
+      "optimized_cycles": 4021984.0,
+      "baseline_ms": 676.282,
+      "optimized_ms": 502.748,
+      "rnc2_ms": 254.4685,
+      "baseline_stack": 120,
+      "optimized_stack": 128
+    },
+    {
+      "file": "SCENE.LNK",
+      "variant": "imploder_core",
+      "baseline_cycles": 4908852.0,
+      "optimized_cycles": 3786296.0,
+      "baseline_ms": 613.6065,
+      "optimized_ms": 473.287,
+      "rnc2_ms": 254.4685,
+      "baseline_stack": 64,
+      "optimized_stack": 72
+    }
+  ],
+  "benchmark_sha256": "f4d7992557d21de094f5975f8b928896052c68f90ab901473c6770229e41aa49",
+  "source_sha256": "5f6cfb8028d3817a3ab6ab22f3e31b5686c02f8d000f8460f8e196a959dad2e6"
+}

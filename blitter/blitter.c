@@ -93,6 +93,27 @@ U8	gBlitterFlipTable[ 256 ];
 #  CODE
 ################################################################################### */
 
+/* BSET tests the previous BUSY value and resumes the shared-bus transfer.
+ * Once Y_COUNT is zero, setting BUSY cannot start another transfer. Keep HOG
+ * clear so interrupts can still run between the blitter's bus slices.
+ */
+#if defined(__GNUC__) && defined(__m68k__)
+static __inline__ __attribute__((always_inline))
+#else
+static
+#endif
+void Blitter_RestartWait(volatile sBlitter *apBlitter)
+{
+#if defined(__GNUC__) && defined(__m68k__)
+	__asm__ volatile (
+		"1: bset.b #7,(%0)\n\tnop\n\tbne.s 1b"
+		: : "a" (&apBlitter->Mode) : "cc", "memory");
+#else
+	while (apBlitter->Mode & dBLITTERMODE_BUSY_BIT);
+#endif
+}
+
+
 static U8 Blitter_IsAvailable(void)
 {
 	return (U8)(BLT_BLITTER == System_GetBLT());
@@ -197,7 +218,7 @@ static void Blitter_CopyBoxInternal( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aS
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lSrcX2    = (U16)(aSrcX + aWidth - 1);
 	lDstX2    = (U16)(aDstX + aWidth - 1);
@@ -260,7 +281,7 @@ static void Blitter_CopyBoxInternal( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aS
 	lpBlitter->Skew = lSkew;
 	for( i=0; i<4; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		lpBlitter->pDst   = lpDst;
 		lpBlitter->pSrc   = lpSrc;
@@ -271,7 +292,7 @@ static void Blitter_CopyBoxInternal( U16 * apSrc, U16 * apDst, U16 aSrcX, U16 aS
 		lpDst++;
 	}
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 }
 
 
@@ -337,7 +358,7 @@ static void Blitter_DrawSpriteInternal( sBlitterSprite * apSprite, U16 * apScree
 	lXcount >>= 4;
 	lXcount  += 1;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
@@ -378,7 +399,7 @@ static void Blitter_DrawSpriteInternal( sBlitterSprite * apSprite, U16 * apScree
 
 	for( i=0; i<apSprite->MaskPlaneCount; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		lpBlitter->pDst   = lpDst2;
 		lpBlitter->pSrc   = lpMsk;
@@ -388,7 +409,7 @@ static void Blitter_DrawSpriteInternal( sBlitterSprite * apSprite, U16 * apScree
 		lpDst2++;
 	}
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	if( apSprite->MaskPlaneCount )
 	{
@@ -403,7 +424,7 @@ static void Blitter_DrawSpriteInternal( sBlitterSprite * apSprite, U16 * apScree
 
 	for( i=0; i<apSprite->GfxPlaneCount; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		lpBlitter->pDst   = lpDst;
 		lpBlitter->pSrc   = lpSrc;
@@ -472,7 +493,7 @@ static void Blitter_DrawOpaqueSpriteInternal( sBlitterSprite * apSprite, U16 * a
 	lXcount >>= 4;
 	lXcount  += 1;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
@@ -506,7 +527,7 @@ static void Blitter_DrawOpaqueSpriteInternal( sBlitterSprite * apSprite, U16 * a
 		lpBlitter->EndMask1 = (U16)(gBlitterStartMasks[ aX & 15 ] & gBlitterEndMasks[ lX2 & 15 ]);
 	}
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->LOP  = eBLITTERLOP_SRC;
 	lpBlitter->SrcIncX = 8;
@@ -514,7 +535,7 @@ static void Blitter_DrawOpaqueSpriteInternal( sBlitterSprite * apSprite, U16 * a
 
 	for( i=0; i<apSprite->GfxPlaneCount; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		lpBlitter->pDst   = lpDst;
 		lpBlitter->pSrc   = lpSrc;
@@ -583,7 +604,7 @@ static void Blitter_DrawColouredSpriteInternal( sBlitterSprite * apSprite, U16 *
 	lXcount >>= 4;
 	lXcount  += 1;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
@@ -624,7 +645,7 @@ static void Blitter_DrawColouredSpriteInternal( sBlitterSprite * apSprite, U16 *
 
 	for( i=0; i<apSprite->MaskPlaneCount; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		lpBlitter->pDst   = lpDst2;
 		lpBlitter->pSrc   = lpMsk;
@@ -634,7 +655,7 @@ static void Blitter_DrawColouredSpriteInternal( sBlitterSprite * apSprite, U16 *
 		lpDst2++;
 	}
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->LOP  = eBLITTERLOP_SRC_OR_DST;
 	lpBlitter->SrcIncX = 8;
@@ -644,7 +665,7 @@ static void Blitter_DrawColouredSpriteInternal( sBlitterSprite * apSprite, U16 *
 	{
 		if( aColour & (1<<i) )
 		{
-			while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+			Blitter_RestartWait(lpBlitter);
 
 			lpBlitter->pDst   = lpDst;
 			lpBlitter->pSrc   = lpSrc;
@@ -699,7 +720,7 @@ static void Blitter_DrawBoxInternal( sBlitterBox * apBox, U16 * apScreen, U16 aX
 	lXcount >>= 4;
 	lXcount  += 1;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 
 	lpBlitter->CountX  = lXcount;
 	lpBlitter->DstIncX = 8;
@@ -727,7 +748,7 @@ static void Blitter_DrawBoxInternal( sBlitterBox * apBox, U16 * apScreen, U16 aX
 
 	for( i=0; i<4; i++ )
 	{
-		while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+		Blitter_RestartWait(lpBlitter);
 
 		if( lColour & 1 )
 		{
@@ -764,7 +785,7 @@ void	Blitter_Wait( void )
 
 	lpBlitter = (sBlitter*)dBLITTER_BASE_ADR;
 
-	while( lpBlitter->Mode & dBLITTERMODE_BUSY_BIT );
+	Blitter_RestartWait(lpBlitter);
 }
 
 

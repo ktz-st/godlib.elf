@@ -107,6 +107,12 @@ int main(void)
     if(space)
     {
         memset(space,0xff,131076UL);
+        /* Exercise every remainder of the eight-word checksum loop. */
+        for(j=0;j<=40;j+=2)
+        {
+            check(Imploder_ChecksumAsm(space,j)==7UL+(U32)(j/2)*65535UL);
+            check(Imploder_ChecksumAsm(space+1,j)==7UL+(U32)(j/2)*65535UL);
+        }
         check(Imploder_ChecksumAsm(space,0)==7);
         check(Imploder_ChecksumAsm(space,2)==65542UL);
         check(Imploder_ChecksumAsm(space,131074UL)==6);

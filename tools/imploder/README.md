@@ -40,6 +40,8 @@ make -C godlib/tools/imploder test
 make -C godlib/tools/imploder native
 # Optional local original-game fixtures (not vendored):
 make -C godlib/tools/imploder native MICRO_ROOT=/path/to/MICRO/build/amiga
+# Include 59 edge cases (213 native cases with 82 MICRO originals):
+make -C godlib/tools/imploder native STRESS=1 MICRO_ROOT=/path/to/MICRO/build/amiga
 ```
 
 `native` requires an updated `godlib/libgod.a`, GCC ELF and sibling libcmini.
@@ -58,8 +60,10 @@ and whole-archive `LinkFile_InitToRAM()` loading.
 On 2026-10-22, all 72 generated cases and all 82 original MICRO fixtures passed
 on Hatari STE with German TOS 1.62; host ASan/UBSan round trips also passed.
 
-The runtime ASM now uses the original MICRO/FRT decoder (364 bytes, with A5
-preservation for GCC), plus a 50-byte assembly checksum routine. This is
+The runtime ASM optimizes the MICRO/FRT decoder with counted/grouped bit reads
+(526 bytes), plus a 108-byte checksum routine with an eight-word aligned loop.
+Full Packer throughput is 85.4 KiB/s versus 63.5 KiB/s at `f3134ac`, with
+unchanged checks, no heap/work buffer and 128-byte peak stack. This is
 independent of the host compressor source above.
 
 See [runtime API and format](../../packer/imploder.md).

@@ -3322,7 +3322,10 @@ Important limitations and risks:
   cover masked, opaque and coloured sprites across fine X alignments and vertical
   clipping using independent pixel references.
 - `gBlitterHack` remains as a leftover global and is not actively used.
-- All hardware waits are busy loops.
+- Hardware waits use shared-bus restart loops on GCC/m68k (2026-10-23),
+  with plain C polling retained for other compilers. Sprite draws still may
+  return while the final plane is running; use `Blitter_Wait()` when necessary.
+  See [restart measurements and verification](blitter-restart.md).
 
 ## graphic
 
@@ -3455,6 +3458,11 @@ Function tables:
   Unclipped and aligned single-edge draws keep their old code
   and timing (`tests/sprite-audit` unchanged). Before: 1587/2386 unaligned-box
   cases wrong on CPU, 135 on blitter, 225/1916 both-edge cases wrong on each.
+- Sprite-plane restart loops (2026-10-23) reserve A1 for MODE and D4 for bit 7,
+  reducing starts/restarts to register-indirect operations while retaining both
+  NOPs and non-HOG operation. The shared loop covers unclipped and clipped
+  sprites. Measured time falls another 2.4–3.4% versus the previous restart loop;
+  see [BLiTTER restart](blitter-restart.md) for cases and correctness checks.
 - Native BLiTTER both-edge sprite clipping (2026-10-22):
   `Graphic_4BP_DrawSprite_ClipBoth_BLT` computes the actual visible source X,
   source/destination word spans, combined partial-word end masks, FXSR/NFSR
@@ -4291,9 +4299,12 @@ Imploder:
 - Native 68000 backward decoder supports in-place decoding without heap or
   overflow padding; separate-buffer decoding copies packed bytes into the
   destination first and preserves the source.
-- The current ASM core is the original MICRO/FRT 364-byte decoder, reassembled
-  exactly before adding A5 preservation for GCC. Checksum calculation is also
-  ASM, with an unaligned-source path and unchanged validation.
+- The current 526-byte ASM core optimizes the MICRO/FRT decoder with counted
+  bits and grouped offset extraction. The 108-byte ASM checksum processes eight
+  words per iteration and retains the unaligned-source path and validation.
+  Full throughput improved 63.5 -> 85.4 KiB/s (25.7% less CPU time), with no
+  extra heap and 128-byte peak stack; RNC2 still reached 161.1 KiB/s.
+  Details and 213-case regression: [Imploder](../packer/imploder.md).
 - `Imploder_DepackChecked()` checks actual input length, destination capacity,
   even destination alignment, partial overlap and the original word checksum.
 - `Packer_*` dispatch and whole compressed `LinkFile_InitToRAM()` loading are

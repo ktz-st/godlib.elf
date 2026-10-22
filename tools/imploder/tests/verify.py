@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 
-def verify(tool, root, micro=None):
+def verify(tool, root, micro=None, stress=False):
     rng = random.Random(0x494D5021)
     datasets = [bytes(4096), bytes(range(64)) * 16,
                 (b'Imploder / GodLib / Atari ST!\x00' * 150)[:4095],
@@ -47,6 +47,28 @@ def verify(tool, root, micro=None):
         assert subprocess.run([tool, *args], capture_output=True).returncode
     for name in ['small.raw', 'bad.imp']:
         (root/name).unlink(missing_ok=True)
+    if stress:
+        from stress import fixtures
+        added, long_literals = 0, 0
+        for mode, data in fixtures():
+            raw, packed, output = [root / (f'f{count:03}' + ext)
+                                   for ext in ('.raw', '.imp', '.out')]
+            raw.write_bytes(data)
+            result = subprocess.run([tool, f'-{mode}', str(raw), str(packed)], capture_output=True)
+            if result.returncode:
+                assert b"can't implode" in result.stderr and not packed.exists()
+                raw.unlink()
+                continue
+            blob = packed.read_bytes()
+            trailer = struct.unpack_from('>I', blob, 8)[0]
+            long_literals += struct.unpack_from('>I', blob, trailer + 12)[0] > 65535
+            subprocess.run([tool, str(packed), str(output)], check=True, capture_output=True)
+            assert output.read_bytes() == data
+            output.unlink()
+            added += 1
+            count += 1
+        assert added == 59 and long_literals >= 1, (added, long_literals)
+        print(f'PASS: {added} stress streams, including {long_literals} initial literal runs over 64 KiB')
     if micro:
         for source in sorted(micro.rglob('*.imp')):
             packed, output = root / f'f{count:03}.imp', root / f'f{count:03}.raw'
@@ -60,7 +82,7 @@ def verify(tool, root, micro=None):
     shutil.copyfile(root/'f000.raw', loose/'PAYLOAD.BIN')
     toolbase.makelink(loose, root/'SCENE.LNK')
     subprocess.run([tool, str(root/'SCENE.LNK'), str(root/'SCENE.IMP')], check=True, capture_output=True)
-    print(f'PASS: {count} round trips, modes 0..11, sizes 1024..65537; invalid inputs rejected')
+    print(f'PASS: {count} round trips, modes 0..11, standard sizes 1024..65537; invalid inputs rejected')
 
 
 if __name__ == '__main__':
@@ -68,10 +90,11 @@ if __name__ == '__main__':
     parser.add_argument('tool')
     parser.add_argument('--target-dir', type=Path)
     parser.add_argument('--micro-root', type=Path, help='optional original MICRO IMP! fixture tree')
+    parser.add_argument('--stress', action='store_true', help='long literals, distant/overlapping matches and bit boundaries')
     args = parser.parse_args()
     if args.target_dir:
         args.target_dir.mkdir(parents=True, exist_ok=True)
-        verify(str(Path(args.tool).resolve()), args.target_dir.resolve(), args.micro_root)
+        verify(str(Path(args.tool).resolve()), args.target_dir.resolve(), args.micro_root, args.stress)
     else:
         with tempfile.TemporaryDirectory(prefix='godlib-imploder-') as tmp:
-            verify(str(Path(args.tool).resolve()), Path(tmp), args.micro_root)
+            verify(str(Path(args.tool).resolve()), Path(tmp), args.micro_root, args.stress)

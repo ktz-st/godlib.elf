@@ -1,0 +1,505 @@
+{
+  "date": "2026-10-23",
+  "machine": "Hatari-HRDB STE, MC68000 8 MHz, PAL low, 4 MB, German TOS 1.62, no DMA audio",
+  "method": "32 complete draws per case and mode. HRDB cycles in graphics ASM objects (and blitter.o for C), including bus stalls and wait loops; C caller/dispatch, setup, disk and system interrupt handlers excluded. 10 cases per mode: 4 ASM modes and 2 C modes. Before timing, each variant/case compared over 64000 bytes with CPU renderer. All 60 framebuffer comparisons matched. No production source/library changes in this benchmark.",
+  "modes": {
+    "POLL": "shared bus; only BTST BUSY, no forced restart",
+    "RESTART": "existing graphics ASM: BUSY=$80, BSET immediate + NOP restart loop",
+    "HOG": "BUSY|HOG=$C0; BTST wait",
+    "REGISTER": "shared restart using D4=7 and A1 pointing to mode register; only sprite planes changed",
+    "CPOLL": "existing blitter.c sprite path, explicit Blitter_Wait after draw",
+    "CRESTART": "isolated C prototype: inline ASM BSET #7 / NOP / BNE replacing BUSY waits, explicit completion wait"
+  },
+  "graphics": [
+    {
+      "mode": "POLL",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 3441.0,
+      "ms_8mhz": 0.430125,
+      "pal_frame_percent": 2.150625
+    },
+    {
+      "mode": "POLL",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 11988.625,
+      "ms_8mhz": 1.498578125,
+      "pal_frame_percent": 7.492890625
+    },
+    {
+      "mode": "POLL",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 19516.125,
+      "ms_8mhz": 2.439515625,
+      "pal_frame_percent": 12.197578125
+    },
+    {
+      "mode": "POLL",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 63972.375,
+      "ms_8mhz": 7.996546875,
+      "pal_frame_percent": 39.982734375
+    },
+    {
+      "mode": "POLL",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 232447.75,
+      "ms_8mhz": 29.05596875,
+      "pal_frame_percent": 145.27984375
+    },
+    {
+      "mode": "POLL",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 30454.375,
+      "ms_8mhz": 3.806796875,
+      "pal_frame_percent": 19.033984375
+    },
+    {
+      "mode": "POLL",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 15561.75,
+      "ms_8mhz": 1.94521875,
+      "pal_frame_percent": 9.72609375
+    },
+    {
+      "mode": "POLL",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 57660.5,
+      "ms_8mhz": 7.2075625,
+      "pal_frame_percent": 36.0378125
+    },
+    {
+      "mode": "POLL",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 11271.75,
+      "ms_8mhz": 1.40896875,
+      "pal_frame_percent": 7.04484375
+    },
+    {
+      "mode": "POLL",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 53620.125,
+      "ms_8mhz": 6.702515625,
+      "pal_frame_percent": 33.512578125
+    },
+    {
+      "mode": "RESTART",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 3472.75,
+      "ms_8mhz": 0.43409375,
+      "pal_frame_percent": 2.17046875
+    },
+    {
+      "mode": "RESTART",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 7725.875,
+      "ms_8mhz": 0.965734375,
+      "pal_frame_percent": 4.828671875
+    },
+    {
+      "mode": "RESTART",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 11337.25,
+      "ms_8mhz": 1.41715625,
+      "pal_frame_percent": 7.08578125
+    },
+    {
+      "mode": "RESTART",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 34401.875,
+      "ms_8mhz": 4.300234375,
+      "pal_frame_percent": 21.501171875
+    },
+    {
+      "mode": "RESTART",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 121875.875,
+      "ms_8mhz": 15.234484375,
+      "pal_frame_percent": 76.172421875
+    },
+    {
+      "mode": "RESTART",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 16525.25,
+      "ms_8mhz": 2.06565625,
+      "pal_frame_percent": 10.32828125
+    },
+    {
+      "mode": "RESTART",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 9423.125,
+      "ms_8mhz": 1.177890625,
+      "pal_frame_percent": 5.889453125
+    },
+    {
+      "mode": "RESTART",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 32527.375,
+      "ms_8mhz": 4.065921875,
+      "pal_frame_percent": 20.329609375
+    },
+    {
+      "mode": "RESTART",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 7101.75,
+      "ms_8mhz": 0.88771875,
+      "pal_frame_percent": 4.43859375
+    },
+    {
+      "mode": "RESTART",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 30358.75,
+      "ms_8mhz": 3.79484375,
+      "pal_frame_percent": 18.97421875
+    },
+    {
+      "mode": "HOG",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 3440.75,
+      "ms_8mhz": 0.43009375,
+      "pal_frame_percent": 2.15046875
+    },
+    {
+      "mode": "HOG",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 7073.25,
+      "ms_8mhz": 0.88415625,
+      "pal_frame_percent": 4.42078125
+    },
+    {
+      "mode": "HOG",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 10143.5,
+      "ms_8mhz": 1.2679375,
+      "pal_frame_percent": 6.3396875
+    },
+    {
+      "mode": "HOG",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 30654.5,
+      "ms_8mhz": 3.8318125,
+      "pal_frame_percent": 19.1590625
+    },
+    {
+      "mode": "HOG",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 108569.375,
+      "ms_8mhz": 13.571171875,
+      "pal_frame_percent": 67.855859375
+    },
+    {
+      "mode": "HOG",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 14763.0,
+      "ms_8mhz": 1.845375,
+      "pal_frame_percent": 9.226875
+    },
+    {
+      "mode": "HOG",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 8507.0,
+      "ms_8mhz": 1.063375,
+      "pal_frame_percent": 5.316875
+    },
+    {
+      "mode": "HOG",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 28978.0,
+      "ms_8mhz": 3.62225,
+      "pal_frame_percent": 18.11125
+    },
+    {
+      "mode": "HOG",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 6433.375,
+      "ms_8mhz": 0.804171875,
+      "pal_frame_percent": 4.020859375
+    },
+    {
+      "mode": "HOG",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 26903.5,
+      "ms_8mhz": 3.3629375,
+      "pal_frame_percent": 16.8146875
+    },
+    {
+      "mode": "REGISTER",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 3388.5,
+      "ms_8mhz": 0.4235625,
+      "pal_frame_percent": 2.1178125
+    },
+    {
+      "mode": "REGISTER",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 7513.0,
+      "ms_8mhz": 0.939125,
+      "pal_frame_percent": 4.695625
+    },
+    {
+      "mode": "REGISTER",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 11024.875,
+      "ms_8mhz": 1.378109375,
+      "pal_frame_percent": 6.890546875
+    },
+    {
+      "mode": "REGISTER",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 33466.75,
+      "ms_8mhz": 4.18334375,
+      "pal_frame_percent": 20.91671875
+    },
+    {
+      "mode": "REGISTER",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 118681.25,
+      "ms_8mhz": 14.83515625,
+      "pal_frame_percent": 74.17578125
+    },
+    {
+      "mode": "REGISTER",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 16044.0,
+      "ms_8mhz": 2.0055,
+      "pal_frame_percent": 10.0275
+    },
+    {
+      "mode": "REGISTER",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 9160.0,
+      "ms_8mhz": 1.145,
+      "pal_frame_percent": 5.725
+    },
+    {
+      "mode": "REGISTER",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 31541.125,
+      "ms_8mhz": 3.942640625,
+      "pal_frame_percent": 19.713203125
+    },
+    {
+      "mode": "REGISTER",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 6863.25,
+      "ms_8mhz": 0.85790625,
+      "pal_frame_percent": 4.28953125
+    },
+    {
+      "mode": "REGISTER",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 29320.75,
+      "ms_8mhz": 3.66509375,
+      "pal_frame_percent": 18.32546875
+    }
+  ],
+  "c_api": [
+    {
+      "mode": "CPOLL",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 4871.0,
+      "ms_8mhz": 0.608875,
+      "pal_frame_percent": 3.044375
+    },
+    {
+      "mode": "CPOLL",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 12859.75,
+      "ms_8mhz": 1.60746875,
+      "pal_frame_percent": 8.03734375
+    },
+    {
+      "mode": "CPOLL",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 22688.25,
+      "ms_8mhz": 2.83603125,
+      "pal_frame_percent": 14.18015625
+    },
+    {
+      "mode": "CPOLL",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 65732.25,
+      "ms_8mhz": 8.21653125,
+      "pal_frame_percent": 41.08265625
+    },
+    {
+      "mode": "CPOLL",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 238405.25,
+      "ms_8mhz": 29.80065625,
+      "pal_frame_percent": 149.00328125
+    },
+    {
+      "mode": "CPOLL",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 120283.375,
+      "ms_8mhz": 15.035421875,
+      "pal_frame_percent": 75.177109375
+    },
+    {
+      "mode": "CPOLL",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 23712.5,
+      "ms_8mhz": 2.9640625,
+      "pal_frame_percent": 14.8203125
+    },
+    {
+      "mode": "CPOLL",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 15014.25,
+      "ms_8mhz": 1.87678125,
+      "pal_frame_percent": 9.38390625
+    },
+    {
+      "mode": "CPOLL",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 4872.25,
+      "ms_8mhz": 0.60903125,
+      "pal_frame_percent": 3.04515625
+    },
+    {
+      "mode": "CPOLL",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 4879.875,
+      "ms_8mhz": 0.609984375,
+      "pal_frame_percent": 3.049921875
+    },
+    {
+      "mode": "CRESTART",
+      "case": 0,
+      "calls": 32,
+      "cycles_per_draw": 4979.0,
+      "ms_8mhz": 0.622375,
+      "pal_frame_percent": 3.111875
+    },
+    {
+      "mode": "CRESTART",
+      "case": 1,
+      "calls": 32,
+      "cycles_per_draw": 9129.375,
+      "ms_8mhz": 1.141171875,
+      "pal_frame_percent": 5.705859375
+    },
+    {
+      "mode": "CRESTART",
+      "case": 2,
+      "calls": 32,
+      "cycles_per_draw": 12682.125,
+      "ms_8mhz": 1.585265625,
+      "pal_frame_percent": 7.926328125
+    },
+    {
+      "mode": "CRESTART",
+      "case": 3,
+      "calls": 32,
+      "cycles_per_draw": 35426.5,
+      "ms_8mhz": 4.4283125,
+      "pal_frame_percent": 22.1415625
+    },
+    {
+      "mode": "CRESTART",
+      "case": 4,
+      "calls": 32,
+      "cycles_per_draw": 121642.25,
+      "ms_8mhz": 15.20528125,
+      "pal_frame_percent": 76.02640625
+    },
+    {
+      "mode": "CRESTART",
+      "case": 5,
+      "calls": 32,
+      "cycles_per_draw": 62503.75,
+      "ms_8mhz": 7.81296875,
+      "pal_frame_percent": 39.06484375
+    },
+    {
+      "mode": "CRESTART",
+      "case": 6,
+      "calls": 32,
+      "cycles_per_draw": 13759.0,
+      "ms_8mhz": 1.719875,
+      "pal_frame_percent": 8.599375
+    },
+    {
+      "mode": "CRESTART",
+      "case": 7,
+      "calls": 32,
+      "cycles_per_draw": 9395.125,
+      "ms_8mhz": 1.174390625,
+      "pal_frame_percent": 5.871953125
+    },
+    {
+      "mode": "CRESTART",
+      "case": 8,
+      "calls": 32,
+      "cycles_per_draw": 4980.875,
+      "ms_8mhz": 0.622609375,
+      "pal_frame_percent": 3.113046875
+    },
+    {
+      "mode": "CRESTART",
+      "case": 9,
+      "calls": 32,
+      "cycles_per_draw": 4990.5,
+      "ms_8mhz": 0.6238125,
+      "pal_frame_percent": 3.1190625
+    }
+  ],
+  "hashes": {
+    "POLL": "e892bb98802979028ec29387ee3bd624fd7c248cc68b04cdfdc6429a38a1031b",
+    "RESTART": "656b4eeb9a80e88a3107d4453ab7daa0e741c7942ce2f14ef9ae95e661b3daa9",
+    "HOG": "663be015e87f3e2d96895126de5df48257aa9d1181f245ea4451f2fa58056f04",
+    "REGISTER": "4999d5aea558756816012f2c0522bb83a65d19758f871678f2348b7f8c92d3e7",
+    "CPOLL": "72114daa6fd86fc2f1442dccecef346ba01a09553e3c51e60aec1e6ba52b7da7",
+    "CRESTART": "abd347050b45500ac3b24781bcc0514eaf7901e5a7bc1dfdc54a615364aeba68"
+  }
+}

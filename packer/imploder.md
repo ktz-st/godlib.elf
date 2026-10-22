@@ -1,15 +1,20 @@
 # Imploder data support
 
 `packer/imploder.c`, `imploder.h` and `imploder_s.s` add `IMP!` data streams to
-the normal GodLib Packer API. The current 364-byte 68000 decoder is extracted
-from MICRO's original FRT `$66560..$666CC`. The initial reassembly matches the
-original block byte-for-byte (SHA-256
-`b0f7935bfc9a553218b687106b439c14d486bb12b14d80c683a09854b4baccbb`).
-The only core adaptation adds A5 to both MOVEM masks for GCC ELF `-mfastcall`.
-Lookup tables, backward `DBRA` match copying and bit decoding retain the original
-logic. This is readable vasm source; no game binary is required to build GodLib.
-A separate 50-byte ASM word-sum routine replaces the C checksum loop, including
-an odd-address byte path. Host packer provenance and BSD-2-Clause terms remain
+the normal GodLib Packer API. The current 526-byte 68000 decoder is optimized
+from MICRO's original FRT `$66560..$666CC`. The faithful 364-byte reassembly
+is recorded in commit `f3134ac`; its original block SHA-256 is
+`b0f7935bfc9a553218b687106b439c14d486bb12b14d80c683a09854b4baccbb`.
+
+The optimized reader tracks available bits with flag-neutral `DBRA`, extracts
+match offsets as groups of 1..16 bits, handles the common single-bit literal
+count directly, and copies the mandatory first two match bytes without a loop.
+The initial literal count remains 32-bit; later literal counts are bounded by
+16401 and use a word decrement. No lookup cache, heap, input prefetch across
+literal runs or special hardware is used. A 108-byte ASM checksum routine
+processes eight aligned words per iteration and retains the odd-address path.
+All validation remains enabled. Source is readable vasm; a game binary is not
+required to build GodLib. Host packer provenance and BSD-2-Clause terms are
 in [tools/imploder](../tools/imploder/README.md).
 
 ```c
@@ -36,9 +41,9 @@ Destination must be even-aligned and have at least the unpacked size in bytes.
 Separate buffers must not overlap. In that case packed bytes are copied into
 the destination before in-place decoding, so the original source is unchanged
 and may be read-only. Source alignment is unrestricted in the C wrapper.
-The adapted ASM core uses 60 bytes of saved registers/local stack plus the
+The optimized ASM core uses 68 bytes of saved registers/local stack plus the
 return address; the C wrapper adds its normal call frame. The full Packer path
-peaked at 120 bytes of stack in native tests (previously 128). No mutable codec globals.
+peaked at 128 bytes of stack (8 more than the faithful MICRO adaptation). No mutable codec globals.
 
 ## Generic loading
 
@@ -91,3 +96,33 @@ cycle-profiled corpus; most of the gain comes from replacing the C checksum
 with the original-style word loop in ASM. Validation remains enabled. This
 still does not match RNC2's 161.1 KiB/s on the same corpus. Size on disk is
 unchanged. See [raw measurements](imploder-micro-benchmark.json).
+
+## Grouped-bit optimization (2026-10-23)
+
+Same corpus and profiling method as above, baseline `f3134ac`, checksum enabled.
+
+| Full GodLib path | Faithful MICRO + ASM checksum | Optimized | RNC2 reference |
+|---|---:|---:|---:|
+| CASTLE.PI1 | 512.58 ms | 380.26 ms | 194.30 ms |
+| FOREST.PI1 | 484.89 ms | 359.26 ms | 202.70 ms |
+| FONT.BFB | 120.73 ms | 94.56 ms | 49.60 ms |
+| SPARKS.BSB | 22.87 ms | 18.87 ms | 9.23 ms |
+| QUICKIE.MOD | 395.66 ms | 289.49 ms | 161.54 ms |
+| SCENE.LNK | 676.28 ms | 502.75 ms | 254.47 ms |
+| Aggregate throughput | 63.5 KiB/s | 85.4 KiB/s | 161.1 KiB/s |
+
+Total CPU time decreased 25.7%; the decoder alone decreased 22.4%. The gap to
+RNC2 shrank from 2.54x to 1.89x; this does not make Imploder as fast as RNC2.
+Compression and the single-buffer contract are unchanged. ASM code grows from
+414 to 634 bytes including checksum, and the Packer stack peak from 120 to
+128 bytes; no extra data buffer or runtime table allocation is needed.
+
+`make -C godlib/tools/imploder native STRESS=1 MICRO_ROOT=/path/to/MICRO/build/amiga`
+adds 59 deterministic stress streams to the 72 standard cases and the local
+originals. With the 82 MICRO fixtures, all 213 cases passed host round trips
+and Hatari STE / German TOS 1.62 comparisons, including in-place/separate/
+unaligned source, checksum wraparound and remainder counts, guards and LNK.
+The stress set includes five initial literal runs over 65535 bytes, long
+matches, overlapping distances, large offsets and odd/even lengths. Independent
+68000 core checks also verified return values and all callee-saved registers.
+See [raw optimized measurements](imploder-optimized-benchmark.json).

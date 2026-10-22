@@ -181,12 +181,14 @@ BLIT_SIZEOF	equ 32
 	bne.s	*-8						; yes, wait
 	ENDM
 
+	; Sprite planes reserve a1 for MODE and d4 for the BUSY bit number.
 	MACRO	mBlitterGoWait_a6
-	move.b	#eBLITTERMODE_BUSY_BIT,eBLITTER_MODE(a6)
+	move.b	#eBLITTERMODE_BUSY_BIT,(a1)
 	nop
-	bset.b	#7,eBLITTER_MODE(a6)	; is blitter busy?
+.restart\@:
+	bset.b	d4,(a1)				; restart; Z reflects previous BUSY
 	nop
-	bne.s	*-8						; yes, wait
+	bne.s	.restart\@
 	ENDM
 
 **************************************************************************************
@@ -1309,6 +1311,8 @@ Graphic_4BP_DrawSprite_Go:
 	move.w	d2,eBLITTER_ENDMASK_3(a6)
 
 Graphic_4BP_DrawSprite_Planes:
+	lea		eBLITTER_MODE(a6),a1
+	moveq	#7,d4
 
 	move.b	#eBLITTERLOP_SRC,eBLITTER_LOP(a6)
 	tst.w	sGraphicSprite_mMaskPlaneCount(a2)

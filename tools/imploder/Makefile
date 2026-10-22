@@ -16,10 +16,10 @@ $(OUT): $(SOURCES) $(wildcard src/*.h)
 	$(CC) $(CFLAGS) $(SOURCES) -o $@
 
 test: $(OUT)
-	python3 tests/verify.py $(abspath $(OUT))
+	python3 tests/verify.py $(abspath $(OUT)) $(if $(STRESS),--stress)
 
 native: $(OUT)
-	python3 tests/verify.py $(abspath $(OUT)) --target-dir $(NATIVE_DIR) $(if $(MICRO_ROOT),--micro-root $(MICRO_ROOT))
+	python3 tests/verify.py $(abspath $(OUT)) --target-dir $(NATIVE_DIR) $(if $(MICRO_ROOT),--micro-root $(MICRO_ROOT)) $(if $(STRESS),--stress)
 	$(MINT_CC) $(NATIVE_FLAGS) -nostdlib -nostartfiles -nodefaultlibs -static \
 		-Wl,--gc-sections -Wl,--relax -L$(LIBCMINI)/lib/mshort/mfastcall -L$(GODLIB_ROOT) \
 		-o $(NATIVE_DIR)/IMPTEST.PRG $(LIBCMINI)/lib/mshort/mfastcall/crt0.o tests/native.c \

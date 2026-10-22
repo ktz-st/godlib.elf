@@ -1,5 +1,8 @@
 # GodLib documentation
 
+- [BLiTTER restart optimization](blitter-restart.md): shared-bus C waits, shorter
+  sprite ASM loops, pixel verification and measured render times.
+
 - [Imploder compression](../packer/imploder.md): native host packer, `IMP!`
   detection, checked 68000 ASM depacking and compressed Linkfile loading.
 

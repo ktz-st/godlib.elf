@@ -318,6 +318,8 @@ void	Video_UpdateRegsFalcon( void ){}
 void	Wipe_In_Init( U16 aIndex, U16 * apGfx )	{ (void)aIndex; (void)apGfx; }
 void	Wipe_Out_Init( U16 aIndex )				{ (void)aIndex; }
 U16		Wipe_Update( U16 * apScreen )			{ (void)apScreen; return(0);	}
+void	Wipe_SetBlitterEnable( U16 aEnable )		{ (void)aEnable; }
+U16		Wipe_GetBlitterEnable( void )			{ return(0); }
 
 U16		Wipe_IsFinished( void )					{	return(1);	}
 

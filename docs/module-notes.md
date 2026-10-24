@@ -728,6 +728,8 @@ Public API:
 - `Wipe_Out_Init(U16 aIndex)`
 - `Wipe_Update(U16 * apScreen)`
 - `Wipe_IsFinished(void)`
+- `Wipe_SetBlitterEnable(U16 aEnable)`
+- `Wipe_GetBlitterEnable(void)`
 
 Typical usage:
 
@@ -741,7 +743,13 @@ Behaviour:
   pixels from that source into `apScreen`.
 - Wipe-out progressively clears pixels from `apScreen`.
 - Invalid effect indices (`aIndex >= 39`) are ignored by the init functions.
+- The bounds check is unsigned, including `0x8000..0xffff`.
 - The module keeps global state, so only one wipe can be active at a time.
+- CPU is the default backend. After System/Platform initialization, opt in
+  with `Wipe_SetBlitterEnable(1)`; the getter returns the actual selection,
+  falling back to CPU when `System_GetBLT()` reports no hardware. This is
+  independent of `Graphic_SetBlitterEnable`. Switching during an active wipe
+  keeps its mask pointer/progress and destination semantics.
 
 Implementation notes:
 
@@ -757,10 +765,24 @@ Implementation notes:
 - `Wipe_Out_Render()` inverts the mask and applies it to the screen with
   `screen &= ~mask`.
 
-There is also an exported `Wipe_Render_STE()` routine which programs the STE
-blitter/halftone registers directly (`$FFFF8A00` and friends). It is not
-declared in `wipe.h`, and `Wipe_Update()` currently uses the software render
-helpers instead.
+`Wipe_Update()` now selects CPU or BLiTTER renderers. Both use the same 32-byte
+mask frame and advance identically. The BLiTTER uses one synchronous HOG blit
+with 80 words × 200 rows and a 16×16 halftone. Wipe-in uses HOP=3 / OP=3
+(source AND halftone, replacing destination). Wipe-out inverts the mask and
+uses HOP=1 / OP=1 (halftone AND existing destination, no source fetch), retaining
+cumulative clearing and arbitrary caller-written destination pixels. It waits
+for idle before programming hardware and for BUSY to clear before returning.
+All addresses must be even, in ST RAM, stride 160; no clipping or virtual-screen
+stride support is advertised. The caller owns the BLiTTER for the duration of
+this synchronous operation. No new heap allocation or rendered-frame cache.
+
+The exported raw `Wipe_Render_STE()` compatibility helper is still absent from
+the public header. Its pointer-cell/frame interface now uses the correct
+32-byte frame stride. Normal applications should use the public update API.
+The example `godlib.spl/wipe` toggles the backend with B, defaults to available
+hardware, and uses ScreenBack as its canonical transition buffer. Its tests
+cover all 589 frames in both directions and both/mixed backends; measurements
+are in `godlib.spl/wipe/CPU.md`.
 
 Integration:
 
@@ -768,6 +790,7 @@ Integration:
   `godlib/Makefile`.
 - `dummy.c` provides host stubs where `Wipe_Update()` returns `0` and
   `Wipe_IsFinished()` returns `1`.
+- Host backend setters are no-ops and `Wipe_GetBlitterEnable()` returns `0`.
 - The FE/FED renderer uses this module for page transitions:
   - `RenderFed_Update()` calls `Wipe_Update()`.
   - `RenderFed_TransitionStart()` calls `Wipe_In_Init()` or `Wipe_Out_Init()`.

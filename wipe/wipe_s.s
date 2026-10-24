@@ -44,6 +44,12 @@
 	XDEF	Wipe_IsFinished
 	XDEF	Wipe_Update
 	XDEF	Wipe_Render_STE
+	XDEF	Wipe_SetBlitterEnable
+	XDEF	Wipe_GetBlitterEnable
+	XDEF	Wipe_UpdateEnd,Wipe_In_Render,Wipe_In_RenderEnd,Wipe_Out_Render,Wipe_Out_RenderEnd
+	XDEF	Wipe_In_Render_BLT,Wipe_In_Render_BLTEnd,Wipe_Out_Render_BLT,Wipe_Out_Render_BLTEnd
+	XDEF	Wipe_BlitFrame,Wipe_BlitFrameEnd,Wipe_BlitWait,Wipe_BlitWaitEnd
+	XREF	System_GetBLT
 
 	XDEF	gWipeFrameCounts
 
@@ -91,7 +97,7 @@ eWIPE_MODE_OUT		EQU	2
 
 Wipe_In_Init:
 	cmp.w	#eWIPE_FX_LIMIT,d0
-	bge		.ret
+	bhs		.ret
 
 	move.w	d0,gWipeFxIndex
 	move.l	a0,gpWipeGfx
@@ -131,7 +137,7 @@ Wipe_IsFinished:
 
 Wipe_Out_Init:
 	cmp.w	#eWIPE_FX_LIMIT,d0
-	bge		.ret
+	bhs		.ret
 
 	move.w	d0,gWipeFxIndex
 
@@ -168,8 +174,13 @@ Wipe_Update:
 	move.l	a0,a1
 	move.l	gpWipeGfx,a0
 	move.l	gpWipeMask,a2
+	tst.w	gWipeBlitterEnable
+	beq.s	.in_cpu
+	bsr		Wipe_In_Render_BLT
+	bra.s	.in_done
+.in_cpu:
 	bsr		Wipe_In_Render
-
+.in_done:
 	add.l	#eWIPE_CHUNK_SIZE,gpWipeMask
 	subq.w	#1,gWipeFramesLeft
 	ble		.wipe_end
@@ -180,8 +191,13 @@ Wipe_Update:
 	bne.s	.ret
 
 	move.l	gpWipeMask,a1
+	tst.w	gWipeBlitterEnable
+	beq.s	.out_cpu
+	bsr		Wipe_Out_Render_BLT
+	bra.s	.out_done
+.out_cpu:
 	bsr		Wipe_Out_Render
-
+.out_done:
 	add.l	#eWIPE_CHUNK_SIZE,gpWipeMask
 	subq.w	#1,gWipeFramesLeft
 	bgt		.ret
@@ -194,6 +210,25 @@ Wipe_Update:
 .ret:
 	movem.l	(a7)+,d0-d7/a0-a2
 	rts
+Wipe_UpdateEnd:
+
+; Explicit opt-in, with safe CPU fallback on machines without BLiTTER.
+Wipe_SetBlitterEnable:
+	tst.w	d0
+	beq.s	.disable
+	jsr		System_GetBLT
+	cmpi.w	#1,d0			; BLT_BLITTER
+	seq		d0
+	andi.w	#1,d0
+	move.w	d0,gWipeBlitterEnable
+	rts
+.disable:
+	clr.w	gWipeBlitterEnable
+	rts
+Wipe_GetBlitterEnable:
+	moveq	#0,d0
+	move.w	gWipeBlitterEnable,d0
+	rts
 
 
 *------------------------------------------------------------------------------------*
@@ -203,34 +238,68 @@ Wipe_Update:
 *------------------------------------------------------------------------------------*
 
 Wipe_Render_STE:
-	movem.l	d3-d7/a2,-(a7)
-
+	; Legacy raw helper: a2 points to a mask-table pointer; d1 is a frame
+	; index. Each frame is 16 WORDS / 32 bytes, not 16 bytes. Wipe_Update
+	; uses the direct-mask kernels below instead of this legacy interface.
+	movem.l	d2-d7/a2,-(a7)
 	move.l	(a2),a2
-	lsl.w	#4,d1
-	add.w	d1,a2
+	lsl.w	#5,d1
+	adda.w	d1,a2
+	bsr		Wipe_In_Render_BLT
+	movem.l	(a7)+,d2-d7/a2
+	rts
 
-	move.w  #80,x_cnt.w     ;These values are set here because
-	move.w  #2,s_x_inc.w    ;they need not be changed as long as
-	move.w  #2,s_y_inc.w    ;the effect takes place.
-	move.w  #2,d_x_inc.w
-	move.w  #2,d_y_inc.w
-	clr.b   skew.w       	;Don't shift anything
-	move.b  #3,hop.w        ;Halftone mode :) source and halftone
-	move.b  #3,op.w         ;0=erase, 3=show - source
-	move.l  #-1,end_1.w	;no endmasks needed
-	move.w  #-1,end_3.w
+; a0 source, a1 destination, a2 direct pointer to the current 32-byte mask.
+Wipe_In_Render_BLT:
+	bsr		Wipe_BlitWait
+	move.b	#3,hop.w		; source AND halftone
+	move.b	#3,op.w			; replace destination
+	movem.l	(a2),d0-d7
+	bra		Wipe_BlitFrame
+Wipe_In_Render_BLTEnd:
 
-	movem.l (A2)+,D0-D7	;load & store our halftones
-	movem.l D0-D7,halftone.w
+; a0 existing destination, a1 mask: dst &= ~mask, with no source fetch.
+; This preserves the CPU path's cumulative semantics and arbitrary dst data.
+Wipe_Out_Render_BLT:
+	bsr		Wipe_BlitWait
+	move.l	a1,a2
+	move.l	a0,a1
+	move.b	#1,hop.w		; halftone only
+	move.b	#1,op.w			; halftone AND destination
+	movem.l	(a2),d0-d7
+	not.l	d0
+	not.l	d1
+	not.l	d2
+	not.l	d3
+	not.l	d4
+	not.l	d5
+	not.l	d6
+	not.l	d7
+	bra		Wipe_BlitFrame
+Wipe_Out_Render_BLTEnd:
 
-	move.l  A0,s_hw.w       ;Source address
-	move.l  A1,d_hw.w       ;Dest address
-	move.w  #200,y_cnt.w    ;Copy everything in 1 go
-	move.b  #192,blit.w     ;Blit it
-
-
-	movem.l	(a7)+,a2/d3-d7
-	rts                     ;We're outta here!
+; One synchronous HOG blit. All state used by the transfer is initialized.
+; Interrupts remain enabled; the caller must own the hardware for this call.
+Wipe_BlitFrame:
+	movem.l	d0-d7,halftone.w
+	move.w	#80,x_cnt.w
+	move.w	#2,s_x_inc.w
+	move.w	#2,s_y_inc.w
+	move.w	#2,d_x_inc.w
+	move.w	#2,d_y_inc.w
+	clr.b	skew.w
+	move.l	#-1,end_1.w
+	move.w	#-1,end_3.w
+	move.l	a0,s_hw.w
+	move.l	a1,d_hw.w
+	move.w	#200,y_cnt.w
+	move.b	#$c0,blit.w		; BUSY + HOG, halftone line zero
+Wipe_BlitFrameEnd:
+Wipe_BlitWait:
+	btst	#7,blit.w
+	bne.s	Wipe_BlitWait
+	rts
+Wipe_BlitWaitEnd:
 
 
 *------------------------------------------------------------------------------------*
@@ -263,6 +332,7 @@ Wipe_In_Render:
 	dbra	d0,.yloop
 
 	rts
+Wipe_In_RenderEnd:
 
 
 *------------------------------------------------------------------------------------*
@@ -296,6 +366,7 @@ Wipe_Out_Render:
 	dbra	d0,.yloop
 
 	rts
+Wipe_Out_RenderEnd:
 
 
 **************************************************************************************
@@ -307,6 +378,7 @@ gWipeFxMode:		dc.w	0
 gWipeFramesLeft:	dc.w	0
 gpWipeGfx:			dc.l	0
 gpWipeMask:			dc.l	0
+gWipeBlitterEnable:	dc.w	0
 
 gpWipeData:
 	dc.l gWipeData1,gWipeData2,gWipeData3,gWipeData4,gWipeData5,gWipeData6,gWipeData7,gWipeData8,gWipeData9

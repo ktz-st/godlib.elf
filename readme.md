@@ -31,11 +31,10 @@ existing example Makefiles when starting a project.
 - [PCM Block](audio/pcmblock.md), [PCM Frame](audio/pcmframe.md),
   [PCM Layer](audio/pcmlayer.md), [PCM Voice](audio/pcmvoice.md): detailed
   backend behavior, arithmetic, ownership and verification.
-- [PCM profiling](audio/tests/mixer-profile/README.md): measured callback/core
-  CPU costs and the measurement method.
-- [Line drawing tests](graphic/tests/line/README.md),
-  [blitter tests](blitter/tests/README.md) and
-  [8x8 font tests](font8x8/tests/README.md): target regression checks.
+- [Demo effects and verification](../godlib.spl/DEMO-EFFECTS.md): maintained
+  example READMEs, focused `tools/` harnesses and compact profiling reports.
+- [WIPE backend notes](docs/module-notes.md#wipe): public CPU/blitter selection
+  and the current transition verification example.
 - [64-bit host notes](HOST_64_NOTES.md): host-side portability notes, separate
   from the Atari target library.
 
@@ -80,3 +79,12 @@ The output is `bin/<System>/<Arch>/imploder`. GodLib recognizes `IMP!` data via
 `Packer_*`; `Imploder_DepackChecked()` provides explicit length/capacity checks
 and checksum validation. In-place decode requires only the unpacked buffer.
 See [Imploder runtime](packer/imploder.md) and [host tool/tests](tools/imploder/README.md).
+
+## Verification archives
+
+The old standalone `audio/tests/mixer-profile`, `blitter/tests`, `chunky/tests`,
+`font8x8/tests`, `graphic/tests` subprojects and `reflect/tests` were removed
+during cleanup. Historical case counts in module notes describe those runs;
+they do not indicate that the old harness is still shipped. Check current
+example READMEs and `tools/` directories before choosing a test. Production
+library sources, archive and example PRGs are unchanged by this cleanup.
